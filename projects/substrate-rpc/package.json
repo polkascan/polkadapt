@@ -1,0 +1,16 @@
+{
+  "name": "@polkadapt/substrate-rpc",
+  "version": "0.0.1",
+  "peerDependencies": {
+    "@polkadapt/core": "latest",
+    "@polkadot/api": "latest"
+  },
+  "dependencies": {
+    "tslib": "^2.0.0"
+  },
+  "devDependencies": {
+    "@polkadapt/core": "file:../../dist/core",
+    "@polkadot/api": "latest",
+    "@polkadot/types": "latest"
+  }
+}

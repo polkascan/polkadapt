@@ -1,0 +1,37 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "baseUrl": "./",
+    "outDir": "./dist/out-tsc",
+    "sourceMap": true,
+    "declaration": false,
+    "downlevelIteration": true,
+    "experimentalDecorators": true,
+    "moduleResolution": "node",
+    "importHelpers": true,
+    "target": "es2015",
+    "module": "es2020",
+    "lib": [
+      "es2018",
+      "dom"
+    ],
+    "paths": {
+      "polkadapt": [
+        "dist/polkadapt/polkadapt",
+        "dist/polkadapt"
+      ],
+      "core": [
+        "dist/core/core",
+        "dist/core"
+      ],
+      "substrate-rpc": [
+        "dist/substrate-rpc/substrate-rpc",
+        "dist/substrate-rpc"
+      ],
+      "polkascan": [
+        "dist/polkascan/polkascan",
+        "dist/polkascan"
+      ]
+    }
+  }
+}
