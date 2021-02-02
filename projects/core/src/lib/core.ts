@@ -94,12 +94,15 @@ export class Polkadapt<T> {
       throw new Error('No registered adapter instances in this Polkadapt instance. Please create adapter instances and register them by calling register(...adapters) on the Polkadapt instance.');
     }
 
-    // Wait for all adapters to be ready.
+    // Wait for all adapters to have been created.
     const entrypoints: any[] = await Promise.all(this.adapters.map(a => a.instance.promise));
-    // All adapters ready, store the entrypoints per adapter.
+    // All adapters created, store the entrypoints per adapter.
     this.adapters.forEach((a, index) => {
       a.entrypoint = entrypoints[index];
     });
+
+    // Wait until all connections are initialized.
+    await Promise.all(this.adapters.map(a => a.instance.isReady));
 
     this.isReady = true;
     this.emit('readyChange', this.isReady);
@@ -452,6 +455,8 @@ export abstract class AdapterBase {
   abstract connect(): void;
 
   abstract disconnect(): void;
+
+  abstract get isReady(): Promise<boolean>;
 
   public registerPolkadapt(polkadapt: Polkadapt<any>): void {
     if (this.polkadaptRegistry.has(polkadapt)) {

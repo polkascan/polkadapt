@@ -39,16 +39,7 @@ export class Adapter extends AdapterBase {
   }
 
   connect(): void {
-    if (this.promise) {
-      this.promise.then((apiPromise) => {
-        if (!apiPromise.isConnected) {
-          apiPromise.connect();
-        }
-      }, (e: any) => {
-        console.error('[SubstrateRPCAdapter] Could not start apiPromise connection', e);
-        throw new Error(e);
-      });
-    } else {
+    if (!this.promise) {
       // No apiPromise-promise initialised, create it
       this.promise = this.createPromise();
     }
@@ -59,9 +50,26 @@ export class Adapter extends AdapterBase {
       this.promise.then((apiPromise) => {
         if (apiPromise.isConnected) {
           apiPromise.disconnect();
+          this.promise = undefined;
         }
       });
     }
+  }
+
+  get isReady(): Promise<boolean> {
+    return new Promise<boolean>(async (resolve) => {
+      if (this.promise) {
+        const apiPromise = await this.promise;
+        try {
+          await apiPromise.isReadyOrError;
+          resolve(true);
+        } catch (e) {
+          throw new Error(e);
+        }
+      } else {
+        throw new Error('[SubstrateRPCAdapter] Could not check readiness, no apiPromise available');
+      }
+    });
   }
 
   private async createPromise(): Promise<ApiPromise> {
