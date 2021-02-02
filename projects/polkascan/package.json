@@ -1,0 +1,13 @@
+{
+  "name": "@polkadapt/polkascan",
+  "version": "0.0.1",
+  "peerDependencies": {
+    "@polkadapt/core": "latest"
+  },
+  "dependencies": {
+    "tslib": "^2.0.0"
+  },
+  "devDependencies": {
+    "@polkadapt/core": "file:../../dist/core"
+  }
+}

@@ -147,6 +147,14 @@ export class Polkadapt<T> {
     const resultPromise = new Promise<any>((resolve, reject) => {
       this.ready().then(
         () => {
+          if (!chain) {
+            const possibleChains = new Set(this.adapters.map(a => a.instance.chain));
+            if (possibleChains.size > 1) {
+              throw new Error('Please supply chain argument, because adapters have been registered for multiple chains.');
+            } else {
+              chain = [...possibleChains][0];
+            }
+          }
           // Get entrypoints for each adapter.
           const candidates = this.adapters.filter(a =>
             !a.instance.chain || (Object.prototype.toString.call(a.instance.chain) === '[object String]' && chain === a.instance.chain)
@@ -175,7 +183,7 @@ export class Polkadapt<T> {
 
           // If no items have been on the adapters method chains (paths) then reject the promise.
           if (candidateItems.length === 0) {
-            reject();
+            reject(`No adapters were found containing path ${path.join('.')}`);
             return;
           }
 
@@ -296,12 +304,11 @@ export class Polkadapt<T> {
 
   // Run is the entrypoint for the application that starts the method chain and will return a result or create a subscription triggering
   // a passed through callback.
-  run(chain: string, converter?: (results: any) => any): T {
+  run(chain?: string, converter?: (results: any) => any): T {
     if (!converter) {
       converter = (results: any[]): any => {
         // This is the default converter of the candidate results.
         // By using a recursive Proxy we can (fake) deep merge the result objects.
-        console.log(results);
         if (results.every((r) => typeof r === 'object')) {
           const createResultProxy = (candidateObjects) => {
             const target = {};
