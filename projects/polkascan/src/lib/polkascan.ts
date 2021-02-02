@@ -52,33 +52,29 @@ export class Adapter extends AdapterBase {
   api: PolkascanApi;
   config: Config;
 
-  connect(): void {
-    this.socket.connect();
-  }
-
-  disconnect(): void {
-    this.socket.disconnect();
-  }
-
   constructor(config: Config) {
     super(config.chain);
     this.config = config;
 
-    this.api = new PolkascanApi(this.config.apiEndpoint);
-    this.socket = new PolkascanWebSocket(this.config.wsEndpoint, config.chain);
+    if (this.config.apiEndpoint) {
+      this.api = new PolkascanApi(this.config.apiEndpoint);
+    }
+    if (this.config.wsEndpoint) {
+      this.socket = new PolkascanWebSocket(this.config.wsEndpoint, config.chain);
+    }
 
     this.promise = new Promise((resolve) => {
       resolve({
         query: {
           council: {
-            getVotes: async (address: string) => this.api.getMemberVotes(address)
+            getVotes: async (address: string) => this.api && this.api.getMemberVotes(address)
           },
           system: {
-            account: async (address: string) => this.api.getAccount(address)
+            account: async (address: string) => this.api && this.api.getAccount(address)
           },
           block: {
             all: () => {
-              if (this.socket && this.socket.isReady) {
+              if (this.socket) {
                 return new Promise((res, rej) => {
                   const id = 'q1';
                   const payload = {
@@ -102,22 +98,64 @@ export class Adapter extends AdapterBase {
                       } else {
                         res([]);
                       }
-                      this.socket.off('message', listenerFn);
+                      this.socket.off('data', listenerFn);
                     }
                   };
 
 
-                  this.socket.on('message', listenerFn);
+                  this.socket.on('data', listenerFn);
                   this.socket.send(JSON.stringify(payload));
                 });
+              } else if (this.api) {
+                // In case we can fallback on an api call.
               }
 
-              // TODO Try via API.
               return Promise.reject();
             }
           }
         }
       });
+    });
+  }
+
+  connect(): void {
+    this.socket.connect();
+  }
+
+  disconnect(): void {
+    this.socket.disconnect();
+  }
+
+  get isReady(): Promise<boolean> {
+    return new Promise<boolean>((resolve) => {
+      if (!this.socket) {
+        resolve(true);
+
+      } else if (this.socket.websocketReady) {
+        resolve(true);
+
+      } else {
+        const readyCallback = (ready: boolean) => {
+          if (ready) {
+            removeListeners();
+            resolve(true);
+          }
+        };
+
+        const errorCallback = () => {
+          removeListeners();
+        };
+
+        const removeListeners = () => {
+          // Remove listeners after error or readyChange.
+          this.socket.off('readyChange', readyCallback);
+          this.socket.off('error', errorCallback);
+        };
+
+        // Subscribe to the websockets readyChange or error.
+        this.socket.on('readyChange', readyCallback);
+        this.socket.on('error', errorCallback);
+      }
     });
   }
 }

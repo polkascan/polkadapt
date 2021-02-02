@@ -29,13 +29,15 @@ export const GQLMSG = {
   STOP: 'stop'
 };
 
-const websocketChannelName = 'graphql-ws';
+export type PolkascanWebsocketEventNames = 'open' | 'error' | 'readyChange' | 'data' | 'close';
+
+const PolkascanChannelName = 'graphql-ws';
 
 export class PolkascanWebSocket {
   wsEndpoint: string;
   chain: string;
   webSocket: WebSocket;
-  isReady = false;
+  websocketReady = false;
 
   addListener = this.on;
   off = this.removeListener;
@@ -66,15 +68,13 @@ export class PolkascanWebSocket {
   disconnect(): void {
     // Disconnect the webSocket.
     if (this.webSocket) {
-      this.isReady = false;
       this.webSocket.close();
     }
   }
 
 
   send(message: any): void {
-    console.log('send', this.webSocket);
-    if (this.webSocket && this.isReady) {
+    if (this.webSocket && this.websocketReady) {
       if (typeof message !== 'string') {
         message = JSON.stringify(message);
       }
@@ -87,13 +87,14 @@ export class PolkascanWebSocket {
 
   createWebSocket(isReconnect = false): void {
     try {
-      const webSocket = new WebSocket(this.wsEndpoint, websocketChannelName);
+      const webSocket = new WebSocket(this.wsEndpoint, PolkascanChannelName);
 
       webSocket.onopen = () => {
         this.webSocket = webSocket;
-        this.emit('open', open);
+        this.emit('open');
 
-        // TODO rebuild subscriptions if reconnect
+        // TODO rebuild subscriptions on reconnect
+        // TODO cached requests created while offline.
 
         const init = JSON.stringify({
           type: GQLMSG.CONNECTION_INIT
@@ -106,10 +107,11 @@ export class PolkascanWebSocket {
 
         switch (data.type) {
           case GQLMSG.DATA:
-            this.emit('message', data);
+            this.emit('data', data);
             break;
           case GQLMSG.CONNECTION_ACK:
-            this.isReady = true;
+            this.websocketReady = true;
+            this.emit('readyChange', true);
             break;
           default:
             break;
@@ -124,14 +126,20 @@ export class PolkascanWebSocket {
           });
         }
         this.webSocket = undefined;
-        this.isReady = false;
+        if (this.websocketReady) {
+          this.websocketReady = false;
+          this.emit('readyChange', false);
+        }
         this.emit('error', error);
       };
 
       webSocket.onclose = (close) => {
         if (this.webSocket) {
           this.webSocket = undefined;
-          this.isReady = false;
+          if (this.websocketReady) {
+            this.websocketReady = false;
+            this.emit('readyChange', false);
+          }
         }
         this.emit('close', close);
       };
@@ -143,11 +151,11 @@ export class PolkascanWebSocket {
 
 
   // Add listener function.
-  on(eventName: string, listener: (...args) => any): void {
-    if (!this.eventListeners.hasOwnProperty(eventName)) {
-      this.eventListeners[eventName] = [];
+  on(messageType: PolkascanWebsocketEventNames, listener: (...args) => any): void {
+    if (!this.eventListeners.hasOwnProperty(messageType)) {
+      this.eventListeners[messageType] = [];
     }
-    this.eventListeners[eventName].push(listener);
+    this.eventListeners[messageType].push(listener);
   }
 
 
@@ -174,7 +182,7 @@ export class PolkascanWebSocket {
 
 
   // Add listener that triggers only once and then removes itself.
-  once(eventName: string, listener: (...args) => any): void {
+  once(eventName: PolkascanWebsocketEventNames, listener: (...args) => any): void {
     const onceListener = (...args) => {
       listener(...args);
       this.off(eventName, onceListener);
@@ -184,7 +192,7 @@ export class PolkascanWebSocket {
 
 
   // Trigger handler function on event.
-  emit(eventName: keyof WebSocketEventMap, ...args): boolean {
+  emit(eventName: string, ...args): boolean {
     if (this.eventListeners[eventName] && this.eventListeners[eventName].length) {
       this.eventListeners[eventName].forEach((listener) => listener(...args));
       return true;
