@@ -133,8 +133,10 @@ export class Adapter extends AdapterBase {
 
                   const listenerFn = (message: any) => {
                     if (message.id === id) {
-                      if (message.data && message.data.allBlocks) {
-                        callback(message.data.allBlocks);
+                      if (message.payload
+                        && message.payload.data
+                        && message.payload.data.allBlocks) {
+                        callback(message.payload.data.allBlocks);
                       }
                     }
                   };
