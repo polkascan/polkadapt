@@ -74,14 +74,18 @@ export class PolkascanWebSocket {
 
 
   send(message: any): void {
-    if (this.webSocket && this.websocketReady) {
-      if (typeof message !== 'string') {
-        message = JSON.stringify(message);
-      }
-      this.webSocket.send(message);
-    } else {
-      throw new Error('Polkascan websocket is not yet initialized');
+    if (!this.webSocket) {
+      throw new Error('There is no websocket connection.');
     }
+    if (!this.websocketReady) {
+      throw new Error('Websocket is connected but not (yet) initialized.');
+    }
+
+    if (typeof message !== 'string') {
+      message = JSON.stringify(message);
+    }
+
+    this.webSocket.send(message);
   }
 
 

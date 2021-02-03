@@ -19,6 +19,7 @@
 import { AdapterBase } from '@polkadapt/core';
 import { PolkascanApi } from './polkascan.api';
 import { GQLMSG, PolkascanWebSocket } from './polkascan.web-socket';
+import { Block } from './polkascan.types';
 
 export type Api = {
   query: {
@@ -32,11 +33,11 @@ export type Api = {
       all: () => Promise<any>
     }
   }
-  // rpc: {
-  //   chain: {
-  //     subscribeNewHeads: (callback: (value: any) => void) => Promise<any>
-  //   }
-  // }
+  rpc: {
+    chain: {
+      subscribeFinalizedHeads: (callback: (blocks: Block[]) => void) => Promise<() => void>
+    }
+  }
 };
 
 export interface Config {
@@ -51,6 +52,7 @@ export class Adapter extends AdapterBase {
   socket: PolkascanWebSocket;
   api: PolkascanApi;
   config: Config;
+  private n = 0;
 
   constructor(config: Config) {
     super(config.chain);
@@ -76,9 +78,9 @@ export class Adapter extends AdapterBase {
             all: () => {
               if (this.socket) {
                 return new Promise((res, rej) => {
-                  const id = 'q1';
+                  const id = this.generateNonce();
                   const payload = {
-                    type: GQLMSG.START,
+                    type: GQLMSG.DATA,
                     id,
                     payload: {
                       query: 'query allBlockies { allBlocks { id, hash } }',
@@ -102,7 +104,6 @@ export class Adapter extends AdapterBase {
                     }
                   };
 
-
                   this.socket.on('data', listenerFn);
                   this.socket.send(JSON.stringify(payload));
                 });
@@ -111,6 +112,49 @@ export class Adapter extends AdapterBase {
               }
 
               return Promise.reject();
+            }
+          }
+        },
+        rpc: {
+          chain: {
+            subscribeFinalizedHeads: (callback) => {
+              // TODO For now only websocket version, but we can also create a fallback version to the API with polling.
+              return new Promise((res) => {
+                try {
+                  const id = this.generateNonce();
+                  const payload = {
+                    type: GQLMSG.START,
+                    id,
+                    payload: {
+                      query: 'query blocksQuery { allBlocks { id, hash, parentHash, stateRoot, extrinsicsRoot } }',
+                      operationName: null,
+                    },
+                  };
+
+                  const listenerFn = (message: any) => {
+                    if (message.id === id) {
+                      if (message.data && message.data.allBlocks) {
+                        callback(message.data.allBlocks);
+                      }
+                    }
+                  };
+
+                  const clearListenerFn = () => {
+                    this.socket.off('data', listenerFn);
+                    this.socket.send(JSON.stringify({
+                      type: GQLMSG.STOP,
+                      id
+                    }));
+                  };
+
+                  this.socket.on('data', listenerFn);
+                  this.socket.send(JSON.stringify(payload));
+                  res(clearListenerFn);
+
+                } catch (e) {
+                  throw new Error(e);
+                }
+              });
             }
           }
         }
@@ -124,6 +168,10 @@ export class Adapter extends AdapterBase {
 
   disconnect(): void {
     this.socket.disconnect();
+  }
+
+  generateNonce(): number {
+    return this.n++;
   }
 
   get isReady(): Promise<boolean> {
