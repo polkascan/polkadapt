@@ -80,6 +80,7 @@ export class Polkadapt<T> {
         this.adapters.splice(index, 1);
       }
     }
+    this.isReady = false;
   }
 
 
@@ -113,7 +114,7 @@ export class Polkadapt<T> {
   // Generate the proxy object that will return a promise on execution.
   private createRecursiveProxy(chain: string, converter: (results) => any): any {
     const path: string[] = [];  // Contains the mirroring path of the method chain.
-    const candidateReturnValues = [];  // Array of promises for every adapter that matches the method chain.
+    const candidateReturnValues: Map<AdapterBase, any> = new Map();  // Map of promises for every adapter that matches the method chain.
     let called = false;  // Called will be true if the method chain is executed.
     let callArgs;  // A list with the arguments passed to the call at execution.
     let callback: (...attrs: any) => any;  // The user passed callback function to be executed when subscriptions emit.
@@ -134,7 +135,7 @@ export class Polkadapt<T> {
         });
 
         // Convert messages and execute the user passed callback function with the result.
-        if (candidateMessages.size === candidateReturnValues.length) {
+        if (candidateMessages.size === candidateReturnValues.size) {
           callback(converter(messages));
         }
       };
@@ -143,7 +144,15 @@ export class Polkadapt<T> {
     // Polkadapt will return this unsubscribe function when it's promise is resolved in the client application. Every
     // adapter that has a subscription running will get unsubscribed.
     const unsubscribeAll = () => {
-      unsubscribeFunctions.forEach((ufn) => ufn());
+      if (unsubscribeFunctions.length === 0) {
+        return Promise.resolve();
+      } else if (unsubscribeFunctions.length === 1) {
+        return Promise.resolve(unsubscribeFunctions[0]());
+      } else {
+        return Promise.all(unsubscribeFunctions.map((ufn, index) => {
+          return ufn();
+        }));
+      }
     };
 
     // The actual promise returned to the application containing data or unsubscribe functionality.
@@ -161,14 +170,15 @@ export class Polkadapt<T> {
           // Get entrypoints for each adapter.
           const candidates = this.adapters.filter(a =>
             !a.instance.chain || (Object.prototype.toString.call(a.instance.chain) === '[object String]' && chain === a.instance.chain)
-          ).map(a => a.entrypoint);
+          );
 
-          const candidateItems = [];  // Array of matching items that contain functionality at the end of the method chain.
+          // Array of matching items that contain functionality at the end of the method chain.
+          const candidateItems: Map<AdapterBase, any> = new Map();
           // (items can be function or primitive or object)
 
           // Walk the chain path for every adapter.
           for (const c of candidates) {
-            let item = c;
+            let item = c.entrypoint;
             let pathFailed = false;
 
             for (const prop of path) {
@@ -180,41 +190,45 @@ export class Polkadapt<T> {
             }
 
             if (!pathFailed) {
-              candidateItems.push(item);
+              candidateItems.set(c.instance, item);
             }
           }
 
           // If no items have been on the adapters method chains (paths) then reject the promise.
-          if (candidateItems.length === 0) {
+          if (candidateItems.size === 0) {
             reject(`No adapters were found containing path ${path.join('.')}`);
             return;
           }
 
           // Method chain has execution on last item. It is called.
           if (called) {
-            candidateItems.forEach(item => {
+            candidateItems.forEach((value, adapter) => {
               try {
-                const result = item(...callArgs.map((arg: any) => {
+                const result = value(...callArgs.map((arg: any) => {
                   if (typeof arg === 'function') {
                     // Set candidate in interceptor callback function.
-                    return arg(item);
+                    return arg(value);
                   } else {
                     return arg;
                   }
                 }));
-                candidateReturnValues.push(result);
+                candidateReturnValues.set(adapter, result);
               } catch (e) {
                 // This candidate is not a function.
               }
             });
 
-            if (candidateReturnValues.length === 0) {
+            if (candidateReturnValues.size === 0) {
               reject(`No adapters were found containing path ${path.join('.')}`);
 
-            } else if (candidateReturnValues.length === 1) {
-              candidateReturnValues[0].then((returnValue) => {
+            } else if (candidateReturnValues.size === 1) {
+              candidateReturnValues.values().next().value.then((returnValue) => {
                 if (typeof returnValue === 'function') {
-                  unsubscribeFunctions = [returnValue];
+                  unsubscribeFunctions = [() => {
+                    if (this.adapters.map(a => a.instance).includes(candidateReturnValues.keys().next().value)) {
+                      return returnValue();
+                    }
+                  }];
                   // Callbacks will be triggered, return an unsubscribe all function.
                   resolve(unsubscribeAll);
                 } else {
@@ -222,10 +236,20 @@ export class Polkadapt<T> {
                 }
               }, reject);
             } else {
-              Promise.all(candidateReturnValues).then(
+              Promise.all(Array.from(candidateReturnValues.values())).then(
                 (returnValues) => {
                   // Check if a return value is a unsubscribe function. If so we have a subscription.
-                  unsubscribeFunctions = returnValues.filter((rv) => typeof rv === 'function');
+                  unsubscribeFunctions = returnValues
+                    .map((value, index) => {
+                      if (value === 'function') {
+                        return () => {
+                          if (this.adapters.map(a => a.instance).includes(Array.from(candidateReturnValues.keys())[index])) {
+                            return value();
+                          }
+                        };
+                      }
+                    })
+                    .filter((v) => !!v);
 
                   if (unsubscribeFunctions.length > 0) {
                     returnValues.forEach((rv, index) => {
@@ -242,14 +266,14 @@ export class Polkadapt<T> {
                 },
                 (errors: any) => {
                   // Check if subscriptions were made. Unsubscribe immediately.
-                  candidateReturnValues.forEach((rv) => {
-                    rv.then((returnValue) => {
+                  for (const value of candidateReturnValues.values()) {
+                    value.then((returnValue) => {
                       if (typeof returnValue === 'function') {
                         returnValue();
                       }
                     }, () => {
                     });
-                  });
+                  }
 
                   reject(errors);
                 });

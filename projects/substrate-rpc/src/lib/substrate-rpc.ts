@@ -50,10 +50,10 @@ export class Adapter extends AdapterBase {
       this.promise.then((apiPromise) => {
         if (apiPromise.isConnected) {
           apiPromise.disconnect();
-          this.promise = undefined;
         }
       });
     }
+    this.promise = undefined;
   }
 
   get isReady(): Promise<boolean> {
