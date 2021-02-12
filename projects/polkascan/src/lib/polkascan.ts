@@ -141,7 +141,7 @@ export class Adapter extends AdapterBase {
                     }
                   };
 
-                  const clearListenerFn = () => {
+                  const clearListenerFn = async () => {
                     this.socket.off('data', listenerFn);
                     this.socket.send(JSON.stringify({
                       type: GQLMSG.STOP,

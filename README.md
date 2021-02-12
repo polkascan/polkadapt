@@ -100,7 +100,8 @@ const adapters = [
   }),
   new polkascan.Adapter({
     chain: 'kusama',
-    endpoint: 'https://explorer-31.polkascan.io/kusama/api/v1/'
+    apiEndpoint: 'https://host-xx.polkascan.io:8009/graphql',
+    wsEndpoint: 'ws://host-xx.polkascan.io:8009/graphql-ws'
   }),
   new currency.Adapter()
 ];

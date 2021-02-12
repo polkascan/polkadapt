@@ -22,6 +22,12 @@ export enum PolkadaptEventNames {
 
 export type AdapterPromise = Promise<any>;
 
+export interface PolkadaptRunConfig {
+  chain?: string;
+  converter?: (results: any) => any;
+  adapters?: (AdapterBase | string) | (AdapterBase | string)[];
+}
+
 //
 // Polkadapt class
 //
@@ -112,7 +118,12 @@ export class Polkadapt<T> {
 
 
   // Generate the proxy object that will return a promise on execution.
-  private createRecursiveProxy(chain: string, converter: (results) => any): any {
+  private createRecursiveProxy(chain: string,
+                               converter: (results) => any,
+                               adapters?: {
+                                 instance: AdapterBase,
+                                 entrypoint: any
+                               }[]): any {
     const path: string[] = [];  // Contains the mirroring path of the method chain.
     const candidateReturnValues: Map<AdapterBase, any> = new Map();  // Map of promises for every adapter that matches the method chain.
     let called = false;  // Called will be true if the method chain is executed.
@@ -168,9 +179,16 @@ export class Polkadapt<T> {
             }
           }
           // Get entrypoints for each adapter.
-          const candidates = this.adapters.filter(a =>
+          let candidates = this.adapters.filter(a =>
             !a.instance.chain || (Object.prototype.toString.call(a.instance.chain) === '[object String]' && chain === a.instance.chain)
           );
+
+          if (adapters) {
+            candidates = candidates.filter(({entrypoint}) => adapters.map((ei) => ei.entrypoint).includes(entrypoint));
+            if (candidates.length === 0) {
+              throw new Error('The requested adapters are not registered for the supplied chain.');
+            }
+          }
 
           // Array of matching items that contain functionality at the end of the method chain.
           const candidateItems: Map<AdapterBase, any> = new Map();
@@ -331,7 +349,35 @@ export class Polkadapt<T> {
 
   // Run is the entrypoint for the application that starts the method chain and will return a result or create a subscription triggering
   // a passed through callback.
-  run(chain?: string, converter?: (results: any) => any): T {
+  run(config?: PolkadaptRunConfig): T {
+    const chain = config && config.chain;
+    let converter = config && config.converter;
+
+    let adapters;
+
+    if (config && config.adapters) {
+      let adapterNotFound = false;
+      adapters = (Array.isArray(config.adapters) ? config.adapters : [config.adapters])
+        .map((a) => {
+          let found;
+          if (Object.prototype.toString.call(a) === '[object String]') {
+            // Check if the adapter is registered under the given name.
+            found = this.adapters.filter(({instance}) => instance.name === a)[0];
+          } else {
+            // Check if the adapter is registered.
+            found = this.adapters.filter(({instance}) => instance === a)[0];
+          }
+          if (!found) {
+            adapterNotFound = true;
+          }
+          return found;
+        });
+
+      if (adapterNotFound) {
+        throw new Error('The requested adapters have not been registered.');
+      }
+    }
+
     if (!converter) {
       converter = (results: any[]): any => {
         // This is the default converter of the candidate results.
@@ -384,7 +430,8 @@ export class Polkadapt<T> {
       };
     }
 
-    return this.createRecursiveProxy(chain, converter);
+
+    return this.createRecursiveProxy(chain, converter, adapters);
   }
 
 

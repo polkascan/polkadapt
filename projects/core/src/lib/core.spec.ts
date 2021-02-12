@@ -27,6 +27,10 @@ class TestAdapterBase extends AdapterBase {
   timeout: number;
   api;
 
+  get isReady(): Promise<boolean> {
+    return Promise.resolve(true);
+  }
+
   constructor() {
     super(chainName);
     this.api = {
@@ -78,6 +82,10 @@ class TestAdapterA extends TestAdapterBase {
   letter = 'a';
   timeout = 100;
 
+  get isReady(): Promise<boolean> {
+    return Promise.resolve(true);
+  }
+
   constructor() {
     super();
     this.api.values.successFromA = async () => Promise.resolve('a');
@@ -104,8 +112,13 @@ class TestAdapterB extends TestAdapterBase {
   letter = 'b';
   timeout = 150;
 
+  get isReady(): Promise<boolean> {
+    return Promise.resolve(true);
+  }
+
   constructor() {
     super();
+    this.api.values.successFromB = async () => Promise.resolve('b');
     this.api.values.failureFromB = async () => Promise.reject('whatever');
     this.api.values.partialFailure = this.api.values.failureFromB;
     this.api.subscriptions.failureFromB = async (callback) => {
@@ -130,6 +143,10 @@ class TestAdapterB extends TestAdapterBase {
 
 class TestAdapterC extends TestAdapterBase {
   name = 'test adapter C';
+
+  get isReady(): Promise<boolean> {
+    return Promise.resolve(true);
+  }
 }
 
 describe('Polkadapt', () => {
@@ -213,8 +230,8 @@ describe('Polkadapt', () => {
   });
 
   it('should return a Promise when an adapter API is called.', async () => {
-    const valuePromise = pa.run(chainName).values.successFromA();
-    const functionPromise = pa.run(chainName).subscriptions.successFromA(() => {
+    const valuePromise = pa.run({chain: chainName}).values.successFromA();
+    const functionPromise = pa.run({chain: chainName}).subscriptions.successFromA(() => {
     });
     expect(valuePromise).toBeInstanceOf(Promise);
     expect(functionPromise).toBeInstanceOf(Promise);
@@ -226,18 +243,18 @@ describe('Polkadapt', () => {
     // Here we don't explicitly await pa.ready() and expect the API call to do this instead.
     const readyStateHandler = jasmine.createSpy('readyStateHandler');
     pa.once('readyChange', readyStateHandler);
-    const valuePromise = pa.run(chainName).values.successFromBoth();
+    const valuePromise = pa.run({chain: chainName}).values.successFromBoth();
     expect(readyStateHandler).not.toHaveBeenCalled();
     await valuePromise;
     expect(readyStateHandler).toHaveBeenCalledWith(true);
   });
 
   it('should return the Promise result of one adapter.', async () => {
-    expect(await pa.run(chainName).values.successFromA()).toEqual('a');
+    expect(await pa.run({chain: chainName}).values.successFromA()).toEqual('a');
   });
 
   it('should deep merge the Promise result of multiple adapters.', async () => {
-    const result = await pa.run(chainName).values.successFromBoth();
+    const result = await pa.run({chain: chainName}).values.successFromBoth();
     expect(result).toEqual({
       nested: {
         conflicted: ['a', 'b'],
@@ -250,7 +267,7 @@ describe('Polkadapt', () => {
   it('should reject when one adapter rejects.', async () => {
     let status;
     try {
-      await pa.run(chainName).values.failureFromB();
+      await pa.run({chain: chainName}).values.failureFromB();
       status = true;
     } catch (error) {
       status = false;
@@ -263,7 +280,7 @@ describe('Polkadapt', () => {
   it('should reject when one of multiple adapters rejects.', async () => {
     let status;
     try {
-      await pa.run(chainName).values.partialFailure();
+      await pa.run({chain: chainName}).values.partialFailure();
       status = true;
     } catch (error) {
       status = false;
@@ -282,6 +299,45 @@ describe('Polkadapt', () => {
   xit('should unsubscribe multiple adapters when one adapter throws an error.');
   xit('should unsubscribe multiple adapters after unregister.');
   xit('should be clear which adapter threw an error.');
+
+  it('should be able to run with a specific adapter', async () => {
+    expect(await pa.run({chain: chainName, adapters: 'test adapter A'}).values.successFromA()).toEqual('a');
+    expect(await pa.run({chain: chainName, adapters: ['test adapter A']}).values.successFromA()).toEqual('a');
+    expect(await pa.run({chain: chainName, adapters: pa.adapters[0].instance}).values.successFromA()).toEqual('a');
+    expect(await pa.run({chain: chainName, adapters: [pa.adapters[0].instance]}).values.successFromA()).toEqual('a');
+    expect(await pa.run({chain: chainName, adapters: 'test adapter B'}).values.successFromB()).toEqual('b');
+    expect(await pa.run({chain: chainName, adapters: pa.adapters[1].instance}).values.successFromB()).toEqual('b');
+  });
+
+  it('should be able to run with multiple specified adapters', async () => {
+    const result = await pa.run({chain: chainName, adapters: [pa.adapters[0].instance, 'test adapter B']}).values.successFromBoth();
+    expect(result).toEqual({
+      nested: {
+        conflicted: ['a', 'b'],
+        a: true,
+        b: true
+      }
+    });
+  });
+
+  it('should fail when specified adapters are not registered', async () => {
+    const adapterA = pa.adapters[0].instance;
+    pa.unregister(adapterA);
+
+    try {
+      await pa.run({chain: chainName, adapters: 'test adapter A'}).values.successFromA();
+    } catch (e) {
+      expect(e.message).toEqual('The requested adapters have not been registered.');
+    }
+
+    try {
+      await pa.run({chain: chainName, adapters: adapterA}).values.successFromA();
+    } catch (e) {
+      expect(e.message).toEqual('The requested adapters have not been registered.');
+    }
+
+    // todo include not for a specified chain
+  });
 
   // Adapter tests.
   xit('should have a "name" property containing a name.');

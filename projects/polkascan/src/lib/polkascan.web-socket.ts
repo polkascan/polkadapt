@@ -185,16 +185,6 @@ export class PolkascanWebSocket {
   }
 
 
-  // Add listener that triggers only once and then removes itself.
-  once(eventName: PolkascanWebsocketEventNames, listener: (...args) => any): void {
-    const onceListener = (...args) => {
-      listener(...args);
-      this.off(eventName, onceListener);
-    };
-    this.on(eventName, onceListener);
-  }
-
-
   // Trigger handler function on event.
   emit(eventName: string, ...args): boolean {
     if (this.eventListeners[eventName] && this.eventListeners[eventName].length) {
