@@ -22,11 +22,15 @@ export enum PolkadaptEventNames {
 
 export type AdapterPromise = Promise<any>;
 
+type PolkadaptRunConfigConverter = (results: any) => any;
+type PolkadaptRunConfigStrategy = 'merge' | 'combineLatest';
+type PolkadaptRunConfigAdapters = (AdapterBase | string) | (AdapterBase | string)[];
+
 export interface PolkadaptRunConfig {
   chain?: string;
-  converter?: (results: any) => any;
-  strategy?: 'merge' | 'combineLatest';
-  adapters?: (AdapterBase | string) | (AdapterBase | string)[];
+  converter?: PolkadaptRunConfigConverter;
+  strategy?: PolkadaptRunConfigStrategy;
+  adapters?: PolkadaptRunConfigAdapters;
 }
 
 //
@@ -120,8 +124,8 @@ export class Polkadapt<T> {
 
   // Generate the proxy object that will return a promise on execution.
   private createRecursiveProxy(chain: string,
-                               converter: (results) => any,
-                               strategy: string,
+                               converter: PolkadaptRunConfigConverter,
+                               strategy: PolkadaptRunConfigStrategy,
                                adapters?: {
                                  instance: AdapterBase,
                                  entrypoint: any
@@ -357,33 +361,43 @@ export class Polkadapt<T> {
 
   // Run is the entrypoint for the application that starts the method chain and will return a result or create a subscription triggering
   // a passed through callback.
-  run(config?: PolkadaptRunConfig): T {
-    const chain = config && config.chain;
-    const strategy = config && config.strategy;
-    let converter = config && config.converter;
+  run(config?: PolkadaptRunConfig | string): T {
+    let chain: string;
+    let converter: PolkadaptRunConfigConverter;
+    let strategy: PolkadaptRunConfigStrategy;
+    let adapters: {
+      instance: AdapterBase,
+      entrypoint: any
+    }[];
 
-    let adapters;
+    if (typeof config === 'string') {
+      chain = config;
+    } else if (Object.prototype.toString.call(config) === '[object Object]') {
+      chain = config.chain;
+      strategy = config.strategy;
+      converter = config.converter;
 
-    if (config && config.adapters) {
-      let adapterNotFound = false;
-      adapters = (Array.isArray(config.adapters) ? config.adapters : [config.adapters])
-        .map((a) => {
-          let found;
-          if (Object.prototype.toString.call(a) === '[object String]') {
-            // Check if the adapter is registered under the given name.
-            found = this.adapters.filter(({instance}) => instance.name === a)[0];
-          } else {
-            // Check if the adapter is registered.
-            found = this.adapters.filter(({instance}) => instance === a)[0];
-          }
-          if (!found) {
-            adapterNotFound = true;
-          }
-          return found;
-        });
+      if (config.adapters) {
+        let adapterNotFound = false;
+        adapters = (Array.isArray(config.adapters) ? config.adapters : [config.adapters])
+          .map((a) => {
+            let found;
+            if (Object.prototype.toString.call(a) === '[object String]') {
+              // Check if the adapter is registered under the given name.
+              found = this.adapters.filter(({instance}) => instance.name === a)[0];
+            } else {
+              // Check if the adapter is registered.
+              found = this.adapters.filter(({instance}) => instance === a)[0];
+            }
+            if (!found) {
+              adapterNotFound = true;
+            }
+            return found;
+          });
 
-      if (adapterNotFound) {
-        throw new Error('The requested adapters have not been registered.');
+        if (adapterNotFound) {
+          throw new Error('The requested adapters have not been registered.');
+        }
       }
     }
 
