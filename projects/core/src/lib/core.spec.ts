@@ -291,7 +291,9 @@ describe('Polkadapt', () => {
   xit('should reject when one of multiple adapters throws an error.');
 
   xit('should return the callback result for a subscription in one adapter.');
-  xit('should deep merge the callback values for a subscription in multiple adapters.');
+  xit('should return the callback for every emitted result for subscriptions in multiple adapters.');
+  xit('should deep merge the callback values for a subscription in multiple adapters. (merge)');
+  xit('should wait for deep merge when all adapters returned results (combineLatest).');
   xit('should deep merge the callback values for a subscription in one adapter and Promise result in another.');
   xit('should make an Array of the callback values if one of multiple is not an Object.');
   xit('should unsubscribe one adapter');

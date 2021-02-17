@@ -156,10 +156,10 @@ export class Polkadapt<T> {
           if (candidateMessages.size === candidateReturnValues.size) {
             callback(converter(messages));
           }
-        } else if (strategy === 'merge') {
+        } else if (strategy === 'merge' && candidateMessages.size > 1) {
           callback(converter(messages));
         } else {
-          callback(converter([message]));
+          callback(message);
         }
       };
     };
