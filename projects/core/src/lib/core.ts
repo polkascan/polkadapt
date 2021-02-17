@@ -25,6 +25,7 @@ export type AdapterPromise = Promise<any>;
 export interface PolkadaptRunConfig {
   chain?: string;
   converter?: (results: any) => any;
+  strategy?: 'merge' | 'combineLatest';
   adapters?: (AdapterBase | string) | (AdapterBase | string)[];
 }
 
@@ -120,6 +121,7 @@ export class Polkadapt<T> {
   // Generate the proxy object that will return a promise on execution.
   private createRecursiveProxy(chain: string,
                                converter: (results) => any,
+                               strategy: string,
                                adapters?: {
                                  instance: AdapterBase,
                                  entrypoint: any
@@ -129,7 +131,7 @@ export class Polkadapt<T> {
     let called = false;  // Called will be true if the method chain is executed.
     let callArgs;  // A list with the arguments passed to the call at execution.
     let callback: (...attrs: any) => any;  // The user passed callback function to be executed when subscriptions emit.
-    const candidateMessages = new Map();  // Messages storage per subscription. (enables combine latest)
+    const candidateMessages = new Map();  // Messages storage per subscription. (enables combineLatest and merge)
     let unsubscribeFunctions: (() => any)[];  // Storage for all the unsubscribe functions for active subscriptions.
 
     // This interceptor returns a function that will store the received subscription messages for a candidate.
@@ -146,8 +148,14 @@ export class Polkadapt<T> {
         });
 
         // Convert messages and execute the user passed callback function with the result.
-        if (candidateMessages.size === candidateReturnValues.size) {
+        if (strategy === 'combineLatest') {
+          if (candidateMessages.size === candidateReturnValues.size) {
+            callback(converter(messages));
+          }
+        } else if (strategy === 'merge') {
           callback(converter(messages));
+        } else {
+          callback(converter([message]));
         }
       };
     };
@@ -351,6 +359,7 @@ export class Polkadapt<T> {
   // a passed through callback.
   run(config?: PolkadaptRunConfig): T {
     const chain = config && config.chain;
+    const strategy = config && config.strategy;
     let converter = config && config.converter;
 
     let adapters;
@@ -431,7 +440,7 @@ export class Polkadapt<T> {
     }
 
 
-    return this.createRecursiveProxy(chain, converter, adapters);
+    return this.createRecursiveProxy(chain, converter, strategy, adapters);
   }
 
 
