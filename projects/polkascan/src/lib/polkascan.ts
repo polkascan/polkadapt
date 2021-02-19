@@ -35,7 +35,8 @@ export type Api = {
   }
   rpc: {
     chain: {
-      subscribeFinalizedHeads: (callback: (blocks: Block[]) => void) => Promise<() => void>
+      subscribeFinalizedHeads: (callback: (blocks: Block[]) => void) => Promise<() => void>,
+      getLatestFinalizedBlocks: (pageSize: number) => Promise<any>
     }
   }
 };
@@ -52,7 +53,6 @@ export class Adapter extends AdapterBase {
   socket: PolkascanWebSocket;
   api: PolkascanApi;
   config: Config;
-  private n = 0;
 
   constructor(config: Config) {
     super(config.chain);
@@ -75,38 +75,16 @@ export class Adapter extends AdapterBase {
             account: async (address: string) => this.api && this.api.getAccount(address)
           },
           block: {
-            all: () => {
+            all: async () => {
               if (this.socket) {
-                return new Promise((res, rej) => {
-                  const id = this.generateNonce();
-                  const payload = {
-                    type: GQLMSG.DATA,
-                    id,
-                    payload: {
-                      query: 'query allBlockies { allBlocks { id, hash } }',
-                      operationName: null,
-                    },
-                  };
+                const query = 'query allBlockies { allBlocks { id, hash } }';
+                const result = await this.socket.query(query);
 
-                  const timeout = setTimeout(() => {
-                    rej('websocket answer took to long');
-                  }, 3000);
-
-                  const listenerFn = (message: any) => {
-                    if (message.id === id) {
-                      clearTimeout(timeout);
-                      if (message.data && message.data.allBlocks) {
-                        res(message.data.allBlocks);
-                      } else {
-                        res([]);
-                      }
-                      this.socket.off('data', listenerFn);
-                    }
-                  };
-
-                  this.socket.on('data', listenerFn);
-                  this.socket.send(JSON.stringify(payload));
-                });
+                try {
+                  return result.data.allBlocks;
+                } catch (e) {
+                  return [] ;
+                }
               } else if (this.api) {
                 // In case we can fallback on an api call.
               }
@@ -117,46 +95,31 @@ export class Adapter extends AdapterBase {
         },
         rpc: {
           chain: {
-            subscribeFinalizedHeads: (callback) => {
-              // TODO For now only websocket version, but we can also create a fallback version to the API with polling.
-              return new Promise((res) => {
-                try {
-                  const id = this.generateNonce();
-                  const payload = {
-                    type: GQLMSG.START,
-                    id,
-                    payload: {
-                      query: 'query blocksQuery { allBlocks { id, hash, parentHash, stateRoot, extrinsicsRoot } }',
-                      operationName: null,
-                    },
-                  };
-
-                  const listenerFn = (message: any) => {
-                    if (message.id === id) {
-                      if (message.payload
-                        && message.payload.data
-                        && message.payload.data.allBlocks) {
-                        callback(message.payload.data.allBlocks);
-                      }
-                    }
-                  };
-
-                  const clearListenerFn = async () => {
-                    this.socket.off('data', listenerFn);
-                    this.socket.send(JSON.stringify({
-                      type: GQLMSG.STOP,
-                      id
-                    }));
-                  };
-
-                  this.socket.on('data', listenerFn);
-                  this.socket.send(JSON.stringify(payload));
-                  res(clearListenerFn);
-
-                } catch (e) {
-                  throw new Error(e);
+            subscribeFinalizedHeads: async (callback): Promise<() => void> => {
+              const query = 'subscription { blockSub {id, hash} }';
+              // return the unsubscribe function.
+              return await this.socket.createSubscription(query, (result) => {
+                if (result.payload
+                  && result.payload.data
+                  && result.payload.data.blockSub) {
+                  callback(result.payload.data.blockSub);
                 }
               });
+              // TODO For now only websocket version, but we can also create a fallback version to the API with polling.
+            },
+            getLatestFinalizedBlocks: async (pageSize): Promise<any> => {
+              if (this.socket) {
+                const query = 'query allBlockies { allBlocks { id, hash, finalized, extrinsics, events } }'; // Temporary query.
+                const result = await this.socket.query(query);
+
+                try {
+                  return result.data.allBlocks;
+                } catch (e) {
+                  return [];
+                }
+              }
+
+              return Promise.reject();
             }
           }
         }
@@ -170,10 +133,6 @@ export class Adapter extends AdapterBase {
 
   disconnect(): void {
     this.socket.disconnect();
-  }
-
-  generateNonce(): number {
-    return this.n++;
   }
 
   get isReady(): Promise<boolean> {

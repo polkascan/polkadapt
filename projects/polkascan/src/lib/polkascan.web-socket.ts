@@ -38,18 +38,17 @@ export class PolkascanWebSocket {
   chain: string;
   webSocket: WebSocket;
   websocketReady = false;
+  websocketReconnectTimeout: number;
 
   addListener = this.on;
   off = this.removeListener;
 
+  private nonce = 0;
+
   private eventListeners: { [eventName: string]: ((...args) => any)[] } = {};
 
   // When reconnecting to a websocket we want to rebuild the subscriptions.
-  private connectedSubscriptions: {
-    [eventName: string]: {
-      [key: string]: () => {} // callback function
-    }
-  } = {};
+  private connectedSubscriptions: Map<number, any> = new Map(); // Payload to be send to the websocket.
 
   constructor(wsEndpoint: string, chain: string) {
     this.wsEndpoint = wsEndpoint;
@@ -70,6 +69,115 @@ export class PolkascanWebSocket {
     if (this.webSocket) {
       this.webSocket.close();
     }
+    if (this.websocketReconnectTimeout) {
+      clearTimeout(this.websocketReconnectTimeout);
+      this.websocketReconnectTimeout = null;
+    }
+    this.connectedSubscriptions = new Map();
+  }
+
+
+  generateNonce(): number {
+    this.nonce = this.nonce + 1;
+    return this.nonce;
+  }
+
+
+  query(query: string, id?: number): Promise<any> {
+    return new Promise((resolve, reject) => {
+      if (!query.startsWith('query')) {
+        throw new Error(`Invalid query string, should start with 'query'.`);
+      }
+
+      id = id || this.generateNonce();
+
+      if (this.connectedSubscriptions.has(id)) {
+        throw new Error(`There is an active subscription running on id ${id}.`);
+      }
+
+      const payload = {
+        type: GQLMSG.DATA,
+        id,
+        payload: {
+          query,
+          operationName: null,
+        }
+      };
+
+      const listenerFn = (response: any): void => {
+        if (response.id === id) {
+          this.off('data', listenerFn);
+          this.connectedSubscriptions.delete(id);
+
+          if (response.type === GQLMSG.ERROR) {
+            reject(response.message);
+          } else {
+            resolve(response);
+          }
+        }
+      };
+
+      this.send(JSON.stringify(payload)); // Can reject the promise if it fails.
+
+      this.connectedSubscriptions.set(id, payload);
+      this.on('data', listenerFn);
+    });
+  }
+
+
+  createSubscription(query: string, callback: (...attr) => any, id?: number): Promise<any> {
+    return new Promise((resolve, reject) => {
+      if (!query.startsWith('subscribe')) {
+        throw new Error(`Invalid query string, should start with 'subscribe'.`);
+      }
+
+      id = id || this.generateNonce();
+
+      if (this.connectedSubscriptions.has(id)) {
+        throw new Error(`There is an active subscription running on id ${id}.`);
+      }
+
+      const payload = {
+        type: GQLMSG.START,
+        id,
+        payload: {
+          query,
+          operationName: null,
+        }
+      };
+
+      const listenerFn = (response: any): void => {
+        if (response.id === id) {
+          if (response.type === GQLMSG.ERROR) {
+            this.off('data', listenerFn);
+            this.connectedSubscriptions.delete(id);
+            reject(response.message);
+          } else {
+            callback(response);
+          }
+        }
+      };
+
+      const clearListenerFn = async () => {
+        this.off('data', listenerFn);
+        this.connectedSubscriptions.delete(id);
+        try {
+          this.send(JSON.stringify({
+            type: GQLMSG.STOP,
+            id
+          }));
+        } catch (e) {
+          // Ignore.
+        }
+      };
+
+      this.send(JSON.stringify(payload)); // Can reject the promise if it fails.
+
+      this.connectedSubscriptions.set(id, payload);
+      this.on('data', listenerFn);
+
+      resolve(clearListenerFn);
+    });
   }
 
 
@@ -97,9 +205,6 @@ export class PolkascanWebSocket {
         this.webSocket = webSocket;
         this.emit('open');
 
-        // TODO rebuild subscriptions on reconnect
-        // TODO cached requests created while offline.
-
         const init = JSON.stringify({
           type: GQLMSG.CONNECTION_INIT
         });
@@ -116,6 +221,13 @@ export class PolkascanWebSocket {
           case GQLMSG.CONNECTION_ACK:
             this.websocketReady = true;
             this.emit('readyChange', true);
+
+            if (isReconnect) {
+              this.connectedSubscriptions.forEach((payload: any) => {
+                this.send(JSON.stringify(payload));
+              });
+            }
+
             break;
           default:
             break;
@@ -124,12 +236,15 @@ export class PolkascanWebSocket {
 
       webSocket.onerror = (error) => {
         if (this.webSocket) {
-          setTimeout(() => {
-            // WebSocket disconnected after error, retry connecting;
-            this.createWebSocket(true);
-          });
+          if (!this.websocketReconnectTimeout) {
+            this.websocketReconnectTimeout = setTimeout(() => {
+              // WebSocket disconnected after error, retry connecting;
+              this.createWebSocket(true);
+              this.websocketReconnectTimeout = null;
+            }, 300);
+          }
         }
-        this.webSocket = undefined;
+        this.webSocket = null;
         if (this.websocketReady) {
           this.websocketReady = false;
           this.emit('readyChange', false);
@@ -139,7 +254,7 @@ export class PolkascanWebSocket {
 
       webSocket.onclose = (close) => {
         if (this.webSocket) {
-          this.webSocket = undefined;
+          this.webSocket = null;
           if (this.websocketReady) {
             this.websocketReady = false;
             this.emit('readyChange', false);
@@ -148,8 +263,14 @@ export class PolkascanWebSocket {
         this.emit('close', close);
       };
     } catch (e) {
-      // TODO Reconnect?
       console.error(e);
+      if (!this.websocketReconnectTimeout) {
+        this.websocketReconnectTimeout = setTimeout(() => {
+          // WebSocket disconnected after error, retry connecting;
+          this.createWebSocket(true);
+          this.websocketReconnectTimeout = null;
+        }, 300);
+      }
     }
   }
 
