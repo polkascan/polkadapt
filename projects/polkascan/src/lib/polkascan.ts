@@ -18,25 +18,19 @@
 
 import { AdapterBase } from '@polkadapt/core';
 import { PolkascanApi } from './polkascan.api';
-import { GQLMSG, PolkascanWebSocket } from './polkascan.web-socket';
+import { PolkascanWebSocket } from './polkascan.web-socket';
 import { Block } from './polkascan.types';
 
 export type Api = {
-  query: {
-    council: {
-      getVotes: (address: string) => Promise<any>
-    },
-    system: {
-      account: (address: string) => Promise<any>
-    },
-    block: {
-      all: () => Promise<any>
-    }
+  polkascan: {
+    getBlock: (hashOrNumber?: string | number) => Promise<Block>,
+    getBlocksFrom: (hashOrNumber: string | number, pageSize: number) => Promise<Block[]>;
+    getBlocksUntil: (hashOrNumber: string | number, pageSize: number) => Promise<Block[]>;
+    getLatestFinalizedBlocks: (callback: (block: Block) => void) => Promise<() => void>;
   }
   rpc: {
     chain: {
-      subscribeFinalizedHeads: (callback: (blocks: Block[]) => void) => Promise<() => void>,
-      getLatestFinalizedBlocks: (pageSize: number) => Promise<any>
+      getBlock: (hash: string) => Promise<{ count_extrinsics: number }>;
     }
   }
 };
@@ -67,59 +61,81 @@ export class Adapter extends AdapterBase {
 
     this.promise = new Promise((resolve) => {
       resolve({
-        query: {
-          council: {
-            getVotes: async (address: string) => this.api && this.api.getMemberVotes(address)
-          },
-          system: {
-            account: async (address: string) => this.api && this.api.getAccount(address)
-          },
-          block: {
-            all: async () => {
-              if (this.socket) {
-                const query = 'query allBlockies { allBlocks { id, hash } }';
-                const result = await this.socket.query(query);
-
-                try {
-                  return result.data.allBlocks;
-                } catch (e) {
-                  return [] ;
-                }
-              } else if (this.api) {
-                // In case we can fallback on an api call.
-              }
-
-              return Promise.reject();
+        polkascan: {
+          getBlock: async hashOrNumber => {
+            let filter: string;
+            if (typeof hashOrNumber === 'string') {
+              // Fetch specific block;
+              filter = `filters: { hash: "${hashOrNumber}" }`;
+            } else if (Number.isInteger(hashOrNumber)) {
+              filter = `filters: { id: "${hashOrNumber} }`;
+            } else if (hashOrNumber !== undefined) {
+              // hashOrNumber is defined but is not a string or integer.
+              throw new Error('Supplied attribute is not of type string or number.');
             }
+
+            const query = `query { block(${filter}) { id, hash, parentHash, stateRoot, extrinsicsRoot, countExtrinsics, countEvents, runtimeId } }`;
+            try {
+              const result = await this.socket.query(query);
+              const block = result.payload.data.block;
+              block.number = block.id; // Fix when backend contains number as attribute
+              return block;
+            } catch (e) {
+              return undefined;
+            }
+          },
+          getBlocksFrom: async (hashOrNumber, pageSize) => {
+            // TODO Build me
+            return [];
+          },
+          getBlocksUntil: async (hashOrNumber, pageSize) => {
+            let filter: string;
+            if (hashOrNumber) {
+              // Fetch specific block;
+              filter = typeof hashOrNumber === 'string' ? `filters: {hash: "${hashOrNumber}"}` : `filters: {id: "${hashOrNumber}"}`;
+            }
+
+            // TODO FIX PAGE SIZE. Write correct query.
+            const query =
+              `query { blocks { id, hash, parentHash, stateRoot, extrinsicsRoot, countExtrinsics, countEvents, runtimeId } }`;
+            try {
+              const result = await this.socket.query(query);
+              const blocks: Block[] = result.payload.data.blocks;
+              blocks.forEach((block) => block.number = block.id); // Fix when backend contains number as attribute.
+              return blocks;
+            } catch (e) {
+              return [];
+            }
+          },
+          getLatestFinalizedBlocks: async callback => {
+            const query = 'subscription { block { id, hash, parentHash, stateRoot, extrinsicsRoot, countExtrinsics, countEvents, runtimeId } }';
+            // return the unsubscribe function.
+            return await this.socket.createSubscription(query, (result) => {
+              try {
+                const block = result.payload.data.block;
+                block.number = block.id; // Fix when backend contains number as attribute
+                callback(block);
+              } catch (e) {
+                // Ignore.
+              }
+            });
           }
         },
         rpc: {
           chain: {
-            subscribeFinalizedHeads: async (callback): Promise<() => void> => {
-              const query = 'subscription { blockSub {id, hash} }';
-              // return the unsubscribe function.
-              return await this.socket.createSubscription(query, (result) => {
-                if (result.payload
-                  && result.payload.data
-                  && result.payload.data.blockSub) {
-                  callback(result.payload.data.blockSub);
-                }
-              });
-              // TODO For now only websocket version, but we can also create a fallback version to the API with polling.
-            },
-            getLatestFinalizedBlocks: async (pageSize): Promise<any> => {
-              if (this.socket) {
-                const query = 'query allBlockies { allBlocks { id, hash, finalized, extrinsics, events } }'; // Temporary query.
-                const result = await this.socket.query(query);
-
-                try {
-                  return result.data.allBlocks;
-                } catch (e) {
-                  return [];
-                }
+            getBlock: async (hash) => {
+              if (typeof hash !== 'string') {
+                return {};
               }
 
-              return Promise.reject();
+              // Get data from polkascan to augment it to the rpc getBlock.
+              const query = 'query { block { id, countExtrinsics, countEvents } }';
+              try {
+                const result = await this.socket.query(query);
+                return result.payload.data.block;
+              } catch (e) {
+                return {id: undefined, countExtrinsics: undefined, countEvent: undefined};
+              }
             }
           }
         }

@@ -1,6 +1,7 @@
 export type Block = {
   hash: string;
   id: number;
+  number: number;
   parent_hash: string;
   state_root: string;
   extrinsics_root: string;
