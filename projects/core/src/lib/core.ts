@@ -22,6 +22,10 @@ export enum PolkadaptEventNames {
 
 export type AdapterPromise = Promise<any>;
 
+type PolkadaptRegisteredAdapter = {
+    instance: AdapterBase,
+    entrypoint: any
+  };
 type PolkadaptRunConfigConverter = (results: any) => any;
 type PolkadaptRunConfigStrategy = 'merge' | 'combineLatest';
 type PolkadaptRunConfigAdapters = (AdapterBase | string) | (AdapterBase | string)[];
@@ -52,15 +56,10 @@ export interface PolkadaptRunConfig {
 //             pa.run('kusama').query.council.members()
 //
 export class Polkadapt<T> {
-  public adapters: {
-    instance: AdapterBase,
-    entrypoint: any
-  }[] = [];
+  public adapters: PolkadaptRegisteredAdapter[] = [];
 
   addListener = this.on;
   off = this.removeListener;
-
-  private isReady = false;
   private eventListeners: { [eventName: string]: ((...args) => any)[] } = {};
 
 
@@ -74,8 +73,10 @@ export class Polkadapt<T> {
         this.adapters.push({instance: adapter, entrypoint: null});
       }
     }
-    this.isReady = false;
-    this.emit('readyChange', this.isReady);
+    this.emit('readyChange', false);
+    this.ready().then(() => {
+      this.emit('readyChange', true);
+    });
   }
 
 
@@ -91,34 +92,32 @@ export class Polkadapt<T> {
         this.adapters.splice(index, 1);
       }
     }
-    this.isReady = false;
   }
 
 
   // Check if all adapter instances have connected with their hosts before allowing executing data retrieval calls.
   // usage:      await pa.ready()    or    pa.ready().then(() => {})
-  async ready(): Promise<boolean> {
-    if (this.isReady) {
-      return true;
-    }
+  async ready(adapters?: PolkadaptRegisteredAdapter[]): Promise<boolean> {
+    adapters = adapters || this.adapters;
 
     if (this.adapters.length === 0) {
       throw new Error('No registered adapter instances in this Polkadapt instance. Please create adapter instances and register them by calling register(...adapters) on the Polkadapt instance.');
     }
 
     // Wait for all adapters to have been created.
-    const entrypoints: any[] = await Promise.all(this.adapters.map(a => a.instance.promise));
+    const entrypoints: any[] = await Promise.all(adapters.map(a => a.instance.promise));
     // All adapters created, store the entrypoints per adapter.
-    this.adapters.forEach((a, index) => {
+    adapters.forEach((a, index) => {
       a.entrypoint = entrypoints[index];
     });
 
     // Wait until all connections are initialized.
-    await Promise.all(this.adapters.map(a => a.instance.isReady));
-
-    this.isReady = true;
-    this.emit('readyChange', this.isReady);
-    return true;
+    try {
+      await Promise.all(adapters.map(a => a.instance.isReady));
+      return true;
+    } catch (e) {
+      throw new Error(e);
+    }
   }
 
 
@@ -126,10 +125,7 @@ export class Polkadapt<T> {
   private createRecursiveProxy(chain: string,
                                converter: PolkadaptRunConfigConverter,
                                strategy: PolkadaptRunConfigStrategy,
-                               adapters?: {
-                                 instance: AdapterBase,
-                                 entrypoint: any
-                               }[]): any {
+                               adapters?: PolkadaptRegisteredAdapter[]): any {
     const path: string[] = [];  // Contains the mirroring path of the method chain.
     const candidateReturnValues: Map<AdapterBase, any> = new Map();  // Map of promises for every adapter that matches the method chain.
     let called = false;  // Called will be true if the method chain is executed.
@@ -180,7 +176,7 @@ export class Polkadapt<T> {
 
     // The actual promise returned to the application containing data or unsubscribe functionality.
     const resultPromise = new Promise<any>((resolve, reject) => {
-      this.ready().then(
+      this.ready(adapters).then(
         () => {
           if (!chain) {
             const possibleChains = new Set(this.adapters.map(a => a.instance.chain));
@@ -365,10 +361,7 @@ export class Polkadapt<T> {
     let chain: string;
     let converter: PolkadaptRunConfigConverter;
     let strategy: PolkadaptRunConfigStrategy;
-    let adapters: {
-      instance: AdapterBase,
-      entrypoint: any
-    }[];
+    let adapters: PolkadaptRegisteredAdapter[];
 
     if (typeof config === 'string') {
       chain = config;

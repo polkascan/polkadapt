@@ -229,6 +229,8 @@ describe('Polkadapt', () => {
     expect(readyStateHandler).toHaveBeenCalledWith(true);
   });
 
+  xit('should reject ready when an adapter encounters a connection error');
+
   it('should return a Promise when an adapter API is called.', async () => {
     const valuePromise = pa.run({chain: chainName}).values.successFromA();
     const functionPromise = pa.run({chain: chainName}).subscriptions.successFromA(() => {
