@@ -227,8 +227,9 @@ export class PolkascanWebSocket {
                 this.send(JSON.stringify(payload));
               });
             }
-
             break;
+          // TODO case CONNECTION_ERROR, readychange emit error
+          // TODO case ERROR, readychange emit error
           default:
             break;
         }
@@ -250,6 +251,7 @@ export class PolkascanWebSocket {
           this.emit('readyChange', false);
         }
         this.emit('error', error);
+        this.emit('close', close); // In specific cases the onClose will not be fired, so emit 'close' anyway.
       };
 
       webSocket.onclose = (close) => {

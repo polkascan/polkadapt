@@ -136,7 +136,7 @@ export class Adapter extends AdapterBase {
   }
 
   get isReady(): Promise<boolean> {
-    return new Promise<boolean>((resolve) => {
+    return new Promise<boolean>((resolve, reject) => {
       if (!this.socket) {
         resolve(true);
 
@@ -151,19 +151,20 @@ export class Adapter extends AdapterBase {
           }
         };
 
-        const errorCallback = () => {
+        const closeCallback = () => {
           removeListeners();
+          reject('Polkascan websocket connection closed.');
         };
 
         const removeListeners = () => {
           // Remove listeners after error or readyChange.
           this.socket.off('readyChange', readyCallback);
-          this.socket.off('error', errorCallback);
+          this.socket.off('close', closeCallback);
         };
 
         // Subscribe to the websockets readyChange or error.
         this.socket.on('readyChange', readyCallback);
-        this.socket.on('error', errorCallback);
+        this.socket.on('close', closeCallback);
       }
     });
   }
