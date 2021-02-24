@@ -48,9 +48,9 @@ export class Adapter extends AdapterBase {
   disconnect(): void {
     if (this.promise) {
       this.promise.then((apiPromise) => {
-        if (apiPromise.isConnected) {
-          apiPromise.disconnect();
-        }
+        apiPromise.isReady.then((api) => {
+          api.disconnect();
+        });
       });
     }
     this.promise = undefined;

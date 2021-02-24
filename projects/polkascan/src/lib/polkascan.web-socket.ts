@@ -32,6 +32,7 @@ export const GQLMSG = {
 export type PolkascanWebsocketEventNames = 'open' | 'error' | 'readyChange' | 'data' | 'close';
 
 const PolkascanChannelName = 'graphql-ws';
+const reconnectTimeout = 500;
 
 export class PolkascanWebSocket {
   wsEndpoint: string;
@@ -39,6 +40,7 @@ export class PolkascanWebSocket {
   webSocket: WebSocket;
   websocketReady = false;
   websocketReconnectTimeout: number;
+  adapterRegistered = false;
 
   addListener = this.on;
   off = this.removeListener;
@@ -58,21 +60,21 @@ export class PolkascanWebSocket {
 
   connect(): void {
     // Create the webSocket.
-    if (!this.webSocket) {
-      this.createWebSocket();
-    }
+    this.adapterRegistered = true;
+    this.cancelReconnectAttempt();
+    this.createWebSocket();
   }
 
 
   disconnect(): void {
     // Disconnect the webSocket.
+    this.adapterRegistered = false;
+
     if (this.webSocket) {
-      this.webSocket.close();
+      this.webSocket.close(1000); // Normal closure.
     }
-    if (this.websocketReconnectTimeout) {
-      clearTimeout(this.websocketReconnectTimeout);
-      this.websocketReconnectTimeout = null;
-    }
+
+    this.cancelReconnectAttempt();
     this.connectedSubscriptions = new Map();
   }
 
@@ -83,7 +85,7 @@ export class PolkascanWebSocket {
   }
 
 
-  query(query: string, id?: number): Promise<any> {
+  query(query: string, timeoutAmount = 5000, id?: number): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!query.startsWith('query')) {
         throw new Error(`Invalid query string, should start with 'query'.`);
@@ -104,31 +106,62 @@ export class PolkascanWebSocket {
         }
       };
 
-      const listenerFn = (response: any): void => {
-        if (response.id === id) {
+      const listenerFn = (data: any): void => {
+        if (data.id === id) {
+          if (timeout) {
+            clearTimeout(timeout);
+          }
+
           this.off('data', listenerFn);
+          this.off('error', errorListenerFn);
           this.connectedSubscriptions.delete(id);
 
-          if (response.type === GQLMSG.ERROR) {
-            reject(response.message);
+          if (data.payload && data.payload.data) {
+            resolve(data.payload.data);
           } else {
-            resolve(response);
+            reject('No data received.');
           }
         }
       };
+
+      const errorListenerFn = (errorData: any): void => {
+        if (errorData.id === id) {
+          if (timeout) {
+            clearTimeout(timeout);
+          }
+
+          this.off('data', listenerFn);
+          this.off('error', errorListenerFn);
+          this.connectedSubscriptions.delete(id);
+
+          reject(errorData.payload && errorData.payload.message);
+        }
+      };
+
+      let timeout;
+      if (Number.isInteger(timeoutAmount) && timeoutAmount > 0) {
+        timeout = setTimeout(() => {
+          this.off('data', listenerFn);
+          this.off('error', errorListenerFn);
+          this.connectedSubscriptions.delete(id);
+          reject('Query timed out: ' + query);
+        }, timeoutAmount);
+      }
 
       this.send(JSON.stringify(payload)); // Can reject the promise if it fails.
 
       this.connectedSubscriptions.set(id, payload);
       this.on('data', listenerFn);
+      this.on('error', errorListenerFn);
     });
   }
 
 
   createSubscription(query: string, callback: (...attr) => any, id?: number): Promise<any> {
+    // TODO, this.on('error') needs to be implemented???
     return new Promise((resolve, reject) => {
-      if (!query.startsWith('subscribe')) {
-        throw new Error(`Invalid query string, should start with 'subscribe'.`);
+      if (!query.startsWith('subscription')) {
+        throw new Error(`Invalid query string, should start with 'subscription'.`);
       }
 
       id = id || this.generateNonce();
@@ -175,6 +208,7 @@ export class PolkascanWebSocket {
 
       this.connectedSubscriptions.set(id, payload);
       this.on('data', listenerFn);
+      // this.on('error', errorhandlerfn)    BUILD ME
 
       resolve(clearListenerFn);
     });
@@ -198,6 +232,13 @@ export class PolkascanWebSocket {
 
 
   createWebSocket(isReconnect = false): void {
+    if (!this.adapterRegistered) {
+      // When the adapter is not registered in Polkadapt (anymore).
+      return;
+    }
+
+    let webSocket: WebSocket;
+
     try {
       webSocket = new WebSocket(this.wsEndpoint, PolkascanChannelName);
       this.webSocket = webSocket;
@@ -226,12 +267,17 @@ export class PolkascanWebSocket {
       }
     };
 
-      webSocket.onmessage = (message: MessageEvent) => {
+    webSocket.onmessage = (message: MessageEvent) => {
+      // TODO Implement GQML messages.
+      if (this.webSocket === webSocket) {
         const data = JSON.parse(message.data);
 
         switch (data.type) {
           case GQLMSG.DATA:
             this.emit('data', data);
+            break;
+          case GQLMSG.ERROR:
+            this.emit('error', data);
             break;
           case GQLMSG.CONNECTION_ACK:
             this.websocketReady = true;
@@ -248,47 +294,36 @@ export class PolkascanWebSocket {
           default:
             break;
         }
-      };
+      }
+    };
 
-      webSocket.onerror = (error) => {
-        if (this.webSocket) {
-          if (!this.websocketReconnectTimeout) {
-            this.websocketReconnectTimeout = setTimeout(() => {
-              // WebSocket disconnected after error, retry connecting;
-              this.createWebSocket(true);
-              this.websocketReconnectTimeout = null;
-            }, 300);
-          }
+    webSocket.onerror = (error) => {
+      if (this.webSocket === webSocket) {
+        if (!this.websocketReconnectTimeout) {
+          this.websocketReconnectTimeout = setTimeout(() => {
+            // WebSocket disconnected after error, retry connecting;
+            this.createWebSocket(true);
+            this.websocketReconnectTimeout = null;
+          }, reconnectTimeout);
         }
+
+        if (this.adapterRegistered) {
+          console.error('[PolkascanAdapter] Websocket encountered an error.', error);
+          this.emit('error', error);
+        }
+      }
+    };
+
+    webSocket.onclose = (close) => {
+      if (this.webSocket === webSocket) {
         this.webSocket = null;
         if (this.websocketReady) {
           this.websocketReady = false;
           this.emit('readyChange', false);
         }
-        this.emit('error', error);
-        this.emit('close', close); // In specific cases the onClose will not be fired, so emit 'close' anyway.
-      };
-
-      webSocket.onclose = (close) => {
-        if (this.webSocket) {
-          this.webSocket = null;
-          if (this.websocketReady) {
-            this.websocketReady = false;
-            this.emit('readyChange', false);
-          }
-        }
         this.emit('close', close);
-      };
-    } catch (e) {
-      console.error(e);
-      if (!this.websocketReconnectTimeout) {
-        this.websocketReconnectTimeout = setTimeout(() => {
-          // WebSocket disconnected after error, retry connecting;
-          this.createWebSocket(true);
-          this.websocketReconnectTimeout = null;
-        }, 300);
       }
-    }
+    };
   }
 
 
@@ -351,6 +386,14 @@ export class PolkascanWebSocket {
       return this.eventListeners[eventName];
     } else {
       return [];
+    }
+  }
+
+
+  private cancelReconnectAttempt(): void {
+    if (this.websocketReconnectTimeout) {
+      clearTimeout(this.websocketReconnectTimeout);
+      this.websocketReconnectTimeout = null;
     }
   }
 }

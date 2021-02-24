@@ -74,14 +74,14 @@ export class Adapter extends AdapterBase {
               throw new Error('Supplied attribute is not of type string or number.');
             }
 
-            const query = `query { block(${filter}) { id, hash, parentHash, stateRoot, extrinsicsRoot, countExtrinsics, countEvents, runtimeId } }`;
+            const query = `query { block(${filter || ''}) { id, hash, parentHash, stateRoot, extrinsicsRoot, countExtrinsics, countEvents, runtimeId } }`;
             try {
               const result = await this.socket.query(query);
               const block = result.payload.data.block;
               block.number = block.id; // Fix when backend contains number as attribute
               return block;
             } catch (e) {
-              return undefined;
+              throw new Error(e);
             }
           },
           getBlocksFrom: async (hashOrNumber, pageSize) => {
@@ -104,7 +104,7 @@ export class Adapter extends AdapterBase {
               blocks.forEach((block) => block.number = block.id); // Fix when backend contains number as attribute.
               return blocks;
             } catch (e) {
-              return [];
+              throw new Error(e);
             }
           },
           subscribeFinalizedBlocks: async callback => {
@@ -112,7 +112,7 @@ export class Adapter extends AdapterBase {
             // return the unsubscribe function.
             return await this.socket.createSubscription(query, (result) => {
               try {
-                const block = result.payload.data.block;
+                const block = result.block;
                 block.number = block.id; // Fix when backend contains number as attribute
                 callback(block);
               } catch (e) {
@@ -132,9 +132,9 @@ export class Adapter extends AdapterBase {
               const query = 'query { block { id, countExtrinsics, countEvents } }';
               try {
                 const result = await this.socket.query(query);
-                return result.payload.data.block;
+                return result.block;
               } catch (e) {
-                return {id: undefined, countExtrinsics: undefined, countEvent: undefined};
+                throw new Error(e);
               }
             }
           }
