@@ -26,11 +26,11 @@ export type Api = {
     getBlock: (hashOrNumber?: string | number) => Promise<Block>,
     getBlocksFrom: (hashOrNumber: string | number, pageSize: number) => Promise<Block[]>;
     getBlocksUntil: (hashOrNumber: string | number, pageSize: number) => Promise<Block[]>;
-    getLatestFinalizedBlocks: (callback: (block: Block) => void) => Promise<() => void>;
+    subscribeFinalizedBlocks: (callback: (block: Block) => void) => Promise<() => void>;
   }
   rpc: {
     chain: {
-      getBlock: (hash: string) => Promise<{ count_extrinsics: number }>;
+      getBlock: (hash: string) => Promise<any>;
     }
   }
 };
@@ -68,7 +68,7 @@ export class Adapter extends AdapterBase {
               // Fetch specific block;
               filter = `filters: { hash: "${hashOrNumber}" }`;
             } else if (Number.isInteger(hashOrNumber)) {
-              filter = `filters: { id: "${hashOrNumber} }`;
+              filter = `filters: { id: "${hashOrNumber}" }`;
             } else if (hashOrNumber !== undefined) {
               // hashOrNumber is defined but is not a string or integer.
               throw new Error('Supplied attribute is not of type string or number.');
@@ -107,7 +107,7 @@ export class Adapter extends AdapterBase {
               return [];
             }
           },
-          getLatestFinalizedBlocks: async callback => {
+          subscribeFinalizedBlocks: async callback => {
             const query = 'subscription { block { id, hash, parentHash, stateRoot, extrinsicsRoot, countExtrinsics, countEvents, runtimeId } }';
             // return the unsubscribe function.
             return await this.socket.createSubscription(query, (result) => {

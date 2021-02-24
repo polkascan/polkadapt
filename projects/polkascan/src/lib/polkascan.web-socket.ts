@@ -199,17 +199,32 @@ export class PolkascanWebSocket {
 
   createWebSocket(isReconnect = false): void {
     try {
-      const webSocket = new WebSocket(this.wsEndpoint, PolkascanChannelName);
+      webSocket = new WebSocket(this.wsEndpoint, PolkascanChannelName);
+      this.webSocket = webSocket;
+    } catch (e) {
+      if (!this.websocketReconnectTimeout) {
+        this.websocketReconnectTimeout = setTimeout(() => {
+          // WebSocket could not be created, retry;
+          this.createWebSocket();
+          this.websocketReconnectTimeout = null;
+        }, reconnectTimeout);
+      }
+      console.error('[PolkascanAdapter] Websocket creation failed.', e);
+      this.emit('error', e);
 
-      webSocket.onopen = () => {
-        this.webSocket = webSocket;
+      return;
+    }
+
+    webSocket.onopen = () => {
+      if (this.webSocket === webSocket) {
         this.emit('open');
 
         const init = JSON.stringify({
           type: GQLMSG.CONNECTION_INIT
         });
         webSocket.send(init);
-      };
+      }
+    };
 
       webSocket.onmessage = (message: MessageEvent) => {
         const data = JSON.parse(message.data);

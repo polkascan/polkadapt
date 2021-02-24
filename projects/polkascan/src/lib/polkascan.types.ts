@@ -2,20 +2,22 @@ export type Block = {
   hash: string;
   id: number;
   number: number;
-  parent_hash: string;
-  state_root: string;
-  extrinsics_root: string;
+  parentHash: string;
+  stateRoot: string;
+  extrinsicsRoot: string;
+  countExtrinsics: number;
+  countEvents: number;
 };
 
 export type Extrinsic = {
-  block_hash: string;
-  extrinsic_idx: number;
-  transaction_hash?: string;
-  block_number: number;
+  blockHash: string;
+  extrinsicIdx: number;
+  transactionHash?: string;
+  blockNumber: number;
 };
 
 export type Event = {
-  block_hash: string;
-  event_idx: number;
-  block_number: number;
+  blockHash: string;
+  eventIdx: number;
+  blockNumber: number;
 };
