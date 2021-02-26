@@ -31,8 +31,8 @@ import {
 export type Api = {
   polkascan: {
     getBlock: (hashOrNumber?: string | number) => Promise<Block>,
-    getBlocksFrom: (hashOrNumber: string | number, pageSize: number, pageNumber: number) => Promise<Block[]>;
-    getBlocksUntil: (hashOrNumber: string | number, pageSize: number, pageNumber: number) => Promise<Block[]>;
+    getBlocksFrom: (hashOrNumber: string | number, pageSize?: number, pageNumber?: number) => Promise<Block[]>;
+    getBlocksUntil: (hashOrNumber: string | number, pageSize?: number, pageNumber?: number) => Promise<Block[]>;
     subscribeFinalizedBlocks: (callback: (block: Block) => void) => Promise<() => void>;
   }
   rpc: {

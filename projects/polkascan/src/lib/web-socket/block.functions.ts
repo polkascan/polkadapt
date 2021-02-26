@@ -1,7 +1,7 @@
 import { Adapter } from '../polkascan';
 import { Block } from '../polkascan.types';
 
-const allBlockFields = 'id, hash, parentHash, stateRoot, extrinsicsRoot, countExtrinsics, countEvents, runtimeId';
+const genericBlockFields = 'id, hash, parentHash, stateRoot, extrinsicsRoot, countExtrinsics, countEvents';
 
 export const getBlock = (adapter: Adapter) => {
   return async (hashOrNumber: string | number): Promise<Block> => {
@@ -16,7 +16,7 @@ export const getBlock = (adapter: Adapter) => {
       throw new Error('[PolkascanAdapter] getBlocks: Hash must be a string or Number must be a number.');
     }
 
-    const query = `query { getBlock${filter || ''} { ${allBlockFields} } }`;
+    const query = `query { getBlock${filter || ''} { ${genericBlockFields} } }`;
     try {
       const result = await adapter.socket.query(query);
       const block = result.getBlock;
@@ -30,7 +30,7 @@ export const getBlock = (adapter: Adapter) => {
 
 
 export const getBlocksFrom = (adapter: Adapter) => {
-  return async (hashOrNumber, pageSize, pageNr): Promise<Block[]> => {
+  return async (hashOrNumber: string | number, pageSize?: number, pageNr?: number): Promise<Block[]> => {
     // TODO FIX PAGE SIZE, PAGE NR.
     const queryArgs: any = {};
     if (hashOrNumber) {
@@ -50,7 +50,7 @@ export const getBlocksFrom = (adapter: Adapter) => {
       : '';
 
     const query =
-      `query { getBlocks${queryArgsString} { ${allBlockFields} } }`;
+      `query { getBlocks${queryArgsString} { ${genericBlockFields} } }`;
 
     try {
       // @ts-ignore
@@ -66,7 +66,7 @@ export const getBlocksFrom = (adapter: Adapter) => {
 
 
 export const getBlocksUntil = (adapter: Adapter) => {
-  return async (hashOrNumber, pageSize, pageNr): Promise<Block[]> => {
+  return async (hashOrNumber: string | number, pageSize?: number, pageNr?: number): Promise<Block[]> => {
     // TODO FIX PAGE SIZE, PAGE NR.
     const queryArgs: any = {};
     if (hashOrNumber) {
@@ -86,7 +86,7 @@ export const getBlocksUntil = (adapter: Adapter) => {
       : '';
 
     const query =
-      `query { getBlocks${queryArgsString} { ${allBlockFields} } }`;
+      `query { getBlocks${queryArgsString} { ${genericBlockFields} } }`;
 
     try {
       const result = await adapter.socket.query(query);
@@ -102,7 +102,7 @@ export const getBlocksUntil = (adapter: Adapter) => {
 
 export const subscribeFinalizedBlocks = (adapter: Adapter) => {
   return async (callback: (block: Block) => void): Promise<() => void> => {
-    const query = `subscription { subscribeBlock { ${allBlockFields} } }`;
+    const query = `subscription { subscribeBlock { ${genericBlockFields} } }`;
     // return the unsubscribe function.
     return await adapter.socket.createSubscription(query, (result) => {
       try {

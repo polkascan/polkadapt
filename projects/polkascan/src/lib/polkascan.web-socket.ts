@@ -98,7 +98,7 @@ export class PolkascanWebSocket {
       }
 
       const payload = {
-        type: GQLMSG.DATA,
+        type: GQLMSG.START,
         id,
         payload: {
           query,
