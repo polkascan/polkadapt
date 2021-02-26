@@ -158,7 +158,6 @@ export class PolkascanWebSocket {
 
 
   createSubscription(query: string, callback: (...attr) => any, id?: number): Promise<any> {
-    // TODO, this.on('error') needs to be implemented???
     return new Promise((resolve, reject) => {
       if (!query.startsWith('subscription')) {
         throw new Error(`Invalid query string, should start with 'subscription'.`);
@@ -182,17 +181,21 @@ export class PolkascanWebSocket {
       const listenerFn = (response: any): void => {
         if (response.id === id) {
           if (response.type === GQLMSG.ERROR) {
-            this.off('data', listenerFn);
-            this.connectedSubscriptions.delete(id);
+            clearListenerFn();
             reject(response.message);
-          } else {
-            callback(response);
+          } else if (response.type === GQLMSG.DATA) {
+            try {
+              callback(response.payload.data);
+            } catch (e) {
+              console.error('[PolkascanAdapter] Subscription callback encountered an error or no data has been received.', e);
+            }
           }
         }
       };
 
       const clearListenerFn = async () => {
         this.off('data', listenerFn);
+        this.off('error', listenerFn);
         this.connectedSubscriptions.delete(id);
         try {
           this.send(JSON.stringify({
@@ -200,6 +203,7 @@ export class PolkascanWebSocket {
             id
           }));
         } catch (e) {
+          console.error('[PolkascanAdapter] Stop subscription encountered an error.', e);
           // Ignore.
         }
       };
@@ -208,7 +212,7 @@ export class PolkascanWebSocket {
 
       this.connectedSubscriptions.set(id, payload);
       this.on('data', listenerFn);
-      // this.on('error', errorhandlerfn)    BUILD ME
+      this.on('error', listenerFn);
 
       resolve(clearListenerFn);
     });
@@ -268,7 +272,6 @@ export class PolkascanWebSocket {
     };
 
     webSocket.onmessage = (message: MessageEvent) => {
-      // TODO Implement GQML messages.
       if (this.webSocket === webSocket) {
         const data = JSON.parse(message.data);
 
@@ -289,8 +292,6 @@ export class PolkascanWebSocket {
               });
             }
             break;
-          // TODO case CONNECTION_ERROR, readychange emit error
-          // TODO case ERROR, readychange emit error
           default:
             break;
         }

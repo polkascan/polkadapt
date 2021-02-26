@@ -20,12 +20,19 @@ import { AdapterBase } from '@polkadapt/core';
 import { PolkascanApi } from './polkascan.api';
 import { PolkascanWebSocket } from './polkascan.web-socket';
 import { Block } from './polkascan.types';
+import {
+  getBlockAugmentation,
+  getBlock,
+  getBlocksFrom,
+  getBlocksUntil,
+  subscribeFinalizedBlocks
+} from './web-socket/block.functions';
 
 export type Api = {
   polkascan: {
     getBlock: (hashOrNumber?: string | number) => Promise<Block>,
-    getBlocksFrom: (hashOrNumber: string | number, pageSize: number) => Promise<Block[]>;
-    getBlocksUntil: (hashOrNumber: string | number, pageSize: number) => Promise<Block[]>;
+    getBlocksFrom: (hashOrNumber: string | number, pageSize: number, pageNumber: number) => Promise<Block[]>;
+    getBlocksUntil: (hashOrNumber: string | number, pageSize: number, pageNumber: number) => Promise<Block[]>;
     subscribeFinalizedBlocks: (callback: (block: Block) => void) => Promise<() => void>;
   }
   rpc: {
@@ -62,81 +69,14 @@ export class Adapter extends AdapterBase {
     this.promise = new Promise((resolve) => {
       resolve({
         polkascan: {
-          getBlock: async hashOrNumber => {
-            let filter: string;
-            if (typeof hashOrNumber === 'string') {
-              // Fetch specific block;
-              filter = `filters: { hash: "${hashOrNumber}" }`;
-            } else if (Number.isInteger(hashOrNumber)) {
-              filter = `filters: { id: "${hashOrNumber}" }`;
-            } else if (hashOrNumber !== undefined) {
-              // hashOrNumber is defined but is not a string or integer.
-              throw new Error('Supplied attribute is not of type string or number.');
-            }
-
-            const query = `query { block(${filter || ''}) { id, hash, parentHash, stateRoot, extrinsicsRoot, countExtrinsics, countEvents, runtimeId } }`;
-            try {
-              const result = await this.socket.query(query);
-              const block = result.payload.data.block;
-              block.number = block.id; // Fix when backend contains number as attribute
-              return block;
-            } catch (e) {
-              throw new Error(e);
-            }
-          },
-          getBlocksFrom: async (hashOrNumber, pageSize) => {
-            // TODO Build me
-            return [];
-          },
-          getBlocksUntil: async (hashOrNumber, pageSize) => {
-            let filter: string;
-            if (hashOrNumber) {
-              // Fetch specific block;
-              filter = typeof hashOrNumber === 'string' ? `filters: {hash: "${hashOrNumber}"}` : `filters: {id: "${hashOrNumber}"}`;
-            }
-
-            // TODO FIX PAGE SIZE. Write correct query.
-            const query =
-              `query { blocks { id, hash, parentHash, stateRoot, extrinsicsRoot, countExtrinsics, countEvents, runtimeId } }`;
-            try {
-              const result = await this.socket.query(query);
-              const blocks: Block[] = result.payload.data.blocks;
-              blocks.forEach((block) => block.number = block.id); // Fix when backend contains number as attribute.
-              return blocks;
-            } catch (e) {
-              throw new Error(e);
-            }
-          },
-          subscribeFinalizedBlocks: async callback => {
-            const query = 'subscription { block { id, hash, parentHash, stateRoot, extrinsicsRoot, countExtrinsics, countEvents, runtimeId } }';
-            // return the unsubscribe function.
-            return await this.socket.createSubscription(query, (result) => {
-              try {
-                const block = result.block;
-                block.number = block.id; // Fix when backend contains number as attribute
-                callback(block);
-              } catch (e) {
-                // Ignore.
-              }
-            });
-          }
+          getBlock: getBlock(this),
+          getBlocksFrom: getBlocksFrom(this),
+          getBlocksUntil: getBlocksUntil(this),
+          subscribeFinalizedBlocks: subscribeFinalizedBlocks(this)
         },
         rpc: {
           chain: {
-            getBlock: async (hash) => {
-              if (typeof hash !== 'string') {
-                return {};
-              }
-
-              // Get data from polkascan to augment it to the rpc getBlock.
-              const query = 'query { block { id, countExtrinsics, countEvents } }';
-              try {
-                const result = await this.socket.query(query);
-                return result.block;
-              } catch (e) {
-                throw new Error(e);
-              }
-            }
+            getBlock: getBlockAugmentation(this)
           }
         }
       });
