@@ -14,15 +14,16 @@ const isBlockNumber = (nr: any): boolean => {
 
 export const getBlock = (adapter: Adapter) => {
   return async (hashOrNumber?: string | number): Promise<Block> => {
-    let filter;
+    const config: string[] = [];
+
     if (isBlockHash(hashOrNumber)) {
       // Fetch specific block;
-      filter = `filters: { hashEq: "${hashOrNumber}" }`;
+      config.push(`filters: { hashEq: "${hashOrNumber}" }`);
     } else if (isBlockNumber(hashOrNumber)) {
-      filter = `filters: { id: ${hashOrNumber} }`;
+      config.push(`filters: { id: ${hashOrNumber} }`);
     }
 
-    const query = `query { getBlock${filter ? `(${filter})` : ''} { ${genericBlockFields} } }`;
+    const query = `query { getBlock${config.length > 0 ? `(${config.join(', ')})` : ''} { objects { ${genericBlockFields} } } }`;
 
     try {
       const result = await adapter.socket.query(query);
@@ -37,26 +38,36 @@ export const getBlock = (adapter: Adapter) => {
 
 
 export const getBlocksFrom = (adapter: Adapter) => {
-  return async (hashOrNumber: string | number, pageSize?: number, pageNr?: number): Promise<Block[]> => {
-    // TODO FIX PAGE SIZE, PAGE NR.
-    let filter = '';
+  return async (hashOrNumber: string | number, pageSize?: number, pageKey?: string): Promise<{blocks: Block[], pageInfo: any}> => {
+    const config: string[] = [];
 
     if (isBlockHash(hashOrNumber)) {
-      filter = `filters: { hashFrom: "${hashOrNumber}" }`;
+      config.push(`filters: { hashFrom: "${hashOrNumber}" }`);
     } else if (isBlockNumber(hashOrNumber)) {
-      filter = `filters: { idGte: ${hashOrNumber} }`;
+      config.push(`filters: { idGte: ${hashOrNumber} }`);
     } else {
       throw new Error('[PolkascanAdapter] getBlocksFrom: Supplied hashOrNumber must be of type string or number.');
     }
 
-    const query = `query {getBlocks( ${filter}) { ${genericBlockFields} } }`;
+    if (Number.isInteger(pageSize) && pageSize > 0) {
+      config.push(`pageSize: ${pageSize}`);
+    }
+
+    if (typeof pageKey === 'string') {
+      config.push(`pageKey: ${pageKey}`);
+    }
+
+    const query = `query { getBlocks( ${config.join(', ')} ) { object { ${genericBlockFields} }, pageInfo { pageSize, pageNext, pagePrev } } }`;
 
     try {
       // @ts-ignore
       const result = await adapter.socket.query(query);
       const blocks: Block[] = result.getBlocks;
       blocks.forEach((block) => block.number = parseInt(block.id as any, 10)); // Fix when backend contains number as attribute.
-      return blocks;
+      return {
+        blocks,
+        pageInfo: result.pageInfo
+      };
     } catch (e) {
       throw new Error(e);
     }
@@ -64,42 +75,13 @@ export const getBlocksFrom = (adapter: Adapter) => {
 };
 
 
-export const getBlocksUntil = (adapter: Adapter) => {
-  return async (hashOrNumber: string | number, pageSize?: number, pageNr?: number): Promise<Block[]> => {
-    // TODO FIX PAGE SIZE, PAGE NR.
-    let filter = '';
-
-    // Fetch specific block;
-    if (isBlockHash(hashOrNumber)) {
-      filter = `filters: { hashUntil: "${hashOrNumber}" }`;
-    } else if (isBlockNumber(hashOrNumber)) {
-      filter = `filters: { idLte: ${hashOrNumber} }`;
-    } else {
-      throw new Error('[PolkascanAdapter] getBlocksUntil: Supplied hashOrNumber must be of type string or number.');
-    }
-
-    const query =
-      `query { getBlocks(${filter}) { ${genericBlockFields} } }`;
-
-    try {
-      const result = await adapter.socket.query(query);
-      const blocks: Block[] = result.getBlocks;
-      blocks.forEach((block) => block.number = parseInt(block.id as any, 10)); // Fix when backend contains number as attribute.
-      return blocks;
-    } catch (e) {
-      throw new Error(e);
-    }
-  };
-};
-
-
-export const subscribeFinalizedBlocks = (adapter: Adapter) => {
+export const subscribeNewBlock = (adapter: Adapter) => {
   return async (callback: (block: Block) => void): Promise<() => void> => {
-    const query = `subscription { subscribeBlock { ${genericBlockFields} } }`;
+    const query = `subscription { subscribeNewBlock { ${genericBlockFields} } }`;
     // return the unsubscribe function.
     return await adapter.socket.createSubscription(query, (result) => {
       try {
-        const block = result.block;
+        const block = result.subscribeNewBlock;
         block.number = parseInt(block.id as any, 10); // Fix when backend contains number as attribute
         callback(block);
       } catch (e) {
@@ -117,7 +99,7 @@ export const getBlockAugmentation = (adapter: Adapter) => {
     }
 
     // Get data from polkascan to augment it to the rpc block.
-    const query = `query { getBlock(filters: { hash: "${hash}" }) { id, countExtrinsics, countEvents } }`;
+    const query = `query { getBlock(filters: { hash: "${hash}" }) { objects { id, countExtrinsics, countEvents },  } }`;
     try {
       const result = await adapter.socket.query(query);
       const block = result.getBlock;

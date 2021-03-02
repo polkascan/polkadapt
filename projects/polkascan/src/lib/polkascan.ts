@@ -24,16 +24,14 @@ import {
   getBlockAugmentation,
   getBlock,
   getBlocksFrom,
-  getBlocksUntil,
-  subscribeFinalizedBlocks
+  subscribeNewBlock
 } from './web-socket/block.functions';
 
 export type Api = {
   polkascan: {
     getBlock: (hashOrNumber?: string | number) => Promise<Block>,
-    getBlocksFrom: (hashOrNumber: string | number, pageSize?: number, pageNumber?: number) => Promise<Block[]>;
-    getBlocksUntil: (hashOrNumber: string | number, pageSize?: number, pageNumber?: number) => Promise<Block[]>;
-    subscribeFinalizedBlocks: (callback: (block: Block) => void) => Promise<() => void>;
+    getBlocksFrom: (hashOrNumber: string | number, pageSize?: number, pageKey?: string) => Promise<{blocks: Block[], pageInfo: any}>;
+    subscribeNewBlock: (callback: (block: Block) => void) => Promise<() => void>;
   }
   rpc: {
     chain: {
@@ -71,8 +69,7 @@ export class Adapter extends AdapterBase {
         polkascan: {
           getBlock: getBlock(this),
           getBlocksFrom: getBlocksFrom(this),
-          getBlocksUntil: getBlocksUntil(this),
-          subscribeFinalizedBlocks: subscribeFinalizedBlocks(this)
+          subscribeNewBlock: subscribeNewBlock(this)
         },
         rpc: {
           chain: {
