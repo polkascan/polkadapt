@@ -30,7 +30,7 @@ import {
 export type Api = {
   polkascan: {
     getBlock: (hashOrNumber?: string | number) => Promise<Block>,
-    getBlocksFrom: (hashOrNumber: string | number, pageSize?: number, pageKey?: string) => Promise<{blocks: Block[], pageInfo: any}>;
+    getBlocksFrom: (hashOrNumber: string | number, pageSize?: number, pageKey?: string) => Promise<{objects: Block[], pageInfo: any}>;
     subscribeNewBlock: (callback: (block: Block) => void) => Promise<() => void>;
   }
   rpc: {

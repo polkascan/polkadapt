@@ -23,7 +23,7 @@ export const getBlock = (adapter: Adapter) => {
       config.push(`filters: { id: ${hashOrNumber} }`);
     }
 
-    const query = `query { getBlock${config.length > 0 ? `(${config.join(', ')})` : ''} { objects { ${genericBlockFields} } } }`;
+    const query = `query { getBlock${config.length > 0 ? `(${config.join(', ')})` : ''} { ${genericBlockFields} } }`;
 
     try {
       const result = await adapter.socket.query(query);
@@ -38,7 +38,7 @@ export const getBlock = (adapter: Adapter) => {
 
 
 export const getBlocksFrom = (adapter: Adapter) => {
-  return async (hashOrNumber: string | number, pageSize?: number, pageKey?: string): Promise<{blocks: Block[], pageInfo: any}> => {
+  return async (hashOrNumber: string | number, pageSize?: number, pageKey?: string): Promise<{objects: Block[], pageInfo: any}> => {
     const config: string[] = [];
 
     if (isBlockHash(hashOrNumber)) {
@@ -57,17 +57,14 @@ export const getBlocksFrom = (adapter: Adapter) => {
       config.push(`pageKey: ${pageKey}`);
     }
 
-    const query = `query { getBlocks( ${config.join(', ')} ) { object { ${genericBlockFields} }, pageInfo { pageSize, pageNext, pagePrev } } }`;
+    const query = `query { getBlocks( ${config.join(', ')} ) { objects { ${genericBlockFields} }, pageInfo { pageSize, pageNext, pagePrev } } }`;
 
     try {
       // @ts-ignore
       const result = await adapter.socket.query(query);
-      const blocks: Block[] = result.getBlocks;
+      const blocks: Block[] = result.getBlocks.objects;
       blocks.forEach((block) => block.number = parseInt(block.id as any, 10)); // Fix when backend contains number as attribute.
-      return {
-        blocks,
-        pageInfo: result.pageInfo
-      };
+      return result.getBlocks;
     } catch (e) {
       throw new Error(e);
     }
@@ -99,7 +96,7 @@ export const getBlockAugmentation = (adapter: Adapter) => {
     }
 
     // Get data from polkascan to augment it to the rpc block.
-    const query = `query { getBlock(filters: { hash: "${hash}" }) { objects { id, countExtrinsics, countEvents },  } }`;
+    const query = `query { getBlock(filters: { hash: "${hash}" }) { id, countExtrinsics, countEvents  } }`;
     try {
       const result = await adapter.socket.query(query);
       const block = result.getBlock;
