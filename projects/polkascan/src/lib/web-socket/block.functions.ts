@@ -44,7 +44,7 @@ export const getBlocksFrom = (adapter: Adapter) => {
     if (isBlockHash(hashOrNumber)) {
       config.push(`filters: { hashFrom: "${hashOrNumber}" }`);
     } else if (isBlockNumber(hashOrNumber)) {
-      config.push(`filters: { idGte: ${hashOrNumber} }`);
+      config.push(`filters: { idLte: ${hashOrNumber} }`);
     } else {
       throw new Error('[PolkascanAdapter] getBlocksFrom: Supplied hashOrNumber must be of type string or number.');
     }
