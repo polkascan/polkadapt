@@ -44,9 +44,44 @@ export const getBlocksFrom = (adapter: Adapter) => {
     if (isBlockHash(hashOrNumber)) {
       config.push(`filters: { hashFrom: "${hashOrNumber}" }`);
     } else if (isBlockNumber(hashOrNumber)) {
-      config.push(`filters: { idLte: ${hashOrNumber} }`);
+      config.push(`filters: { idGte: ${hashOrNumber} }`);
     } else {
       throw new Error('[PolkascanAdapter] getBlocksFrom: Supplied hashOrNumber must be of type string or number.');
+    }
+
+    if (Number.isInteger(pageSize) && pageSize > 0) {
+      config.push(`pageSize: ${pageSize}`);
+    }
+
+    if (typeof pageKey === 'string') {
+      config.push(`pageKey: ${pageKey}`);
+    }
+
+    const query = `query { getBlocks( ${config.join(', ')} ) { objects { ${genericBlockFields} }, pageInfo { pageSize, pageNext, pagePrev } } }`;
+
+    try {
+      // @ts-ignore
+      const result = await adapter.socket.query(query);
+      const blocks: Block[] = result.getBlocks.objects;
+      blocks.forEach((block) => block.number = parseInt(block.id as any, 10)); // Fix when backend contains number as attribute.
+      return result.getBlocks;
+    } catch (e) {
+      throw new Error(e);
+    }
+  };
+};
+
+
+export const getBlocksUntil = (adapter: Adapter) => {
+  return async (hashOrNumber: string | number, pageSize?: number, pageKey?: string): Promise<{objects: Block[], pageInfo: any}> => {
+    const config: string[] = [];
+
+    if (isBlockHash(hashOrNumber)) {
+      config.push(`filters: { hashUntil: "${hashOrNumber}" }`);
+    } else if (isBlockNumber(hashOrNumber)) {
+      config.push(`filters: { idLte: ${hashOrNumber} }`);
+    } else {
+      throw new Error('[PolkascanAdapter] getBlocksUntil: Supplied hashOrNumber must be of type string or number.');
     }
 
     if (Number.isInteger(pageSize) && pageSize > 0) {
