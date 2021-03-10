@@ -39,10 +39,10 @@ export const getBlock = (adapter: Adapter) => {
 
     if (isBlockHash(hashOrNumber)) {
       // Fetch specific block;
-      filters.push(`hashEq: "${hashOrNumber}"`);
+      filters.push(`hash: "${hashOrNumber}"`);
     } else if (isBlockNumber(hashOrNumber)) {
-      filters.push(`idEq: ${hashOrNumber}`);
-    } else if (hashOrNumber !== undefined || hashOrNumber !== null) {
+      filters.push(`id: ${hashOrNumber}`);
+    } else if (hashOrNumber) {
       throw new Error('[PolkascanAdapter] getBlock: Supplied hashOrNumber is defined and must be of type string or integer.');
     }
 

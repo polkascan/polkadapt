@@ -56,26 +56,21 @@ const generateQuery = (
   }
 
   if (isList === true) {
-    query = `query { ${
-      name
-    }${
-      config.length > 0 ? `( ${config.join(', ')} )` : ''
-    } { objects { ${
-      Array.isArray(fields) && fields.length > 0
-        ? fields.join(', ')
-        : ''
-    } }, pageInfo { pageSize, pageNext, pagePrev } } }`;
+    query = `query {
+      ${name}${config.length > 0 ? `( ${config.join(', ')} )` : ''} {
+        objects {
+          ${Array.isArray(fields) && fields.length > 0 ? fields.join(', ') : ''}
+        },
+        pageInfo { pageSize, pageNext, pagePrev }
+      }
+    }`;
 
   } else {
-    query = `query { ${
-      name
-    }${
-      config.length > 0 ? `( ${config.join(', ')} )` : ''
-    } { ${
-      Array.isArray(fields) && fields.length > 0
-        ? fields.join(', ')
-        : ''
-    } }`;
+    query = `query {
+      ${name}${config.length > 0 ? `( ${config.join(', ')} )` : ''} {
+        ${Array.isArray(fields) && fields.length > 0 ? fields.join(', ') : ''}
+      }
+    }`;
   }
 
   return query;
