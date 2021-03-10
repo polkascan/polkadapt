@@ -19,21 +19,33 @@
 import { AdapterBase } from '@polkadapt/core';
 import { PolkascanApi } from './polkascan.api';
 import { PolkascanWebSocket } from './polkascan.web-socket';
-import { Block } from './polkascan.types';
+import * as pst from './polkascan.types';
 import {
   getBlock,
+  getBlocks,
   getBlockAugmentation,
-  getBlocksFrom,
-  getBlocksUntil,
-  subscribeNewBlock
+  subscribeNewBlock, getBlocksFrom, getBlocksUntil
 } from './web-socket/block.functions';
+import { EventsFilters, getEvent, getEvents, subscribeNewEvent } from './web-socket/event.functions';
 
 export type Api = {
   polkascan: {
-    getBlock: (hashOrNumber?: string | number) => Promise<Block>,
-    getBlocksFrom: (hashOrNumber: string | number, pageSize?: number, pageKey?: string) => Promise<{objects: Block[], pageInfo: any}>;
-    getBlocksUntil: (hashOrNumber: string | number, pageSize?: number, pageKey?: string) => Promise<{objects: Block[], pageInfo: any}>;
-    subscribeNewBlock: (callback: (block: Block) => void) => Promise<() => void>;
+    getBlock: (hashOrNumber?: string | number) =>
+      Promise<pst.Block>,
+    getBlocks: (pageSize?: number, pageKey?: string) =>
+      Promise<pst.ListResponse<pst.Block>>;
+    getBlocksFrom: (hashOrNumber: string | number, pageSize?: number, pageKey?: string) =>
+      Promise<pst.ListResponse<pst.Block>>;
+    getBlocksUntil: (hashOrNumber: string | number, pageSize?: number, pageKey?: string) =>
+      Promise<pst.ListResponse<pst.Block>>;
+    subscribeNewBlock: (callback: (block: pst.Block) => void) =>
+      Promise<() => void>;
+    getEvent: (blockNumber?: number, eventIdx?: number) =>
+      Promise<pst.Event>;
+    getEvents: (filters?: EventsFilters, pageSize?: number, pageKey?: string) =>
+      Promise<pst.ListResponse<pst.Event>>;
+    subscribeNewEvent: (callback: (filters?: EventsFilters) => void) =>
+      Promise<() => void>;
   }
   rpc: {
     chain: {
@@ -70,9 +82,13 @@ export class Adapter extends AdapterBase {
       resolve({
         polkascan: {
           getBlock: getBlock(this),
+          getBlocks: getBlocks(this),
           getBlocksFrom: getBlocksFrom(this),
           getBlocksUntil: getBlocksUntil(this),
-          subscribeNewBlock: subscribeNewBlock(this)
+          subscribeNewBlock: subscribeNewBlock(this),
+          getEvent: getEvent(this),
+          getEvents: getEvents(this),
+          subscribeNewEvent: subscribeNewEvent(this),
         },
         rpc: {
           chain: {
