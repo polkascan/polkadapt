@@ -19,7 +19,18 @@
 
 import { Adapter } from '../polkascan';
 import * as pst from '../polkascan.types';
-import { generateObjectQuery, generateObjectsListQuery, isBlockNumber, isEventIdx } from './helpers';
+import {
+  generateObjectQuery,
+  generateObjectsListQuery,
+  generateSubscription,
+  isArray,
+  isBlockNumber,
+  isDefined,
+  isEventIdx,
+  isFunction,
+  isObject,
+  isString
+} from './helpers';
 
 const genericEventFields = [
   'blockNumber',
@@ -43,23 +54,34 @@ export const getEvent = (adapter: Adapter) => {
   return async (blockNumber?: number, eventIdx?: number): Promise<pst.Event> => {
     const filters: string[] = [];
 
-    if (blockNumber !== null && blockNumber !== undefined && isBlockNumber(blockNumber)) {
-      filters.push(`blockNumberEq: ${blockNumber}`);
+    if (isDefined(blockNumber) && isBlockNumber(blockNumber)) {
+      if (!isDefined(eventIdx)) {
+        throw new Error('[PolkascanAdapter] getEvent: Missing eventIdx, only blockNumber is provided.');
+      }
+      filters.push(`blockNumber: ${blockNumber}`);
     } else {
-      throw new Error('[PolkascanAdapter] getEvent: Supplied blockNumber must be an integer.');
+      throw new Error('[PolkascanAdapter] getEvent: Provided attribute blockNumber must be an integer.');
     }
 
-    if (eventIdx !== null && eventIdx !== undefined && isEventIdx(eventIdx)) {
-      filters.push(`eventIdxEq: ${eventIdx}`);
+    if (isDefined(eventIdx) && isEventIdx(eventIdx)) {
+      if (!isDefined(blockNumber)) {
+        throw new Error('[PolkascanAdapter] getEvent: Missing attribute blockNumber, only eventIdx is provided.');
+      }
+      filters.push(`eventIdx: ${eventIdx}`);
     } else {
-      throw new Error('[PolkascanAdapter] getEvent: Supplied eventIdx  must be an integer.');
+      throw new Error('[PolkascanAdapter] getEvent: Provided attribute eventIdx must be an integer.');
     }
 
     const query = generateObjectQuery('getEvent', genericEventFields, filters);
 
     try {
       const result = await adapter.socket.query(query);
-      return result.getEvent as pst.Event;
+      const event: pst.Event = result.getEvent;
+      if (isObject(event)) {
+        return event;
+      } else {
+        throw new Error(`[PolkascanAdapter] getEvent: Returned response is invalid.`);
+      }
     } catch (e) {
       throw new Error(e);
     }
@@ -67,39 +89,63 @@ export const getEvent = (adapter: Adapter) => {
 };
 
 
+const createEventsFilters = (eventsFilters: EventsFilters): string[] => {
+  const filters: string[] = [];
+
+  if (isObject(eventsFilters)) {
+    const blockNumber = eventsFilters.blockNumber;
+    const eventModule = eventsFilters.eventModule;
+    const eventName = eventsFilters.eventName;
+
+    if (isDefined(blockNumber) && isBlockNumber(blockNumber)) {
+      filters.push(`blockNumber: ${blockNumber}`);
+    } else {
+      throw new Error('[PolkascanAdapter] Events: Provided attribute blockNumber must be an integer.');
+    }
+
+    if (isDefined(eventModule) && isString(eventModule)) {
+      filters.push(`eventModule: "${eventModule}"`);
+    } else {
+      throw new Error('[PolkascanAdapter] Events: Provided attribute eventModule must be a (non-empty) string.');
+    }
+
+    if (isDefined(eventName) && isString(eventName)) {
+      if (!isDefined(eventModule)) {
+        throw new Error('[PolkascanAdapter] Events: Missing attribute eventModule, only eventName is provided.');
+      }
+
+      filters.push(`eventName: "${eventName}"`);
+    } else {
+      throw new Error('[PolkascanAdapter] Events: Provided attribute eventName must be a (non-empty) string.');
+    }
+
+  } else if (isDefined(eventsFilters)) {
+    throw new Error('[PolkascanAdapter] Events: Provided attribute filters have to be wrapped in an object.');
+  }
+
+  return filters;
+};
+
+
 export const getEvents = (adapter: Adapter) => {
   return async (eventsFilters?: EventsFilters, pageSize?: number, pageKey?: string): Promise<pst.ListResponse<pst.Event>> => {
-    const filters: string[] = [];
-
-    if (eventsFilters) {
-      const blockNumber = eventsFilters.blockNumber;
-      const eventModule = eventsFilters.eventModule;
-      const eventName = eventsFilters.eventName;
-
-      if (blockNumber !== null && blockNumber !== undefined && isBlockNumber(blockNumber)) {
-        filters.push(`blockNumberEq: ${blockNumber}`);
-      } else {
-        throw new Error('[PolkascanAdapter] getEvents: Supplied blockNumber must be an integer.');
-      }
-
-      if (eventModule && typeof eventModule === 'string') {
-        filters.push(`eventModuleEq: ${eventModule}`);
-      } else {
-        throw new Error('[PolkascanAdapter] getEvents: Supplied eventModule must be a string.');
-      }
-
-      if (eventName && typeof eventName === 'string') {
-        filters.push(`eventNameEq: ${eventName}`);
-      } else {
-        throw new Error('[PolkascanAdapter] getEvents: Supplied eventName must be a string.');
-      }
+    let filters: string[];
+    try {
+      filters = createEventsFilters(eventsFilters);
+    } catch (e) {
+      throw new Error(e);
     }
 
     const query = generateObjectsListQuery('getEvents', genericEventFields, filters, pageSize, pageKey);
 
     try {
       const result = await adapter.socket.query(query);
-      return result.getEvents;
+      const events: Event[] = result.getEvents.objects;
+      if (isArray(events)) {
+        return result.getEvents;
+      } else {
+        throw new Error(`[PolkascanAdapter] getEvents: Returned response is invalid.`);
+      }
     } catch (e) {
       throw new Error(e);
     }
@@ -108,18 +154,33 @@ export const getEvents = (adapter: Adapter) => {
 
 
 export const subscribeNewEvent = (adapter: Adapter) => {
-  return async (callback: (block: pst.Event) => void): Promise<() => void> => {
-    const query = `subscription { subscribeNewEvent { ${genericEventFields.join(', ')} } }`;
+  return async (...args: ((event: pst.Event) => void | EventsFilters)[]): Promise<() => void> => {
+    const callback = args.find((arg) => isFunction(arg));
+    if (!callback) {
+      throw new Error(`[PolkascanAdapter] subscribeNewEvent: No callback function is provided.`);
+    }
+
+    let filters: string[];
+    if (isObject(args[0])) {
+      try {
+        filters = createEventsFilters(args[0] as EventsFilters);
+      } catch (e) {
+        throw new Error(e);
+      }
+    }
+
+    const query = generateSubscription('subscribeNewEvent', genericEventFields, filters);
+
     // return the unsubscribe function.
     return await adapter.socket.createSubscription(query, (result) => {
       try {
         const event: pst.Event = result.subscribeNewEvent;
-        callback(event);
+        if (isObject(event)) {
+          callback(event);
+        }
       } catch (e) {
         // Ignore.
       }
     });
   };
 };
-
-

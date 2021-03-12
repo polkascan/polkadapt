@@ -19,17 +19,27 @@
 
 import { Adapter } from '../polkascan';
 import * as pst from '../polkascan.types';
-import { generateObjectsListQuery, generateObjectQuery, isBlockHash, isBlockNumber } from './helpers';
+import {
+  generateObjectQuery,
+  generateObjectsListQuery,
+  generateSubscription,
+  isArray,
+  isBlockHash,
+  isBlockNumber,
+  isDefined,
+  isFunction,
+  isObject
+} from './helpers';
 
-// TODO Remove id when socket returns 'number' attribute as pk, add number.
 const genericBlockFields = [
-  'id',
+  'number',
   'hash',
   'parentHash',
   'stateRoot',
   'extrinsicsRoot',
   'countExtrinsics',
-  'countEvents'
+  'countEvents',
+  'datetime'
 ];
 
 
@@ -42,8 +52,8 @@ export const getBlock = (adapter: Adapter) => {
       filters.push(`hash: "${hashOrNumber}"`);
     } else if (isBlockNumber(hashOrNumber)) {
       filters.push(`id: ${hashOrNumber}`);
-    } else if (hashOrNumber) {
-      throw new Error('[PolkascanAdapter] getBlock: Supplied hashOrNumber is defined and must be of type string or integer.');
+    } else if (isDefined(hashOrNumber)) {
+      throw new Error('[PolkascanAdapter] getBlock: Provided hashOrNumber is defined and must be of type string or integer.');
     }
 
     const query = generateObjectQuery('getBlock', genericBlockFields, filters);
@@ -51,10 +61,11 @@ export const getBlock = (adapter: Adapter) => {
     try {
       const result = await adapter.socket.query(query);
       const block: pst.Block = result.getBlock;
-      if ((block as any).id) {
-        block.number = parseInt((block as any).id, 10);  // TODO Remove me when socket returns 'number' attribute as pk.
+      if (isObject(block)) {
+        return block;
+      } else {
+        throw new Error(`[PolkascanAdapter] getBlock: Returned response is invalid.`);
       }
-      return block;
     } catch (e) {
       throw new Error(e);
     }
@@ -76,7 +87,7 @@ const getBlocksFn = (adapter: Adapter, direction?: 'from' | 'until') => {
       } else if (isBlockNumber(hashOrNumber)) {
         filters.push(`idGte: ${hashOrNumber}`);
       } else {
-        throw new Error('[PolkascanAdapter] getBlocksFrom: Supplied hashOrNumber must be of type string or integer.');
+        throw new Error('[PolkascanAdapter] getBlocksFrom: Provided hashOrNumber must be of type string or integer.');
       }
     } else if (direction === 'until') {
       if (isBlockHash(hashOrNumber)) {
@@ -84,7 +95,7 @@ const getBlocksFn = (adapter: Adapter, direction?: 'from' | 'until') => {
       } else if (isBlockNumber(hashOrNumber)) {
         filters.push(`idLte: ${hashOrNumber}`);
       } else {
-        throw new Error('[PolkascanAdapter] getBlocksUntil: Supplied hashOrNumber must be of type string or integer.');
+        throw new Error('[PolkascanAdapter] getBlocksUntil: Provided hashOrNumber must be of type string or integer.');
       }
     }
 
@@ -94,12 +105,11 @@ const getBlocksFn = (adapter: Adapter, direction?: 'from' | 'until') => {
       // @ts-ignore
       const result = await adapter.socket.query(query);
       const blocks: pst.Block[] = result.getBlocks.objects;
-      blocks.forEach((block) => {
-        if ((block as any).id) {
-          block.number = parseInt((block as any).id, 10);  // TODO Remove me when socket returns 'number' attribute as pk.
-        }
-      });
-      return result.getBlocks;
+      if (isArray(blocks)) {
+        return result.getBlocks;
+      } else {
+        throw new Error(`[PolkascanAdapter] getBlocks: Returned response is invalid.`);
+      }
     } catch (e) {
       throw new Error(e);
     }
@@ -125,16 +135,21 @@ export const getBlocksUntil = (adapter: Adapter) => {
 
 
 export const subscribeNewBlock = (adapter: Adapter) => {
-  return async (callback: (block: pst.Block) => void): Promise<() => void> => {
-    const query = `subscription { subscribeNewBlock { ${genericBlockFields.join(', ')} } }`;
+  return async (...args: ((block: pst.Block) => void)[]): Promise<() => void> => {
+    const callback = args.find((arg) => isFunction(arg));
+    if (!callback) {
+      throw new Error(`[PolkascanAdapter] subscribeNewBlock: No callback function is provided.`);
+    }
+
+    const query = generateSubscription('subscribeNewBlock', genericBlockFields);
+
     // return the unsubscribe function.
     return await adapter.socket.createSubscription(query, (result) => {
       try {
         const block: pst.Block = result.subscribeNewBlock;
-        if ((block as any).id) {
-          block.number = parseInt((block as any).id, 10);  // TODO Remove me when socket returns 'number' attribute as pk.
+        if (isObject(block)) {
+          callback(block);
         }
-        callback(block);
       } catch (e) {
         // Ignore.
       }
@@ -158,10 +173,11 @@ export const getBlockAugmentation = (adapter: Adapter) => {
     try {
       const result = await adapter.socket.query(query);
       const block: pst.Block = result.getBlock;
-      if ((block as any).id) {
-        block.number = parseInt((block as any).id, 10);  // TODO Remove me when socket returns 'number' attribute as pk.
+      if (isObject(block)) {
+        return {block};
       }
-      return {block};
+      return {};
+
     } catch (e) {
       // Ignore failure. We won't augment the block into the rpc fetched block;
       return {};

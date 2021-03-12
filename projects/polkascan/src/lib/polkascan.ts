@@ -27,6 +27,13 @@ import {
   subscribeNewBlock, getBlocksFrom, getBlocksUntil
 } from './web-socket/block.functions';
 import { EventsFilters, getEvent, getEvents, subscribeNewEvent } from './web-socket/event.functions';
+import {
+  ExtrinsicsFilters,
+  getExtrinsic,
+  getExtrinsics,
+  subscribeNewExtrinsic
+} from './web-socket/extrinsic.functions';
+
 
 export type Api = {
   polkascan: {
@@ -44,7 +51,14 @@ export type Api = {
       Promise<pst.Event>;
     getEvents: (filters?: EventsFilters, pageSize?: number, pageKey?: string) =>
       Promise<pst.ListResponse<pst.Event>>;
-    subscribeNewEvent: (callback: (filters?: EventsFilters) => void) =>
+    subscribeNewEvent: (filtersOrCallback: (event: pst.Event) => void | EventsFilters, callback: (event: pst.Event) => void) =>
+      Promise<() => void>;
+    getExtrinsic: (blockNumber?: number, eventIdx?: number) =>
+      Promise<pst.Extrinsic>;
+    getExtrinsics: (filters?: ExtrinsicsFilters, pageSize?: number, pageKey?: string) =>
+      Promise<pst.ListResponse<pst.Extrinsic>>;
+    subscribeNewExtrinsic: (filtersOrCallback: (extrinsic: pst.Extrinsic) => void | ExtrinsicsFilters,
+                            callback: (extrinsic: pst.Extrinsic) => void) =>
       Promise<() => void>;
   }
   rpc: {
@@ -59,6 +73,7 @@ export interface Config {
   apiEndpoint: string;
   wsEndpoint: string;
 }
+
 
 export class Adapter extends AdapterBase {
   name = 'polkascan';
@@ -89,6 +104,9 @@ export class Adapter extends AdapterBase {
           getEvent: getEvent(this),
           getEvents: getEvents(this),
           subscribeNewEvent: subscribeNewEvent(this),
+          getExtrinsic: getExtrinsic(this),
+          getExtrinsics: getExtrinsics(this),
+          subscribeNewExtrinsic: subscribeNewExtrinsic(this)
         },
         rpc: {
           chain: {
@@ -99,13 +117,16 @@ export class Adapter extends AdapterBase {
     });
   }
 
+
   connect(): void {
     this.socket.connect();
   }
 
+
   disconnect(): void {
     this.socket.disconnect();
   }
+
 
   get isReady(): Promise<boolean> {
     return new Promise<boolean>((resolve, reject) => {

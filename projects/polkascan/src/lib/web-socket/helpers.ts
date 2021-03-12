@@ -18,7 +18,7 @@
 
 
 export const isBlockHash = (hash: any): boolean => {
-  return (typeof hash === 'string' || (hash as any) instanceof String) && hash.startsWith('0x');
+  return isString(hash) && hash.startsWith('0x');
 };
 
 
@@ -32,18 +32,51 @@ export const isEventIdx = (nr: any): boolean => {
 };
 
 
+export const isExtrinsicIdx = (nr: any): boolean => {
+  return Number.isInteger(nr) && nr >= 0;
+};
+
+
+export const isString = (val: any): boolean => {
+  return typeof val === 'string' || (val as any) instanceof String;
+};
+
+
+export const isDefined = (val: any): boolean => {
+  return val !== null && val !== undefined;
+};
+
+
+export const isObject = (val: any): boolean => {
+  return Object.prototype.toString.call(val) === '[object Object]';
+};
+
+
+export const isFunction = (val): boolean => {
+  return typeof val === 'function';
+};
+
+
+export const isArray = (val: any): boolean => {
+  return Array.isArray(val);
+};
+
+
 const generateQuery = (
   name: string,
   fields?: string[],
   filters?: string[],
+  isSubscription?: boolean,
   isList?: boolean,
   pageSize?: number,
   pageKey?: string) => {
 
+  const type = isSubscription === true ? 'subscription' : 'query';
   let query: string;
   const config: string[] = [];
 
-  if (filters.length > 0) {
+
+  if (isArray(filters) && filters.length > 0) {
     config.push(`filters: { ${filters.join(', ')} }`);
   }
 
@@ -56,7 +89,7 @@ const generateQuery = (
   }
 
   if (isList === true) {
-    query = `query {
+    query = `${type} {
       ${name}${config.length > 0 ? `( ${config.join(', ')} )` : ''} {
         objects {
           ${Array.isArray(fields) && fields.length > 0 ? fields.join(', ') : ''}
@@ -66,7 +99,7 @@ const generateQuery = (
     }`;
 
   } else {
-    query = `query {
+    query = `${type} {
       ${name}${config.length > 0 ? `( ${config.join(', ')} )` : ''} {
         ${Array.isArray(fields) && fields.length > 0 ? fields.join(', ') : ''}
       }
@@ -87,5 +120,11 @@ export const generateObjectsListQuery = (name: string,
                                          filters?: string[],
                                          pageSize?: number,
                                          pageKey?: string) => {
-  return generateQuery(name, fields, filters, true, pageSize, pageKey);
+  return generateQuery(name, fields, filters, false, true, pageSize, pageKey);
+};
+
+export const generateSubscription = (name: string,
+                                     fields?: string[],
+                                     filters?: string[]) => {
+  return generateQuery(name, fields, filters, true);
 };
