@@ -3,14 +3,14 @@
   "version": "0.0.1",
   "peerDependencies": {
     "@polkadapt/core": "latest",
-    "@polkadot/api": "^3.10.2"
+    "@polkadot/api": "^4.0.3"
   },
   "dependencies": {
     "tslib": "^2.0.0"
   },
   "devDependencies": {
     "@polkadapt/core": "file:../../dist/core",
-    "@polkadot/api": "^3.10.2",
-    "@polkadot/types": "^3.10.2"
+    "@polkadot/api": "^4.0.3",
+    "@polkadot/types": "^4.0.3"
   }
 }
