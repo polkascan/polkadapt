@@ -39,7 +39,6 @@ export interface ExtrinsicsFilters {
   callModule?: string;
   callName?: string;
   signed?: number;
-  success?: number;
 }
 
 
@@ -90,40 +89,40 @@ const createExtrinsicsFilters = (extrinsicsFilters: ExtrinsicsFilters): string[]
     const callModule = extrinsicsFilters.callModule;
     const callName = extrinsicsFilters.callName;
     const signed = extrinsicsFilters.signed;
-    const success = extrinsicsFilters.success;
 
-    if (isDefined(blockNumber) && isBlockNumber(blockNumber)) {
-      filters.push(`blockNumber: ${blockNumber}`);
-    } else {
-      throw new Error('[PolkascanAdapter] Extrinsics: Provided attribute blockNumber must be an integer.');
-    }
-
-    if (isDefined(callModule) && isString(callModule)) {
-      filters.push(`callModule: "${callModule}"`);
-    } else {
-      throw new Error('[PolkascanAdapter] Extrinsics: Provided attribute callModule must be a (non-empty) string.');
-    }
-
-    if (isDefined(callName) && isString(callName)) {
-      if (!isDefined(callModule)) {
-        throw new Error('[PolkascanAdapter] Extrinsics: Missing attribute callModule, only callName is provided.');
+    if (isDefined(blockNumber)) {
+      if (isBlockNumber(blockNumber)) {
+        filters.push(`blockNumber: ${blockNumber}`);
+      } else {
+        throw new Error('[PolkascanAdapter] Extrinsics: Provided attribute blockNumber must be an integer.');
       }
-
-      filters.push(`callName: "${callName}"`);
-    } else {
-      throw new Error('[PolkascanAdapter] Extrinsics: Provided attribute callName must be a (non-empty) string.');
     }
 
-    if (isDefined(signed) && Number.isInteger(signed) && (signed === 0 || signed === 1)) {
-      filters.push(`signed: ${signed}`);
-    } else {
-      throw new Error('[PolkascanAdapter] Extrinsics: Provided attribute signed must be an integer with value 0 or 1.');
+    if (isDefined(callModule)) {
+      if (isString(callModule)) {
+        filters.push(`callModule: "${callModule}"`);
+      } else {
+        throw new Error('[PolkascanAdapter] Extrinsics: Provided attribute callModule must be a (non-empty) string.');
+      }
     }
 
-    if (isDefined(success) && Number.isInteger(success) && (success === 0 || success === 1)) {
-      filters.push(`success: ${success}`);
-    } else {
-      throw new Error('[PolkascanAdapter] Extrinsics: Provided attribute success must be an integer with value 0 or 1.');
+    if (isDefined(callName)) {
+      if (isString(callName)) {
+        if (!isDefined(callModule)) {
+          throw new Error('[PolkascanAdapter] Extrinsics: Missing attribute callModule, only callName is provided.');
+        }
+        filters.push(`callName: "${callName}"`);
+      } else {
+        throw new Error('[PolkascanAdapter] Extrinsics: Provided attribute callName must be a (non-empty) string.');
+      }
+    }
+
+    if (isDefined(signed)) {
+      if (Number.isInteger(signed) && (signed === 0 || signed === 1)) {
+        filters.push(`signed: ${signed}`);
+      } else {
+        throw new Error('[PolkascanAdapter] Extrinsics: Provided attribute signed must be an integer with value 0 or 1.');
+      }
     }
 
   } else if (isDefined(extrinsicsFilters)) {
@@ -189,7 +188,5 @@ export const subscribeNewExtrinsic = (adapter: Adapter) => {
         // Ignore.
       }
     });
-
-
   };
 };

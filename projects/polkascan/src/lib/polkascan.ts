@@ -51,14 +51,14 @@ export type Api = {
       Promise<pst.Event>;
     getEvents: (filters?: EventsFilters, pageSize?: number, pageKey?: string) =>
       Promise<pst.ListResponse<pst.Event>>;
-    subscribeNewEvent: (filtersOrCallback: (event: pst.Event) => void | EventsFilters, callback: (event: pst.Event) => void) =>
+    subscribeNewEvent: (filtersOrCallback: (event: pst.Event) => void | EventsFilters, callback?: (event: pst.Event) => void) =>
       Promise<() => void>;
     getExtrinsic: (blockNumber?: number, eventIdx?: number) =>
       Promise<pst.Extrinsic>;
     getExtrinsics: (filters?: ExtrinsicsFilters, pageSize?: number, pageKey?: string) =>
       Promise<pst.ListResponse<pst.Extrinsic>>;
     subscribeNewExtrinsic: (filtersOrCallback: (extrinsic: pst.Extrinsic) => void | ExtrinsicsFilters,
-                            callback: (extrinsic: pst.Extrinsic) => void) =>
+                            callback?: (extrinsic: pst.Extrinsic) => void) =>
       Promise<() => void>;
   }
   rpc: {

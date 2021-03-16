@@ -97,26 +97,31 @@ const createEventsFilters = (eventsFilters: EventsFilters): string[] => {
     const eventModule = eventsFilters.eventModule;
     const eventName = eventsFilters.eventName;
 
-    if (isDefined(blockNumber) && isBlockNumber(blockNumber)) {
-      filters.push(`blockNumber: ${blockNumber}`);
-    } else {
-      throw new Error('[PolkascanAdapter] Events: Provided attribute blockNumber must be an integer.');
-    }
-
-    if (isDefined(eventModule) && isString(eventModule)) {
-      filters.push(`eventModule: "${eventModule}"`);
-    } else {
-      throw new Error('[PolkascanAdapter] Events: Provided attribute eventModule must be a (non-empty) string.');
-    }
-
-    if (isDefined(eventName) && isString(eventName)) {
-      if (!isDefined(eventModule)) {
-        throw new Error('[PolkascanAdapter] Events: Missing attribute eventModule, only eventName is provided.');
+    if (isDefined(blockNumber)) {
+      if (isBlockNumber(blockNumber)) {
+        filters.push(`blockNumber: ${blockNumber}`);
+      } else {
+        throw new Error('[PolkascanAdapter] Events: Provided attribute blockNumber must be an integer.');
       }
+    }
 
-      filters.push(`eventName: "${eventName}"`);
-    } else {
-      throw new Error('[PolkascanAdapter] Events: Provided attribute eventName must be a (non-empty) string.');
+    if (isDefined(eventModule)) {
+      if (isString(eventModule)) {
+        filters.push(`eventModule: "${eventModule}"`);
+      } else {
+        throw new Error('[PolkascanAdapter] Events: Provided attribute eventModule must be a (non-empty) string.');
+      }
+    }
+
+    if (isDefined(eventName)) {
+      if (isString(eventName)) {
+        if (!isDefined(eventModule)) {
+          throw new Error('[PolkascanAdapter] Events: Missing attribute eventModule, only eventName is provided.');
+        }
+        filters.push(`eventName: "${eventName}"`);
+      } else {
+        throw new Error('[PolkascanAdapter] Events: Provided attribute eventName must be a (non-empty) string.');
+      }
     }
 
   } else if (isDefined(eventsFilters)) {

@@ -99,7 +99,6 @@ export type Extrinsic = {
   feeBlockAuthor: number | null;
   tip: number | null;
   weight: number | null;
-  success: number | null;
   errorModuleIdx: number | null;
   errorModule: string | null;
   errorNameIdx: number | null;
