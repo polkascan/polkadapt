@@ -166,7 +166,7 @@ export const getBlockAugmentation = (adapter: Adapter) => {
 
     // Get data from polkascan to augment it to the rpc block.
 
-    const fields = ['id', 'countExtrinsics', 'countEvents'];
+    const fields = ['countExtrinsics', 'countEvents'];
     const filters = [`hash: "${hash}"`];
     const query = generateObjectQuery('getBlock', fields, filters);
 
