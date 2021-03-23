@@ -40,7 +40,8 @@ const genericEventFields = [
   'eventModule',
   'eventName',
   'blockDatetime',
-  'blockHash'
+  'blockHash',
+  'attributes'
 ];
 
 export interface EventsFilters {
