@@ -32,7 +32,7 @@ import {
   isString
 } from './helpers';
 
-const genericExtrinsicFields = ['blockNumber', 'extrinsicIdx', 'hash', 'callModule', 'callName', 'signed', 'success', 'blockHash', 'blockDatetime'];
+const genericExtrinsicFields = ['blockNumber', 'extrinsicIdx', 'hash', 'callModule', 'callName', 'signed', 'blockHash', 'blockDatetime'];
 
 export interface ExtrinsicsFilters {
   blockNumber?: number;

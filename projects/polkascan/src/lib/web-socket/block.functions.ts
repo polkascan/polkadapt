@@ -39,7 +39,10 @@ const genericBlockFields = [
   'extrinsicsRoot',
   'countExtrinsics',
   'countEvents',
-  'datetime'
+  'datetime',
+  'slotNumber',
+  'specVersion',
+  'complete'
 ];
 
 
@@ -51,7 +54,7 @@ export const getBlock = (adapter: Adapter) => {
       // Fetch specific block;
       filters.push(`hash: "${hashOrNumber}"`);
     } else if (isBlockNumber(hashOrNumber)) {
-      filters.push(`id: ${hashOrNumber}`);
+      filters.push(`number: ${hashOrNumber}`);
     } else if (isDefined(hashOrNumber)) {
       throw new Error('[PolkascanAdapter] getBlock: Provided hashOrNumber is defined and must be of type string or integer.');
     }
@@ -85,7 +88,7 @@ const getBlocksFn = (adapter: Adapter, direction?: 'from' | 'until') => {
       if (isBlockHash(hashOrNumber)) {
         filters.push(`hashFrom: "${hashOrNumber}"`);
       } else if (isBlockNumber(hashOrNumber)) {
-        filters.push(`idGte: ${hashOrNumber}`);
+        filters.push(`numberGte: ${hashOrNumber}`);
       } else {
         throw new Error('[PolkascanAdapter] getBlocksFrom: Provided hashOrNumber must be of type string or integer.');
       }
@@ -93,7 +96,7 @@ const getBlocksFn = (adapter: Adapter, direction?: 'from' | 'until') => {
       if (isBlockHash(hashOrNumber)) {
         filters.push(`hashUntil: "${hashOrNumber}"`);
       } else if (isBlockNumber(hashOrNumber)) {
-        filters.push(`idLte: ${hashOrNumber}`);
+        filters.push(`numberLte: ${hashOrNumber}`);
       } else {
         throw new Error('[PolkascanAdapter] getBlocksUntil: Provided hashOrNumber must be of type string or integer.');
       }

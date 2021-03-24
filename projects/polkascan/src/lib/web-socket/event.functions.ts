@@ -144,16 +144,18 @@ export const getEvents = (adapter: Adapter) => {
 
     const query = generateObjectsListQuery('getEvents', genericEventFields, filters, pageSize, pageKey);
 
+    let result;
+    let events: Event[];
     try {
-      const result = await adapter.socket.query(query);
-      const events: Event[] = result.getEvents.objects;
-      if (isArray(events)) {
-        return result.getEvents;
-      } else {
-        throw new Error(`[PolkascanAdapter] getEvents: Returned response is invalid.`);
-      }
+      result = await adapter.socket.query(query);
+      events = result.getEvents.objects;
     } catch (e) {
       throw new Error(e);
+    }
+    if (isArray(events)) {
+      return result.getEvents;
+    } else {
+      throw new Error(`[PolkascanAdapter] getEvents: Returned response is invalid.`);
     }
   };
 };
