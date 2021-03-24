@@ -34,6 +34,23 @@ import {
 
 const genericExtrinsicFields = ['blockNumber', 'extrinsicIdx', 'hash', 'callModule', 'callName', 'signed', 'blockHash', 'blockDatetime'];
 
+const extrinsicDetailFields = [
+  'blockNumber',
+  'extrinsicIdx',
+  'hash',
+  'call',
+  'callModule',
+  'callName',
+  'callArguments',
+  'callHash',
+  'signed',
+  'signature',
+  'extrinsicLength',
+  'nonce',
+  'blockDatetime',
+  'blockHash'
+];
+
 export interface ExtrinsicsFilters {
   blockNumber?: number;
   callModule?: string;
@@ -64,7 +81,7 @@ export const getExtrinsic = (adapter: Adapter) => {
       throw new Error('[PolkascanAdapter] getExtrinsic: Provided attribute extrinsicIdx must be an integer.');
     }
 
-    const query = generateObjectQuery('getExtrinsic', genericExtrinsicFields, filters);
+    const query = generateObjectQuery('getExtrinsic', extrinsicDetailFields, filters);
 
     try {
       const result = await adapter.socket.query(query);
