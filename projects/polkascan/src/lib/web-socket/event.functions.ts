@@ -75,16 +75,12 @@ export const getEvent = (adapter: Adapter) => {
 
     const query = generateObjectQuery('getEvent', genericEventFields, filters);
 
-    try {
-      const result = await adapter.socket.query(query);
-      const event: pst.Event = result.getEvent;
-      if (isObject(event)) {
-        return event;
-      } else {
-        throw new Error(`[PolkascanAdapter] getEvent: Returned response is invalid.`);
-      }
-    } catch (e) {
-      throw new Error(e);
+    const result = await adapter.socket.query(query);
+    const event: pst.Event = result.getEvent;
+    if (isObject(event)) {
+      return event;
+    } else {
+      throw new Error(`[PolkascanAdapter] getEvent: Returned response is invalid.`);
     }
   };
 };

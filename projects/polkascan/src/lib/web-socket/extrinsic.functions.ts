@@ -83,16 +83,12 @@ export const getExtrinsic = (adapter: Adapter) => {
 
     const query = generateObjectQuery('getExtrinsic', extrinsicDetailFields, filters);
 
-    try {
-      const result = await adapter.socket.query(query);
-      const extrinsic: pst.Extrinsic = result.getExtrinsic;
-      if (isObject(extrinsic)) {
-        return extrinsic;
-      } else {
-        throw new Error(`[PolkascanAdapter] getExtrinsic: Returned response is invalid.`);
-      }
-    } catch (e) {
-      throw new Error(e);
+    const result = await adapter.socket.query(query);
+    const extrinsic: pst.Extrinsic = result.getExtrinsic;
+    if (isObject(extrinsic)) {
+      return extrinsic;
+    } else {
+      throw new Error(`[PolkascanAdapter] getExtrinsic: Returned response is invalid.`);
     }
   };
 };
@@ -161,16 +157,12 @@ export const getExtrinsics = (adapter: Adapter) => {
 
     const query = generateObjectsListQuery('getExtrinsics', genericExtrinsicFields, filters, pageSize, pageKey);
 
-    try {
-      const result = await adapter.socket.query(query);
-      const extrinsics = result.getExtrinsics.objects;
-      if (isArray(extrinsics)) {
-        return result.getExtrinsics;
-      } else {
-        throw new Error(`[PolkascanAdapter] getExtrinsics: Returned response is invalid.`);
-      }
-    } catch (e) {
-      throw new Error(e);
+    const result = await adapter.socket.query(query);
+    const extrinsics = result.getExtrinsics.objects;
+    if (isArray(extrinsics)) {
+      return result.getExtrinsics;
+    } else {
+      throw new Error(`[PolkascanAdapter] getExtrinsics: Returned response is invalid.`);
     }
   };
 };
@@ -185,11 +177,7 @@ export const subscribeNewExtrinsic = (adapter: Adapter) => {
 
     let filters: string[];
     if (isObject(args[0])) {
-      try {
-        filters = createExtrinsicsFilters(args[0] as ExtrinsicsFilters);
-      } catch (e) {
-        throw new Error(e);
-      }
+      filters = createExtrinsicsFilters(args[0] as ExtrinsicsFilters);
     }
 
     const query = generateSubscription('subscribeNewExtrinsic', genericExtrinsicFields, filters);

@@ -42,6 +42,11 @@ export const isString = (val: any): boolean => {
 };
 
 
+export const isNumber = (val: any): boolean => {
+  return typeof val === 'number' && !isNaN(val);
+};
+
+
 export const isDefined = (val: any): boolean => {
   return val !== null && val !== undefined;
 };

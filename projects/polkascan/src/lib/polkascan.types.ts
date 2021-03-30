@@ -109,3 +109,130 @@ export type Extrinsic = {
   specVersion: number | null;
   complete: number;
 };
+
+
+export type Runtime = {
+  specName: string; // PK
+  specVersion: number; // PK
+  implName: string | null;
+  implVersion: number | null;
+  authoringVersion: number | null;
+  countCallFunctions: number;
+  countEvents: number;
+  countPallets: number;
+  countStorageFunctions: number;
+  countConstants: number;
+  countErrors: number;
+};
+
+
+export type RuntimeCall = {
+  specName: string; // PK
+  specVersion: number; // PK
+  pallet: string; // PK
+  callName: string; // PK
+  palletCallIdx: number;
+  lookup: string;
+  documentation: string | null;
+  countArguments: number;
+};
+
+export type RuntimeCallArgument = {
+  specName: string; // PK
+  specVersion: number; // PK
+  pallet: string; // PK
+  callName: string; // PK
+  callArgumentIdx: number | null; // PK
+  name: string | null;
+  scaleType: string | null;
+};
+
+
+export type RuntimeConstant = {
+  specName: string; // PK
+  specVersion: number; // PK
+  pallet: string; // PK
+  constantName: string | null; // PK
+  palletConstantIdx: number;
+  scaleType: string | null;
+  value: any | null;
+  documentation: string | null;
+};
+
+
+export type RuntimeErrorMessage = {
+  specName: string; // PK
+  specVersion: number; // PK
+  pallet: string; // PK
+  errorName: string | null; // PK
+  palletIdx: number;
+  errorIdx: number;
+  documentation: string | null;
+};
+
+
+export type RuntimeEvent = {
+  specName: string; // PK
+  specVersion: number; // PK
+  pallet: string; // PK
+  eventName: string | null; // PK
+  palletEventIdx: number;
+  lookup: string;
+  documentation: string | null;
+  countAttributes: number;
+};
+
+
+export type RuntimeEventAttribute = {
+  specName: string; // PK
+  specVersion: number; // PK
+  pallet: string; // PK
+  eventName: string | null; // PK
+  eventAttributeIdx: number; // PK
+  scaleType: string | null;
+};
+
+
+export type RuntimePallet = {
+  specName: string; // PK
+  specVersion: number; // PK
+  pallet: string; // PK
+  prefix: string | null;
+  name: string | null;
+  countCallFunctions: number;
+  countStorageFunctions: number;
+  countEvents: number;
+  countConstants: number;
+  countErrors: number;
+};
+
+
+export type RuntimeStorage = {
+  specName: string; // PK
+  specVersion: number; // PK
+  pallet: string; // PK
+  storageName: string; // PK
+  palletStorageIdx: number;
+  default: string | null;
+  modifier: string | null;
+  keyPrefixPallet: string | null;
+  keyPrefixName: string | null;
+  key1ScaleType: string | null;
+  key1Hasher: string | null;
+  key2ScaleType: string | null;
+  key2Hasher: string | null;
+  valueScaleType: string | null;
+  isLinked: boolean;
+  documentation: string | null;
+};
+
+
+export type RuntimeType = {
+  specName: string; // PK
+  specVersion: number; // PK
+  pallet: string; // PK
+  scaleType: string; // PK
+  decoderClass: string | null;
+  isCorePrimitive: boolean;
+  isRuntimePrimitive: boolean;
+};

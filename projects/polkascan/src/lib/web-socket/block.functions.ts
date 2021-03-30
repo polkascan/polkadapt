@@ -61,16 +61,12 @@ export const getBlock = (adapter: Adapter) => {
 
     const query = generateObjectQuery('getBlock', genericBlockFields, filters);
 
-    try {
-      const result = await adapter.socket.query(query);
-      const block: pst.Block = result.getBlock;
-      if (isObject(block)) {
-        return block;
-      } else {
-        throw new Error(`[PolkascanAdapter] getBlock: Returned response is invalid.`);
-      }
-    } catch (e) {
-      throw new Error(e);
+    const result = await adapter.socket.query(query);
+    const block: pst.Block = result.getBlock;
+    if (isObject(block)) {
+      return block;
+    } else {
+      throw new Error(`[PolkascanAdapter] getBlock: Returned response is invalid.`);
     }
   };
 };
@@ -104,17 +100,12 @@ const getBlocksFn = (adapter: Adapter, direction?: 'from' | 'until') => {
 
     const query = generateObjectsListQuery('getBlocks', genericBlockFields, filters, pageSize, pageKey);
 
-    try {
-      // @ts-ignore
-      const result = await adapter.socket.query(query);
-      const blocks: pst.Block[] = result.getBlocks.objects;
-      if (isArray(blocks)) {
-        return result.getBlocks;
-      } else {
-        throw new Error(`[PolkascanAdapter] getBlocks: Returned response is invalid.`);
-      }
-    } catch (e) {
-      throw new Error(e);
+    const result = await adapter.socket.query(query);
+    const blocks: pst.Block[] = result.getBlocks.objects;
+    if (isArray(blocks)) {
+      return result.getBlocks;
+    } else {
+      throw new Error(`[PolkascanAdapter] getBlocks: Returned response is invalid.`);
     }
   };
 };
