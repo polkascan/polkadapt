@@ -125,7 +125,7 @@ const createEventsFilters = (eventsFilters: EventsFilters): string[] => {
     if (isDefined(extrinsicIdx)) {
       if (isPositiveNumber(extrinsicIdx)) {
         if (!isDefined(blockNumber)) {
-          throw new Error('[PolkascanAdapter] getEvent: Missing attribute blockNumber, only extrinsicIdx is provided.');
+          throw new Error('[PolkascanAdapter] Events: Missing attribute blockNumber, only extrinsicIdx is provided.');
         }
         filters.push(`extrinsicIdx: ${extrinsicIdx}`);
       } else {
