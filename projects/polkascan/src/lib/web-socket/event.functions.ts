@@ -24,9 +24,8 @@ import {
   generateObjectsListQuery,
   generateSubscription,
   isArray,
-  isBlockNumber,
+  isPositiveNumber,
   isDefined,
-  isEventIdx,
   isFunction,
   isObject,
   isString
@@ -48,6 +47,7 @@ export interface EventsFilters {
   blockNumber?: number;
   eventModule?: string;
   eventName?: string;
+  extrinsicIdx?: number;
 }
 
 
@@ -55,7 +55,7 @@ export const getEvent = (adapter: Adapter) => {
   return async (blockNumber?: number, eventIdx?: number): Promise<pst.Event> => {
     const filters: string[] = [];
 
-    if (isDefined(blockNumber) && isBlockNumber(blockNumber)) {
+    if (isDefined(blockNumber) && isPositiveNumber(blockNumber)) {
       if (!isDefined(eventIdx)) {
         throw new Error('[PolkascanAdapter] getEvent: Missing eventIdx, only blockNumber is provided.');
       }
@@ -64,7 +64,7 @@ export const getEvent = (adapter: Adapter) => {
       throw new Error('[PolkascanAdapter] getEvent: Provided attribute blockNumber must be an integer.');
     }
 
-    if (isDefined(eventIdx) && isEventIdx(eventIdx)) {
+    if (isDefined(eventIdx) && isPositiveNumber(eventIdx)) {
       if (!isDefined(blockNumber)) {
         throw new Error('[PolkascanAdapter] getEvent: Missing attribute blockNumber, only eventIdx is provided.');
       }
@@ -93,9 +93,10 @@ const createEventsFilters = (eventsFilters: EventsFilters): string[] => {
     const blockNumber = eventsFilters.blockNumber;
     const eventModule = eventsFilters.eventModule;
     const eventName = eventsFilters.eventName;
+    const extrinsicIdx = eventsFilters.extrinsicIdx;
 
     if (isDefined(blockNumber)) {
-      if (isBlockNumber(blockNumber)) {
+      if (isPositiveNumber(blockNumber)) {
         filters.push(`blockNumber: ${blockNumber}`);
       } else {
         throw new Error('[PolkascanAdapter] Events: Provided attribute blockNumber must be an integer.');
@@ -118,6 +119,17 @@ const createEventsFilters = (eventsFilters: EventsFilters): string[] => {
         filters.push(`eventName: "${eventName}"`);
       } else {
         throw new Error('[PolkascanAdapter] Events: Provided attribute eventName must be a (non-empty) string.');
+      }
+    }
+
+    if (isDefined(extrinsicIdx)) {
+      if (isPositiveNumber(extrinsicIdx)) {
+        if (!isDefined(blockNumber)) {
+          throw new Error('[PolkascanAdapter] getEvent: Missing attribute blockNumber, only extrinsicIdx is provided.');
+        }
+        filters.push(`extrinsicIdx: ${extrinsicIdx}`);
+      } else {
+        throw new Error('[PolkascanAdapter] Events: Provided attribute extrinsicIdx must be a number.');
       }
     }
 

@@ -22,17 +22,7 @@ export const isBlockHash = (hash: any): boolean => {
 };
 
 
-export const isBlockNumber = (nr: any): boolean => {
-  return Number.isInteger(nr) && nr >= 0;
-};
-
-
-export const isEventIdx = (nr: any): boolean => {
-  return Number.isInteger(nr) && nr >= 0;
-};
-
-
-export const isExtrinsicIdx = (nr: any): boolean => {
+export const isPositiveNumber = (nr: any): boolean => {
   return Number.isInteger(nr) && nr >= 0;
 };
 

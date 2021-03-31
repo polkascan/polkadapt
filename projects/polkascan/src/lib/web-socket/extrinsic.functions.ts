@@ -24,9 +24,8 @@ import {
   generateObjectsListQuery,
   generateSubscription,
   isArray,
-  isBlockNumber,
+  isPositiveNumber,
   isDefined,
-  isExtrinsicIdx,
   isFunction,
   isObject,
   isString
@@ -63,7 +62,7 @@ export const getExtrinsic = (adapter: Adapter) => {
   return async (blockNumber?: number, extrinsicIdx?: number): Promise<pst.Extrinsic> => {
     const filters: string[] = [];
 
-    if (isDefined(blockNumber) && isBlockNumber(blockNumber)) {
+    if (isDefined(blockNumber) && isPositiveNumber(blockNumber)) {
       if (!isDefined(extrinsicIdx)) {
         throw new Error('[PolkascanAdapter] getExtrinsic: Missing extrinsicIdx, only blockNumber is provided.');
       }
@@ -72,7 +71,7 @@ export const getExtrinsic = (adapter: Adapter) => {
       throw new Error('[PolkascanAdapter] getExtrinsic: Provided attribute blockNumber must be an integer.');
     }
 
-    if (isDefined(extrinsicIdx) && isExtrinsicIdx(extrinsicIdx)) {
+    if (isDefined(extrinsicIdx) && isPositiveNumber(extrinsicIdx)) {
       if (!isDefined(blockNumber)) {
         throw new Error('[PolkascanAdapter] getExtrinsic: Missing blockNumber, only extrinsicIdx is provided.');
       }
@@ -104,7 +103,7 @@ const createExtrinsicsFilters = (extrinsicsFilters: ExtrinsicsFilters): string[]
     const signed = extrinsicsFilters.signed;
 
     if (isDefined(blockNumber)) {
-      if (isBlockNumber(blockNumber)) {
+      if (isPositiveNumber(blockNumber)) {
         filters.push(`blockNumber: ${blockNumber}`);
       } else {
         throw new Error('[PolkascanAdapter] Extrinsics: Provided attribute blockNumber must be an integer.');

@@ -25,7 +25,7 @@ import {
   generateSubscription,
   isArray,
   isBlockHash,
-  isBlockNumber,
+  isPositiveNumber,
   isDefined,
   isFunction,
   isObject
@@ -53,7 +53,7 @@ export const getBlock = (adapter: Adapter) => {
     if (isBlockHash(hashOrNumber)) {
       // Fetch specific block;
       filters.push(`hash: "${hashOrNumber}"`);
-    } else if (isBlockNumber(hashOrNumber)) {
+    } else if (isPositiveNumber(hashOrNumber)) {
       filters.push(`number: ${hashOrNumber}`);
     } else if (isDefined(hashOrNumber)) {
       throw new Error('[PolkascanAdapter] getBlock: Provided hashOrNumber is defined and must be of type string or integer.');
@@ -83,7 +83,7 @@ const getBlocksFn = (adapter: Adapter, direction?: 'from' | 'until') => {
     if (direction === 'from') {
       if (isBlockHash(hashOrNumber)) {
         filters.push(`hashFrom: "${hashOrNumber}"`);
-      } else if (isBlockNumber(hashOrNumber)) {
+      } else if (isPositiveNumber(hashOrNumber)) {
         filters.push(`numberGte: ${hashOrNumber}`);
       } else {
         throw new Error('[PolkascanAdapter] getBlocksFrom: Provided hashOrNumber must be of type string or integer.');
@@ -91,7 +91,7 @@ const getBlocksFn = (adapter: Adapter, direction?: 'from' | 'until') => {
     } else if (direction === 'until') {
       if (isBlockHash(hashOrNumber)) {
         filters.push(`hashUntil: "${hashOrNumber}"`);
-      } else if (isBlockNumber(hashOrNumber)) {
+      } else if (isPositiveNumber(hashOrNumber)) {
         filters.push(`numberLte: ${hashOrNumber}`);
       } else {
         throw new Error('[PolkascanAdapter] getBlocksUntil: Provided hashOrNumber must be of type string or integer.');
