@@ -59,25 +59,27 @@ export interface ExtrinsicsFilters {
 
 
 export const getExtrinsic = (adapter: Adapter) => {
-  return async (blockNumber?: number, extrinsicIdx?: number): Promise<pst.Extrinsic> => {
+  return async (blockNumber: number, extrinsicIdx: number): Promise<pst.Extrinsic> => {
     const filters: string[] = [];
 
-    if (isDefined(blockNumber) && isPositiveNumber(blockNumber)) {
-      if (!isDefined(extrinsicIdx)) {
-        throw new Error('[PolkascanAdapter] getExtrinsic: Missing extrinsicIdx, only blockNumber is provided.');
-      }
-      filters.push(`blockNumber: ${blockNumber}`);
-    } else {
-      throw new Error('[PolkascanAdapter] getExtrinsic: Provided attribute blockNumber must be an integer.');
+    if (!isDefined(blockNumber)) {
+      throw new Error('[PolkascanAdapter] getExtrinsic: Provide a block number (number).');
     }
 
-    if (isDefined(extrinsicIdx) && isPositiveNumber(extrinsicIdx)) {
-      if (!isDefined(blockNumber)) {
-        throw new Error('[PolkascanAdapter] getExtrinsic: Missing blockNumber, only extrinsicIdx is provided.');
-      }
+    if (!isDefined(extrinsicIdx)) {
+      throw new Error('[PolkascanAdapter] getExtrinsic: Provide an extrinsicIdx (number).');
+    }
+
+    if (isPositiveNumber(blockNumber)) {
+      filters.push(`blockNumber: ${blockNumber}`);
+    } else {
+      throw new Error('[PolkascanAdapter] getExtrinsic: Provided block number must be a positive number.');
+    }
+
+    if (isPositiveNumber(extrinsicIdx)) {
       filters.push(`extrinsicIdx: ${extrinsicIdx}`);
     } else {
-      throw new Error('[PolkascanAdapter] getExtrinsic: Provided attribute extrinsicIdx must be an integer.');
+      throw new Error('[PolkascanAdapter] getExtrinsic: Provided extrinsicIdx must be a positive number.');
     }
 
     const query = generateObjectQuery('getExtrinsic', extrinsicDetailFields, filters);
@@ -106,7 +108,7 @@ const createExtrinsicsFilters = (extrinsicsFilters: ExtrinsicsFilters): string[]
       if (isPositiveNumber(blockNumber)) {
         filters.push(`blockNumber: ${blockNumber}`);
       } else {
-        throw new Error('[PolkascanAdapter] Extrinsics: Provided attribute blockNumber must be an integer.');
+        throw new Error('[PolkascanAdapter] Extrinsics: Provided block number must be a positive number.');
       }
     }
 
@@ -114,18 +116,18 @@ const createExtrinsicsFilters = (extrinsicsFilters: ExtrinsicsFilters): string[]
       if (isString(callModule)) {
         filters.push(`callModule: "${callModule}"`);
       } else {
-        throw new Error('[PolkascanAdapter] Extrinsics: Provided attribute callModule must be a (non-empty) string.');
+        throw new Error('[PolkascanAdapter] Extrinsics: Provided call module must be a non-empty string.');
       }
     }
 
     if (isDefined(callName)) {
       if (isString(callName)) {
         if (!isDefined(callModule)) {
-          throw new Error('[PolkascanAdapter] Extrinsics: Missing attribute callModule, only callName is provided.');
+          throw new Error('[PolkascanAdapter] Extrinsics: Missing call module (string), only call name is provided.');
         }
         filters.push(`callName: "${callName}"`);
       } else {
-        throw new Error('[PolkascanAdapter] Extrinsics: Provided attribute callName must be a (non-empty) string.');
+        throw new Error('[PolkascanAdapter] Extrinsics: Provided call name must be a non-empty string.');
       }
     }
 
@@ -133,12 +135,12 @@ const createExtrinsicsFilters = (extrinsicsFilters: ExtrinsicsFilters): string[]
       if (Number.isInteger(signed) && (signed === 0 || signed === 1)) {
         filters.push(`signed: ${signed}`);
       } else {
-        throw new Error('[PolkascanAdapter] Extrinsics: Provided attribute signed must be an integer with value 0 or 1.');
+        throw new Error('[PolkascanAdapter] Extrinsics: Provided signed must be an number with value 0 or 1.');
       }
     }
 
   } else if (isDefined(extrinsicsFilters)) {
-    throw new Error('[PolkascanAdapter] Extrinsics: Provided attribute filters have to be wrapped in an object.');
+    throw new Error('[PolkascanAdapter] Extrinsics: Provided filters have to be wrapped in an object.');
   }
 
   return filters;

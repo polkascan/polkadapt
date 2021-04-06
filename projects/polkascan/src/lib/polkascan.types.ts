@@ -18,7 +18,7 @@
 
 export type ListResponse<T> = {
   objects: T[];
-  pageInfo: {
+  pageInfo?: {
     pageSize: number;
     pageNext: string;
     pagePrev: string;

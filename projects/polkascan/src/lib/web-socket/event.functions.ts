@@ -52,25 +52,27 @@ export interface EventsFilters {
 
 
 export const getEvent = (adapter: Adapter) => {
-  return async (blockNumber?: number, eventIdx?: number): Promise<pst.Event> => {
+  return async (blockNumber: number, eventIdx: number): Promise<pst.Event> => {
     const filters: string[] = [];
 
-    if (isDefined(blockNumber) && isPositiveNumber(blockNumber)) {
-      if (!isDefined(eventIdx)) {
-        throw new Error('[PolkascanAdapter] getEvent: Missing eventIdx, only blockNumber is provided.');
-      }
-      filters.push(`blockNumber: ${blockNumber}`);
-    } else {
-      throw new Error('[PolkascanAdapter] getEvent: Provided attribute blockNumber must be an integer.');
+    if (!isDefined(blockNumber)) {
+      throw new Error('[PolkascanAdapter] getEvent: Provide a block number (number).');
     }
 
-    if (isDefined(eventIdx) && isPositiveNumber(eventIdx)) {
-      if (!isDefined(blockNumber)) {
-        throw new Error('[PolkascanAdapter] getEvent: Missing attribute blockNumber, only eventIdx is provided.');
-      }
+    if (!isDefined(eventIdx)) {
+      throw new Error('[PolkascanAdapter] getEvent: Provide an eventIdx (number).');
+    }
+
+    if (isPositiveNumber(blockNumber)) {
+      filters.push(`blockNumber: ${blockNumber}`);
+    } else {
+      throw new Error('[PolkascanAdapter] getEvent: Provided block number must be a positive number.');
+    }
+
+    if (isPositiveNumber(eventIdx)) {
       filters.push(`eventIdx: ${eventIdx}`);
     } else {
-      throw new Error('[PolkascanAdapter] getEvent: Provided attribute eventIdx must be an integer.');
+      throw new Error('[PolkascanAdapter] getEvent: Provided eventIdx must be a positive number.');
     }
 
     const query = generateObjectQuery('getEvent', genericEventFields, filters);
@@ -99,7 +101,7 @@ const createEventsFilters = (eventsFilters: EventsFilters): string[] => {
       if (isPositiveNumber(blockNumber)) {
         filters.push(`blockNumber: ${blockNumber}`);
       } else {
-        throw new Error('[PolkascanAdapter] Events: Provided attribute blockNumber must be an integer.');
+        throw new Error('[PolkascanAdapter] Events: Provided block number must be a positive number.');
       }
     }
 
@@ -107,34 +109,34 @@ const createEventsFilters = (eventsFilters: EventsFilters): string[] => {
       if (isString(eventModule)) {
         filters.push(`eventModule: "${eventModule}"`);
       } else {
-        throw new Error('[PolkascanAdapter] Events: Provided attribute eventModule must be a (non-empty) string.');
+        throw new Error('[PolkascanAdapter] Events: Provided event module must be a non-empty string.');
       }
     }
 
     if (isDefined(eventName)) {
       if (isString(eventName)) {
         if (!isDefined(eventModule)) {
-          throw new Error('[PolkascanAdapter] Events: Missing attribute eventModule, only eventName is provided.');
+          throw new Error('[PolkascanAdapter] Events: Missing event module (string), only event name is provided.');
         }
         filters.push(`eventName: "${eventName}"`);
       } else {
-        throw new Error('[PolkascanAdapter] Events: Provided attribute eventName must be a (non-empty) string.');
+        throw new Error('[PolkascanAdapter] Events: Provided event name must be a non-empty string.');
       }
     }
 
     if (isDefined(extrinsicIdx)) {
       if (isPositiveNumber(extrinsicIdx)) {
         if (!isDefined(blockNumber)) {
-          throw new Error('[PolkascanAdapter] Events: Missing attribute blockNumber, only extrinsicIdx is provided.');
+          throw new Error('[PolkascanAdapter] Events: Missing block number (number), only extrinsicIdx is provided.');
         }
         filters.push(`extrinsicIdx: ${extrinsicIdx}`);
       } else {
-        throw new Error('[PolkascanAdapter] Events: Provided attribute extrinsicIdx must be a number.');
+        throw new Error('[PolkascanAdapter] Events: Provided extrinsicIdx must be a positive number.');
       }
     }
 
   } else if (isDefined(eventsFilters)) {
-    throw new Error('[PolkascanAdapter] Events: Provided attribute filters have to be wrapped in an object.');
+    throw new Error('[PolkascanAdapter] Events: Provided filters have to be wrapped in an object.');
   }
 
   return filters;

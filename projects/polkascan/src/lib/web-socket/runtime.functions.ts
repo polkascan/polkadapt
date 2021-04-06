@@ -50,7 +50,7 @@ export const getRuntime = (adapter: Adapter) => {
       filters.push(`specName: ${specName}`);
       filters.push(`specVersion: ${specVersion}`);
     } else if (isDefined(specVersion)) {
-      throw new Error('[PolkascanAdapter] getRuntime: Provided attribute specVersion must be a number.');
+      throw new Error('[PolkascanAdapter] getRuntime: Provided specVersion must be a number.');
     }
 
     const query = generateObjectQuery('getRuntime', runtimeFields, filters);
