@@ -24,7 +24,7 @@ import {
   getBlock,
   getBlocks,
   getBlockAugmentation,
-  subscribeNewBlock, getBlocksFrom, getBlocksUntil
+  subscribeNewBlock, getBlocksFrom, getBlocksUntil, getLatestBlock
 } from './web-socket/block.functions';
 import { EventsFilters, getEvent, getEvents, subscribeNewEvent } from './web-socket/event.functions';
 import {
@@ -37,29 +37,71 @@ import {
 
 export type Api = {
   polkascan: {
-    getBlock: (hashOrNumber?: string | number) =>
-      Promise<pst.Block>,
-    getBlocks: (pageSize?: number, pageKey?: string) =>
-      Promise<pst.ListResponse<pst.Block>>;
-    getBlocksFrom: (hashOrNumber: string | number, pageSize?: number, pageKey?: string) =>
-      Promise<pst.ListResponse<pst.Block>>;
-    getBlocksUntil: (hashOrNumber: string | number, pageSize?: number, pageKey?: string) =>
-      Promise<pst.ListResponse<pst.Block>>;
-    subscribeNewBlock: (callback: (block: pst.Block) => void) =>
-      Promise<() => void>;
-    getEvent: (blockNumber?: number, eventIdx?: number) =>
-      Promise<pst.Event>;
-    getEvents: (filters?: EventsFilters, pageSize?: number, pageKey?: string) =>
-      Promise<pst.ListResponse<pst.Event>>;
-    subscribeNewEvent: (filtersOrCallback: (event: pst.Event) => void | EventsFilters, callback?: (event: pst.Event) => void) =>
-      Promise<() => void>;
-    getExtrinsic: (blockNumber?: number, eventIdx?: number) =>
-      Promise<pst.Extrinsic>;
-    getExtrinsics: (filters?: ExtrinsicsFilters, pageSize?: number, pageKey?: string) =>
-      Promise<pst.ListResponse<pst.Extrinsic>>;
-    subscribeNewExtrinsic: (filtersOrCallback: (extrinsic: pst.Extrinsic) => void | ExtrinsicsFilters,
-                            callback?: (extrinsic: pst.Extrinsic) => void) =>
-      Promise<() => void>;
+    chain: {
+      getBlock: (hashOrNumber: string | number) =>
+        Promise<pst.Block>,
+      getLatestBlock: () =>
+        Promise<pst.Block>,
+      getBlocks: (pageSize?: number, pageKey?: string) =>
+        Promise<pst.ListResponse<pst.Block>>;
+      getBlocksFrom: (hashOrNumber: string | number, pageSize?: number, pageKey?: string) =>
+        Promise<pst.ListResponse<pst.Block>>;
+      getBlocksUntil: (hashOrNumber: string | number, pageSize?: number, pageKey?: string) =>
+        Promise<pst.ListResponse<pst.Block>>;
+      subscribeNewBlock: (callback: (block: pst.Block) => void) =>
+        Promise<() => void>;
+      getEvent: (blockNumber: number, eventIdx: number) =>
+        Promise<pst.Event>;
+      getEvents: (filters?: EventsFilters, pageSize?: number, pageKey?: string) =>
+        Promise<pst.ListResponse<pst.Event>>;
+      subscribeNewEvent: (filtersOrCallback: (event: pst.Event) => void | EventsFilters, callback?: (event: pst.Event) => void) =>
+        Promise<() => void>;
+      getExtrinsic: (blockNumber: number, eventIdx: number) =>
+        Promise<pst.Extrinsic>;
+      getExtrinsics: (filters?: ExtrinsicsFilters, pageSize?: number, pageKey?: string) =>
+        Promise<pst.ListResponse<pst.Extrinsic>>;
+      subscribeNewExtrinsic: (filtersOrCallback: (extrinsic: pst.Extrinsic) => void | ExtrinsicsFilters,
+                              callback?: (extrinsic: pst.Extrinsic) => void) =>
+        Promise<() => void>;
+    },
+    state?: {
+      getRuntime: (specName: string, specVersion: number) =>
+        Promise<pst.Runtime>,
+      getLatestRuntime: () =>
+        Promise<pst.Runtime>,
+      getRuntimeCall: (specName: string, specVersion: number, pallet: string, callName: string) =>
+        Promise<pst.RuntimeCall>,
+      getRuntimeCalls: (specName: string, specVersion: number, pallet?: string) =>
+        Promise<pst.ListResponse<pst.RuntimeCall>>
+      getRuntimeCallArguments: (specName: string, specVersion: number, pallet: string, callName: string) =>
+        Promise<pst.ListResponse<pst.RuntimeCallArgument>>
+      getRuntimeConstant: (specName: string, specVersion: number, pallet: string, constantName: string) =>
+        Promise<pst.RuntimeConstant>,
+      getRuntimeConstants: (specName: string, specVersion: number, pallet?: string) =>
+        Promise<pst.ListResponse<pst.RuntimeConstant>>
+      getRuntimeErrorMessage: (specName: string, specVersion: number, pallet: string, errorName: string) =>
+        Promise<pst.RuntimeErrorMessage>,
+      getRuntimeErrorMessages: (specName: string, specVersion: number, pallet?: string) =>
+        Promise<pst.ListResponse<pst.RuntimeErrorMessage>>
+      getRuntimeEvent: (specName: string, specVersion: number, pallet: string, eventName: string) =>
+        Promise<pst.RuntimeEvent>,
+      getRuntimeEvents: (specName: string, specVersion: number, pallet?: string) =>
+        Promise<pst.ListResponse<pst.RuntimeEvent>>
+      getRuntimeEventAttributes: (specName: string, specVersion: number, pallet: string, eventName: string) =>
+        Promise<pst.ListResponse<pst.RuntimeEventAttribute>>
+      getRuntimePallet: (specName: string, specVersion: number, pallet: string) =>
+        Promise<pst.RuntimePallet>,
+      getRuntimePallets: (specName: string, specVersion: number) =>
+        Promise<pst.ListResponse<pst.RuntimePallet>>
+      getRuntimeStorage: (specName: string, specVersion: number, pallet: string, storageName: string) =>
+        Promise<pst.RuntimeStorage>,
+      getRuntimeStorages: (specName: string, specVersion: number, pallet?: string) =>
+        Promise<pst.ListResponse<pst.RuntimeStorage>>
+      getRuntimeType: (specName: string, specVersion: number, pallet: string, scaleType: string) =>
+        Promise<pst.RuntimeType>,
+      getRuntimeTypes: (specName: string, specVersion: number, pallet?: string) =>
+        Promise<pst.ListResponse<pst.RuntimeType>>
+    }
   }
   rpc: {
     chain: {
@@ -96,17 +138,20 @@ export class Adapter extends AdapterBase {
     this.promise = new Promise((resolve) => {
       resolve({
         polkascan: {
-          getBlock: getBlock(this),
-          getBlocks: getBlocks(this),
-          getBlocksFrom: getBlocksFrom(this),
-          getBlocksUntil: getBlocksUntil(this),
-          subscribeNewBlock: subscribeNewBlock(this),
-          getEvent: getEvent(this),
-          getEvents: getEvents(this),
-          subscribeNewEvent: subscribeNewEvent(this),
-          getExtrinsic: getExtrinsic(this),
-          getExtrinsics: getExtrinsics(this),
-          subscribeNewExtrinsic: subscribeNewExtrinsic(this)
+          chain: {
+            getBlock: getBlock(this),
+            getLatestBlock: getLatestBlock(this),
+            getBlocks: getBlocks(this),
+            getBlocksFrom: getBlocksFrom(this),
+            getBlocksUntil: getBlocksUntil(this),
+            subscribeNewBlock: subscribeNewBlock(this),
+            getEvent: getEvent(this),
+            getEvents: getEvents(this),
+            subscribeNewEvent: subscribeNewEvent(this),
+            getExtrinsic: getExtrinsic(this),
+            getExtrinsics: getExtrinsics(this),
+            subscribeNewExtrinsic: subscribeNewExtrinsic(this)
+          }
         },
         rpc: {
           chain: {

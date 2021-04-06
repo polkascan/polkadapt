@@ -47,16 +47,15 @@ const genericBlockFields = [
 
 
 export const getBlock = (adapter: Adapter) => {
-  return async (hashOrNumber?: string | number): Promise<pst.Block> => {
+  return async (hashOrNumber: string | number): Promise<pst.Block> => {
     const filters: string[] = [];
 
     if (isBlockHash(hashOrNumber)) {
-      // Fetch specific block;
       filters.push(`hash: "${hashOrNumber}"`);
     } else if (isPositiveNumber(hashOrNumber)) {
       filters.push(`number: ${hashOrNumber}`);
-    } else if (isDefined(hashOrNumber)) {
-      throw new Error('[PolkascanAdapter] getBlock: Provided hashOrNumber is defined and must be of type string or integer.');
+    } else {
+      throw new Error('[PolkascanAdapter] getBlock: Provide a block hash (string) or block number (number).');
     }
 
     const query = generateObjectQuery('getBlock', genericBlockFields, filters);
@@ -86,7 +85,7 @@ const getBlocksFn = (adapter: Adapter, direction?: 'from' | 'until') => {
       } else if (isPositiveNumber(hashOrNumber)) {
         filters.push(`numberGte: ${hashOrNumber}`);
       } else {
-        throw new Error('[PolkascanAdapter] getBlocksFrom: Provided hashOrNumber must be of type string or integer.');
+        throw new Error('[PolkascanAdapter] getBlocksFrom: Provide a block hash (string) or block number (number).');
       }
     } else if (direction === 'until') {
       if (isBlockHash(hashOrNumber)) {
@@ -94,7 +93,7 @@ const getBlocksFn = (adapter: Adapter, direction?: 'from' | 'until') => {
       } else if (isPositiveNumber(hashOrNumber)) {
         filters.push(`numberLte: ${hashOrNumber}`);
       } else {
-        throw new Error('[PolkascanAdapter] getBlocksUntil: Provided hashOrNumber must be of type string or integer.');
+        throw new Error('[PolkascanAdapter] getBlocksUntil: Provide a block hash (string) or block number (number).');
       }
     }
 
@@ -106,6 +105,20 @@ const getBlocksFn = (adapter: Adapter, direction?: 'from' | 'until') => {
       return result.getBlocks;
     } else {
       throw new Error(`[PolkascanAdapter] getBlocks: Returned response is invalid.`);
+    }
+  };
+};
+
+
+export const getLatestBlock = (adapter: Adapter) => {
+  return async (): Promise<pst.Block> => {
+    const query = generateObjectQuery('getLatestBlock', genericBlockFields, []);
+    const result = await adapter.socket.query(query);
+    const block: pst.Block = result.getLatestBlock;
+    if (isObject(block)) {
+      return block;
+    } else {
+      throw new Error(`[PolkascanAdapter] getLatestBlock: Returned response is invalid.`);
     }
   };
 };
