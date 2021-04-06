@@ -39,9 +39,9 @@ export type Api = {
   polkascan: {
     chain: {
       getBlock: (hashOrNumber: string | number) =>
-        Promise<pst.Block>,
+        Promise<pst.Block>;
       getLatestBlock: () =>
-        Promise<pst.Block>,
+        Promise<pst.Block>;
       getBlocks: (pageSize?: number, pageKey?: string) =>
         Promise<pst.ListResponse<pst.Block>>;
       getBlocksFrom: (hashOrNumber: string | number, pageSize?: number, pageKey?: string) =>
@@ -66,41 +66,41 @@ export type Api = {
     },
     state?: {
       getRuntime: (specName: string, specVersion: number) =>
-        Promise<pst.Runtime>,
+        Promise<pst.Runtime>;
       getLatestRuntime: () =>
-        Promise<pst.Runtime>,
+        Promise<pst.Runtime>;
       getRuntimeCall: (specName: string, specVersion: number, pallet: string, callName: string) =>
-        Promise<pst.RuntimeCall>,
+        Promise<pst.RuntimeCall>;
       getRuntimeCalls: (specName: string, specVersion: number, pallet?: string) =>
-        Promise<pst.ListResponse<pst.RuntimeCall>>
+        Promise<pst.ListResponse<pst.RuntimeCall>>;
       getRuntimeCallArguments: (specName: string, specVersion: number, pallet: string, callName: string) =>
-        Promise<pst.ListResponse<pst.RuntimeCallArgument>>
+        Promise<pst.ListResponse<pst.RuntimeCallArgument>>;
       getRuntimeConstant: (specName: string, specVersion: number, pallet: string, constantName: string) =>
-        Promise<pst.RuntimeConstant>,
+        Promise<pst.RuntimeConstant>;
       getRuntimeConstants: (specName: string, specVersion: number, pallet?: string) =>
-        Promise<pst.ListResponse<pst.RuntimeConstant>>
+        Promise<pst.ListResponse<pst.RuntimeConstant>>;
       getRuntimeErrorMessage: (specName: string, specVersion: number, pallet: string, errorName: string) =>
-        Promise<pst.RuntimeErrorMessage>,
+        Promise<pst.RuntimeErrorMessage>;
       getRuntimeErrorMessages: (specName: string, specVersion: number, pallet?: string) =>
-        Promise<pst.ListResponse<pst.RuntimeErrorMessage>>
+        Promise<pst.ListResponse<pst.RuntimeErrorMessage>>;
       getRuntimeEvent: (specName: string, specVersion: number, pallet: string, eventName: string) =>
-        Promise<pst.RuntimeEvent>,
+        Promise<pst.RuntimeEvent>;
       getRuntimeEvents: (specName: string, specVersion: number, pallet?: string) =>
-        Promise<pst.ListResponse<pst.RuntimeEvent>>
+        Promise<pst.ListResponse<pst.RuntimeEvent>>;
       getRuntimeEventAttributes: (specName: string, specVersion: number, pallet: string, eventName: string) =>
-        Promise<pst.ListResponse<pst.RuntimeEventAttribute>>
+        Promise<pst.ListResponse<pst.RuntimeEventAttribute>>;
       getRuntimePallet: (specName: string, specVersion: number, pallet: string) =>
-        Promise<pst.RuntimePallet>,
+        Promise<pst.RuntimePallet>;
       getRuntimePallets: (specName: string, specVersion: number) =>
-        Promise<pst.ListResponse<pst.RuntimePallet>>
+        Promise<pst.ListResponse<pst.RuntimePallet>>;
       getRuntimeStorage: (specName: string, specVersion: number, pallet: string, storageName: string) =>
-        Promise<pst.RuntimeStorage>,
+        Promise<pst.RuntimeStorage>;
       getRuntimeStorages: (specName: string, specVersion: number, pallet?: string) =>
-        Promise<pst.ListResponse<pst.RuntimeStorage>>
+        Promise<pst.ListResponse<pst.RuntimeStorage>>;
       getRuntimeType: (specName: string, specVersion: number, pallet: string, scaleType: string) =>
-        Promise<pst.RuntimeType>,
+        Promise<pst.RuntimeType>;
       getRuntimeTypes: (specName: string, specVersion: number, pallet?: string) =>
-        Promise<pst.ListResponse<pst.RuntimeType>>
+        Promise<pst.ListResponse<pst.RuntimeType>>;
     }
   }
   rpc: {
