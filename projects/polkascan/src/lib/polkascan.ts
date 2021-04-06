@@ -33,6 +33,16 @@ import {
   getExtrinsics,
   subscribeNewExtrinsic
 } from './web-socket/extrinsic.functions';
+import { getLatestRuntime, getRuntime } from './web-socket/runtime.functions';
+import { getRuntimeCall, getRuntimeCalls } from './web-socket/runtime-call.functions';
+import { getRuntimeCallArguments } from './web-socket/runtime-call-argument.functions';
+import { getRuntimeConstant, getRuntimeConstants } from './web-socket/runtime-constant.functions';
+import { getRuntimeErrorMessage, getRuntimeErrorMessages } from './web-socket/runtime-error-message.functions';
+import { getRuntimeEvent, getRuntimeEvents } from './web-socket/runtime-event.functions';
+import { getRuntimeEventAttributes } from './web-socket/runtime-event-attribute.functions';
+import { getRuntimePallet, getRuntimePallets } from './web-socket/runtime-pallet.functions';
+import { getRuntimeStorage, getRuntimeStorages } from './web-socket/runtime-storage.functions';
+import { getRuntimeType, getRuntimeTypes } from './web-socket/runtime-type.functions';
 
 
 export type Api = {
@@ -64,42 +74,51 @@ export type Api = {
                               callback?: (extrinsic: pst.Extrinsic) => void) =>
         Promise<() => void>;
     },
-    state?: {
+    state: {
       getRuntime: (specName: string, specVersion: number) =>
         Promise<pst.Runtime>;
       getLatestRuntime: () =>
         Promise<pst.Runtime>;
       getRuntimeCall: (specName: string, specVersion: number, pallet: string, callName: string) =>
         Promise<pst.RuntimeCall>;
-      getRuntimeCalls: (specName: string, specVersion: number, pallet?: string) =>
+      getRuntimeCalls: (specName: string, specVersion: number, pallet?: string,
+                        pageSize?: number, pageKey?: string) =>
         Promise<pst.ListResponse<pst.RuntimeCall>>;
-      getRuntimeCallArguments: (specName: string, specVersion: number, pallet: string, callName: string) =>
+      getRuntimeCallArguments: (specName: string, specVersion: number, pallet: string, callName: string,
+                                pageSize?: number, pageKey?: string) =>
         Promise<pst.ListResponse<pst.RuntimeCallArgument>>;
       getRuntimeConstant: (specName: string, specVersion: number, pallet: string, constantName: string) =>
         Promise<pst.RuntimeConstant>;
-      getRuntimeConstants: (specName: string, specVersion: number, pallet?: string) =>
+      getRuntimeConstants: (specName: string, specVersion: number, pallet?: string,
+                            pageSize?: number, pageKey?: string) =>
         Promise<pst.ListResponse<pst.RuntimeConstant>>;
       getRuntimeErrorMessage: (specName: string, specVersion: number, pallet: string, errorName: string) =>
         Promise<pst.RuntimeErrorMessage>;
-      getRuntimeErrorMessages: (specName: string, specVersion: number, pallet?: string) =>
+      getRuntimeErrorMessages: (specName: string, specVersion: number, pallet?: string,
+                                pageSize?: number, pageKey?: string) =>
         Promise<pst.ListResponse<pst.RuntimeErrorMessage>>;
       getRuntimeEvent: (specName: string, specVersion: number, pallet: string, eventName: string) =>
         Promise<pst.RuntimeEvent>;
-      getRuntimeEvents: (specName: string, specVersion: number, pallet?: string) =>
+      getRuntimeEvents: (specName: string, specVersion: number, pallet?: string,
+                         pageSize?: number, pageKey?: string) =>
         Promise<pst.ListResponse<pst.RuntimeEvent>>;
-      getRuntimeEventAttributes: (specName: string, specVersion: number, pallet: string, eventName: string) =>
+      getRuntimeEventAttributes: (specName: string, specVersion: number, pallet: string, eventName: string,
+                                  pageSize?: number, pageKey?: string) =>
         Promise<pst.ListResponse<pst.RuntimeEventAttribute>>;
       getRuntimePallet: (specName: string, specVersion: number, pallet: string) =>
         Promise<pst.RuntimePallet>;
-      getRuntimePallets: (specName: string, specVersion: number) =>
+      getRuntimePallets: (specName: string, specVersion: number,
+                          pageSize?: number, pageKey?: string) =>
         Promise<pst.ListResponse<pst.RuntimePallet>>;
       getRuntimeStorage: (specName: string, specVersion: number, pallet: string, storageName: string) =>
         Promise<pst.RuntimeStorage>;
-      getRuntimeStorages: (specName: string, specVersion: number, pallet?: string) =>
+      getRuntimeStorages: (specName: string, specVersion: number, pallet?: string,
+                           pageSize?: number, pageKey?: string) =>
         Promise<pst.ListResponse<pst.RuntimeStorage>>;
       getRuntimeType: (specName: string, specVersion: number, pallet: string, scaleType: string) =>
         Promise<pst.RuntimeType>;
-      getRuntimeTypes: (specName: string, specVersion: number, pallet?: string) =>
+      getRuntimeTypes: (specName: string, specVersion: number, pallet?: string,
+                        pageSize?: number, pageKey?: string) =>
         Promise<pst.ListResponse<pst.RuntimeType>>;
     }
   }
@@ -151,6 +170,26 @@ export class Adapter extends AdapterBase {
             getExtrinsic: getExtrinsic(this),
             getExtrinsics: getExtrinsics(this),
             subscribeNewExtrinsic: subscribeNewExtrinsic(this)
+          },
+          state: {
+            getRuntime: getRuntime(this),
+            getLatestRuntime: getLatestRuntime(this),
+            getRuntimeCall: getRuntimeCall(this),
+            getRuntimeCalls: getRuntimeCalls(this),
+            getRuntimeCallArguments: getRuntimeCallArguments(this),
+            getRuntimeConstant: getRuntimeConstant(this),
+            getRuntimeConstants: getRuntimeConstants(this),
+            getRuntimeErrorMessage: getRuntimeErrorMessage(this),
+            getRuntimeErrorMessages: getRuntimeErrorMessages(this),
+            getRuntimeEvent: getRuntimeEvent(this),
+            getRuntimeEvents: getRuntimeEvents(this),
+            getRuntimeEventAttributes: getRuntimeEventAttributes(this),
+            getRuntimePallet: getRuntimePallet(this),
+            getRuntimePallets: getRuntimePallets(this),
+            getRuntimeStorage: getRuntimeStorage(this),
+            getRuntimeStorages: getRuntimeStorages(this),
+            getRuntimeType: getRuntimeType(this),
+            getRuntimeTypes: getRuntimeTypes(this)
           }
         },
         rpc: {

@@ -43,20 +43,34 @@ const runtimeFields: (keyof pst.Runtime)[] = [
 ];
 
 export const getRuntime = (adapter: Adapter) => {
-  return async (specName?: string, specVersion?: number): Promise<pst.Runtime> => {
+  return async (specName: string, specVersion: number): Promise<pst.Runtime> => {
     const filters: string[] = [];
 
     if (isString(specName) && isNumber(specVersion)) {
       filters.push(`specName: ${specName}`);
       filters.push(`specVersion: ${specVersion}`);
-    } else if (isDefined(specVersion)) {
-      throw new Error('[PolkascanAdapter] getRuntime: Provided specVersion must be a number.');
+    } else {
+      throw new Error('[PolkascanAdapter] getRuntime: Provide the specName (string) and specVersion (number).');
     }
 
     const query = generateObjectQuery('getRuntime', runtimeFields, filters);
 
     const result = await adapter.socket.query(query);
     const runtime: pst.Runtime = result.getRuntime;
+    if (isObject(runtime)) {
+      return runtime;
+    } else {
+      throw new Error(`[PolkascanAdapter] getRuntime: Returned response is invalid.`);
+    }
+  };
+};
+
+
+export const getLatestRuntime = (adapter: Adapter) => {
+  return async (): Promise<pst.Runtime> => {
+    const query = generateObjectQuery('getLatestRuntime', runtimeFields, []);
+    const result = await adapter.socket.query(query);
+    const runtime: pst.Runtime = result.getLatestRuntime;
     if (isObject(runtime)) {
       return runtime;
     } else {
