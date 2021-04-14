@@ -1,0 +1,111 @@
+/*
+ * PolkADAPT
+ *
+ * Copyright 2020 Stichting Polkascan (Polkascan Foundation)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+import { Adapter } from '../polkascan';
+import * as pst from '../polkascan.types';
+import {
+  generateObjectQuery, generateObjectsListQuery, generateSubscription, isArray, isDefined, isFunction, isObject,
+  isPositiveNumber
+} from './helpers';
+
+const genericLogFields = [
+];
+
+
+export const getLog = (adapter: Adapter) => {
+  return async (blockNumber: number, logIdx: number): Promise<pst.Log> => {
+    const filters: string[] = [];
+
+    if (!isDefined(blockNumber)) {
+      throw new Error(`[PolkascanAdapter] getLog: Provide a block number (number).`);
+    }
+
+    if (!isDefined(logIdx)) {
+      throw new Error(`[PolkascanAdapter] getLog: Provide an logIdx (number).`);
+    }
+
+    if (isPositiveNumber(blockNumber)) {
+      filters.push(`blockNumber: ${blockNumber}`);
+    } else {
+      throw new Error(`[PolkascanAdapter] getLog: Provided block number must be a positive number.`);
+    }
+
+    if (isPositiveNumber(logIdx)) {
+      filters.push(`logIdx: ${logIdx}`);
+    } else {
+      throw new Error(`[PolkascanAdapter] getLog: Provided logIdx must be a positive number.`);
+    }
+
+    const query = generateObjectQuery('getBlock', genericLogFields);
+
+    const result = await adapter.socket.query(query);
+    const log: pst.Log = result.getLog;
+    if (isObject(log)) {
+      return log;
+    } else {
+      throw new Error(`[PolkascanAdapter] getLog: Returned response is invalid.`);
+    }
+  };
+};
+
+
+export const getLogs = (adapter: Adapter) => {
+  return async (pageSize?: number, pageKey?: string): Promise<pst.ListResponse<pst.Log>> => {
+
+    const query = generateObjectsListQuery('getLogs', genericLogFields, null, pageSize, pageKey);
+
+    let result;
+    let logs: pst.Log[];
+    try {
+      result = await adapter.socket.query(query);
+      logs = result.getLogs.objects;
+    } catch (e) {
+      throw new Error(e);
+    }
+    if (isArray(logs)) {
+      return result.getLogs;
+    } else {
+      throw new Error(`[PolkascanAdapter] getEvents: Returned response is invalid.`);
+    }
+  };
+};
+
+
+export const subscribeNewLog = (adapter: Adapter) => {
+  return async (...args: ((log: pst.Log) => void)[]): Promise<() => void> => {
+    const callback = args.find((arg) => isFunction(arg));
+    if (!callback) {
+      throw new Error(`[PolkascanAdapter] subscribeNewLog: No callback function is provided.`);
+    }
+
+    const query = generateSubscription('subscribeNewLog', genericLogFields);
+
+    // return the unsubscribe function.
+    return await adapter.socket.createSubscription(query, (result) => {
+      try {
+        const log: pst.Log = result.subscribeNewLog;
+        if (isObject(log)) {
+          callback(log);
+        }
+      } catch (e) {
+        // Ignore.
+      }
+    });
+  };
+};

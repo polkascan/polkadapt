@@ -33,7 +33,8 @@ import {
   getExtrinsics,
   subscribeNewExtrinsic
 } from './web-socket/extrinsic.functions';
-import { getLatestRuntime, getRuntime } from './web-socket/runtime.functions';
+import { getLog, getLogs, subscribeNewLog } from './web-socket/log.functions';
+import { getLatestRuntime, getRuntime, getRuntimes } from './web-socket/runtime.functions';
 import { getRuntimeCall, getRuntimeCalls } from './web-socket/runtime-call.functions';
 import { getRuntimeCallArguments } from './web-socket/runtime-call-argument.functions';
 import { getRuntimeConstant, getRuntimeConstants } from './web-socket/runtime-constant.functions';
