@@ -19,14 +19,7 @@
 
 import { Adapter } from '../polkascan';
 import * as pst from '../polkascan.types';
-import {
-  generateObjectQuery,
-  generateObjectsListQuery,
-  isArray,
-  isDefined,
-  isNumber,
-  isObject, isString
-} from './helpers';
+import { generateObjectsListQuery, isArray, isNumber, isString } from './helpers';
 
 const runtimeEventAttributeFields: (keyof pst.RuntimeEventAttribute)[] = [
   'specName',

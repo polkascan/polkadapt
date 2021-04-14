@@ -44,6 +44,7 @@ import { getRuntimeEventAttributes } from './web-socket/runtime-event-attribute.
 import { getRuntimePallet, getRuntimePallets } from './web-socket/runtime-pallet.functions';
 import { getRuntimeStorage, getRuntimeStorages } from './web-socket/runtime-storage.functions';
 import { getRuntimeType, getRuntimeTypes } from './web-socket/runtime-type.functions';
+import { getTransfer, getTransfers, subscribeNewTransfer } from './web-socket/transfer.functions';
 
 
 export type Api = {
@@ -74,10 +75,24 @@ export type Api = {
       subscribeNewExtrinsic: (filtersOrCallback: (extrinsic: pst.Extrinsic) => void | ExtrinsicsFilters,
                               callback?: (extrinsic: pst.Extrinsic) => void) =>
         Promise<() => void>;
+      getLog: (blockNumber: number, logIdx: number) =>
+        Promise<pst.Log>;
+      getLogs: (pageSize?: number, pageKey?: string) =>
+        Promise<pst.ListResponse<pst.Log>>;
+      subscribeNewLog: (callback: (log: pst.Log) => void) =>
+        Promise<() => void>;
+      getTransfer: (blockNumber: number, eventIdx: number) =>
+        Promise<pst.Transfer>;
+      getTransfers: (pageSize?: number, pageKey?: string) =>
+        Promise<pst.ListResponse<pst.Transfer>>;
+      subscribeNewTransfer: (callback: (log: pst.Transfer) => void) =>
+        Promise<() => void>;
     },
     state: {
       getRuntime: (specName: string, specVersion: number) =>
         Promise<pst.Runtime>;
+      getRuntimes: (pageSize?: number, pageKey?: string) =>
+        Promise<pst.ListResponse<pst.Runtime>>;
       getLatestRuntime: () =>
         Promise<pst.Runtime>;
       getRuntimeCall: (specName: string, specVersion: number, pallet: string, callName: string) =>
@@ -170,10 +185,17 @@ export class Adapter extends AdapterBase {
             subscribeNewEvent: subscribeNewEvent(this),
             getExtrinsic: getExtrinsic(this),
             getExtrinsics: getExtrinsics(this),
-            subscribeNewExtrinsic: subscribeNewExtrinsic(this)
+            subscribeNewExtrinsic: subscribeNewExtrinsic(this),
+            getLog: getLog(this),
+            getLogs: getLogs(this),
+            subscribeNewLog: subscribeNewLog(this),
+            getTransfer: getTransfer(this),
+            getTransfers: getTransfers(this),
+            subscribeNewTransfer: subscribeNewTransfer(this),
           },
           state: {
             getRuntime: getRuntime(this),
+            getRuntimes: getRuntimes(this),
             getLatestRuntime: getLatestRuntime(this),
             getRuntimeCall: getRuntimeCall(this),
             getRuntimeCalls: getRuntimeCalls(this),

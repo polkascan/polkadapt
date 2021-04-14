@@ -20,15 +20,8 @@
 import { Adapter } from '../polkascan';
 import * as pst from '../polkascan.types';
 import {
-  generateObjectQuery,
-  generateObjectsListQuery,
-  generateSubscription,
-  isArray,
-  isPositiveNumber,
-  isDefined,
-  isFunction,
-  isObject,
-  isString
+  generateObjectQuery, generateObjectsListQuery, generateSubscription, isArray, isDefined, isFunction, isObject,
+  isPositiveNumber, isString
 } from './helpers';
 
 const genericExtrinsicFields = ['blockNumber', 'extrinsicIdx', 'hash', 'callModule', 'callName', 'signed', 'blockHash', 'blockDatetime'];

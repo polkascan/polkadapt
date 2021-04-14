@@ -27,7 +27,7 @@ export type ListResponse<T> = {
 
 
 export type Block = {
-  number: number; // primary key
+  number: number;  // primary key
   parentNumber: number | null;
   hash: string;
   parentHash: string;
@@ -50,8 +50,8 @@ export type Block = {
 
 
 export type Event = {
-  blockNumber: number; // combined primary key blockNumber, eventIdx
-  eventIdx: number; // combined primary key blockNumber, eventIdx
+  blockNumber: number;  // combined primary key blockNumber, eventIdx
+  eventIdx: number;  // combined primary key blockNumber, eventIdx
   extrinsicIdx: number | null;
   event: string | null;
   eventModule: string | null;
@@ -69,8 +69,8 @@ export type Event = {
 
 
 export type Extrinsic = {
-  blockNumber: number; // combined primary key blockNumber, extrinsicIdx
-  extrinsicIdx: number; // combined primary key blockNumber, extrinsicIdx
+  blockNumber: number;  // combined primary key blockNumber, extrinsicIdx
+  extrinsicIdx: number;  // combined primary key blockNumber, extrinsicIdx
   hash: string | null;
   version: number | null;
   versionInfo: number | null;
@@ -112,8 +112,8 @@ export type Extrinsic = {
 
 
 export type Runtime = {
-  specName: string; // PK
-  specVersion: number; // PK
+  specName: string;  // PK
+  specVersion: number;  // PK
   implName: string | null;
   implVersion: number | null;
   authoringVersion: number | null;
@@ -127,10 +127,10 @@ export type Runtime = {
 
 
 export type RuntimeCall = {
-  specName: string; // PK
-  specVersion: number; // PK
-  pallet: string; // PK
-  callName: string; // PK
+  specName: string;  // PK
+  specVersion: number;  // PK
+  pallet: string;  // PK
+  callName: string;  // PK
   palletCallIdx: number;
   lookup: string;
   documentation: string | null;
@@ -138,21 +138,21 @@ export type RuntimeCall = {
 };
 
 export type RuntimeCallArgument = {
-  specName: string; // PK
-  specVersion: number; // PK
-  pallet: string; // PK
-  callName: string; // PK
-  callArgumentIdx: number | null; // PK
+  specName: string;  // PK
+  specVersion: number;  // PK
+  pallet: string;  // PK
+  callName: string;  // PK
+  callArgumentIdx: number | null;  // PK
   name: string | null;
   scaleType: string | null;
 };
 
 
 export type RuntimeConstant = {
-  specName: string; // PK
-  specVersion: number; // PK
-  pallet: string; // PK
-  constantName: string | null; // PK
+  specName: string;  // PK
+  specVersion: number;  // PK
+  pallet: string;  // PK
+  constantName: string | null;  // PK
   palletConstantIdx: number;
   scaleType: string | null;
   value: any | null;
@@ -161,10 +161,10 @@ export type RuntimeConstant = {
 
 
 export type RuntimeErrorMessage = {
-  specName: string; // PK
-  specVersion: number; // PK
-  pallet: string; // PK
-  errorName: string | null; // PK
+  specName: string;  // PK
+  specVersion: number;  // PK
+  pallet: string;  // PK
+  errorName: string | null;  // PK
   palletIdx: number;
   errorIdx: number;
   documentation: string | null;
@@ -172,10 +172,10 @@ export type RuntimeErrorMessage = {
 
 
 export type RuntimeEvent = {
-  specName: string; // PK
-  specVersion: number; // PK
-  pallet: string; // PK
-  eventName: string | null; // PK
+  specName: string;  // PK
+  specVersion: number;  // PK
+  pallet: string;  // PK
+  eventName: string | null;  // PK
   palletEventIdx: number;
   lookup: string;
   documentation: string | null;
@@ -184,19 +184,19 @@ export type RuntimeEvent = {
 
 
 export type RuntimeEventAttribute = {
-  specName: string; // PK
-  specVersion: number; // PK
-  pallet: string; // PK
-  eventName: string | null; // PK
-  eventAttributeIdx: number; // PK
+  specName: string;  // PK
+  specVersion: number;  // PK
+  pallet: string;  // PK
+  eventName: string | null;  // PK
+  eventAttributeIdx: number;  // PK
   scaleType: string | null;
 };
 
 
 export type RuntimePallet = {
-  specName: string; // PK
-  specVersion: number; // PK
-  pallet: string; // PK
+  specName: string;  // PK
+  specVersion: number;  // PK
+  pallet: string;  // PK
   prefix: string | null;
   name: string | null;
   countCallFunctions: number;
@@ -208,10 +208,10 @@ export type RuntimePallet = {
 
 
 export type RuntimeStorage = {
-  specName: string; // PK
-  specVersion: number; // PK
-  pallet: string; // PK
-  storageName: string; // PK
+  specName: string;  // PK
+  specVersion: number;  // PK
+  pallet: string;  // PK
+  storageName: string;  // PK
   palletStorageIdx: number;
   default: string | null;
   modifier: string | null;
@@ -228,11 +228,39 @@ export type RuntimeStorage = {
 
 
 export type RuntimeType = {
-  specName: string; // PK
-  specVersion: number; // PK
-  pallet: string; // PK
-  scaleType: string; // PK
+  specName: string;  // PK
+  specVersion: number;  // PK
+  pallet: string;  // PK
+  scaleType: string;  // PK
   decoderClass: string | null;
   isCorePrimitive: boolean;
   isRuntimePrimitive: boolean;
+};
+
+
+export type Log = {  // TODO Assumption of typing
+  blockNumber: number;  // combined primary key blockNumber, logIdx
+  logIdx: number;  // combined primary key blockNumber, logIdx
+  type: string;
+  data: string;
+};
+
+
+export type Transfer = {  // TODO Assumption
+  blockNumber: number;  // PK
+  eventIdx: number;  // PK
+  fromMultiAddressType: string | null;
+  fromMultiAddressAccountId: string | null;
+  fromMultiAddressAccountIndex: number | null;
+  fromMultiAddressRaw: string | null;
+  fromMultiAddressAddress32: string | null;
+  fromMultiAddressAddress20: string | null;
+  toMultiAddressType: string | null;
+  toMultiAddressAccountId: string | null;
+  toMultiAddressAccountIndex: number | null;
+  toMultiAddressRaw: string | null;
+  toMultiAddressAddress32: string | null;
+  toMultiAddressAddress20: string | null;
+  value: number;
+  fee: number;
 };

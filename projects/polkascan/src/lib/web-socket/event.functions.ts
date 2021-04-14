@@ -20,15 +20,8 @@
 import { Adapter } from '../polkascan';
 import * as pst from '../polkascan.types';
 import {
-  generateObjectQuery,
-  generateObjectsListQuery,
-  generateSubscription,
-  isArray,
-  isPositiveNumber,
-  isDefined,
-  isFunction,
-  isObject,
-  isString
+  generateObjectQuery, generateObjectsListQuery, generateSubscription, isArray, isDefined, isFunction, isObject,
+  isPositiveNumber, isString
 } from './helpers';
 
 const genericEventFields = [
@@ -155,7 +148,7 @@ export const getEvents = (adapter: Adapter) => {
     const query = generateObjectsListQuery('getEvents', genericEventFields, filters, pageSize, pageKey);
 
     let result;
-    let events: Event[];
+    let events: pst.Event[];
     try {
       result = await adapter.socket.query(query);
       events = result.getEvents.objects;
