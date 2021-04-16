@@ -51,6 +51,7 @@ export const getRuntime = (adapter: Adapter) => {
     const result = await adapter.socket.query(query);
     const runtime: pst.Runtime = result.getRuntime;
     if (isObject(runtime)) {
+      runtime.specVersion = parseInt(runtime.specVersion as unknown as string, 10);  // TODO hack
       return runtime;
     } else {
       throw new Error(`[PolkascanAdapter] getRuntime: Returned response is invalid.`);
@@ -65,6 +66,7 @@ export const getLatestRuntime = (adapter: Adapter) => {
     const result = await adapter.socket.query(query);
     const runtime: pst.Runtime = result.getLatestRuntime;
     if (isObject(runtime)) {
+      runtime.specVersion = parseInt(runtime.specVersion as unknown as string, 10);  // TODO hack
       return runtime;
     } else {
       throw new Error(`[PolkascanAdapter] getRuntime: Returned response is invalid.`);

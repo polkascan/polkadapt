@@ -62,17 +62,19 @@ export const getRuntimeEvent = (adapter: Adapter) => {
 
 export const getRuntimeEvents = (adapter: Adapter) => {
   return async (
-    specName: string, specVersion: number, pallet: string, pageSize?: number, pageKey?: string
+    specName: string, specVersion: number, pallet?: string, pageSize?: number, pageKey?: string
   ): Promise<pst.ListResponse<pst.RuntimeEvent>> => {
     const filters: string[] = [];
 
-    if (isString(specName) && isNumber(specVersion) && isString(pallet)) {
+    if (isString(specName) && isNumber(specVersion)) {
       filters.push(`specName: ${specName}`);
       filters.push(`specVersion: ${specVersion}`);
-      filters.push(`pallet: ${pallet}`);
+      if (isString(pallet)) {
+        filters.push(`pallet: ${pallet}`);
+      }
     } else {
       throw new Error(
-        '[PolkascanAdapter] getRuntimeEvents: Provide the specName (string), specVersion (number) and pallet (string).'
+        '[PolkascanAdapter] getRuntimeEvents: Provide the specName (string), specVersion (number) and optionally pallet (string).'
       );
     }
 

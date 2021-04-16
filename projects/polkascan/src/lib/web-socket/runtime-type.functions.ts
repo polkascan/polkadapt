@@ -60,14 +60,16 @@ export const getRuntimeType = (adapter: Adapter) => {
 
 
 export const getRuntimeTypes = (adapter: Adapter) => {
-  return async (specName: string, specVersion: number, pallet: string,
+  return async (specName: string, specVersion: number, pallet?: string,
                 pageSize?: number, pageKey?: string): Promise<pst.ListResponse<pst.RuntimeType>> => {
     const filters: string[] = [];
 
-    if (isString(specName) && isNumber(specVersion) && isString(pallet)) {
+    if (isString(specName) && isNumber(specVersion)) {
       filters.push(`specName: ${specName}`);
       filters.push(`specVersion: ${specVersion}`);
-      filters.push(`pallet: ${pallet}`);
+      if (isString(pallet)) {
+        filters.push(`pallet: ${pallet}`);
+      }
     } else {
       throw new Error(
         '[PolkascanAdapter] getRuntimeTypes: Provide the specName (string), specVersion (number) and pallet (string).'
