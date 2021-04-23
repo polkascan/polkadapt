@@ -37,10 +37,10 @@ export const getRuntimeEvent = (adapter: Adapter) => {
     const filters: string[] = [];
 
     if (isString(specName) && isNumber(specVersion) && isString(pallet) && isString(eventName)) {
-      filters.push(`specName: ${specName}`);
+      filters.push(`specName: "${specName}"`);
       filters.push(`specVersion: ${specVersion}`);
-      filters.push(`pallet: ${pallet}`);
-      filters.push(`eventName: ${eventName}`);
+      filters.push(`pallet: "${pallet}"`);
+      filters.push(`eventName: "${eventName}"`);
     } else {
       throw new Error(
         '[PolkascanAdapter] getRuntimeEvent: Provide the specName (string), specVersion (number), pallet (string) and eventName (string).'
@@ -67,10 +67,10 @@ export const getRuntimeEvents = (adapter: Adapter) => {
     const filters: string[] = [];
 
     if (isString(specName) && isNumber(specVersion)) {
-      filters.push(`specName: ${specName}`);
+      filters.push(`specName: "${specName}"`);
       filters.push(`specVersion: ${specVersion}`);
       if (isString(pallet)) {
-        filters.push(`pallet: ${pallet}`);
+        filters.push(`pallet: "${pallet}"`);
       }
     } else {
       throw new Error(

@@ -37,10 +37,10 @@ export const getRuntimeCall = (adapter: Adapter) => {
     const filters: string[] = [];
 
     if (isString(specName) && isNumber(specVersion) && isString(pallet) && isString(callName)) {
-      filters.push(`specName: ${specName}`);
+      filters.push(`specName: "${specName}"`);
       filters.push(`specVersion: ${specVersion}`);
-      filters.push(`pallet: ${pallet}`);
-      filters.push(`callName: ${callName}`);
+      filters.push(`pallet: "${pallet}"`);
+      filters.push(`callName: "${callName}"`);
     } else {
       throw new Error(
         '[PolkascanAdapter] getRuntimeCall: Provide the specName (string), specVersion (number), pallet (string) and callName (string).'
@@ -67,10 +67,10 @@ export const getRuntimeCalls = (adapter: Adapter) => {
     const filters: string[] = [];
 
     if (isString(specName) && isNumber(specVersion)) {
-      filters.push(`specName: ${specName}`);
+      filters.push(`specName: "${specName}"`);
       filters.push(`specVersion: ${specVersion}`);
       if (isString(pallet)) {
-        filters.push(`pallet: ${pallet}`);
+        filters.push(`pallet: "${pallet}"`);
       }
     } else {
       throw new Error(

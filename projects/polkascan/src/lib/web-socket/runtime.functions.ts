@@ -40,7 +40,7 @@ export const getRuntime = (adapter: Adapter) => {
     const filters: string[] = [];
 
     if (isString(specName) && isNumber(specVersion)) {
-      filters.push(`specName: ${specName}`);
+      filters.push(`specName: "${specName}"`);
       filters.push(`specVersion: ${specVersion}`);
     } else {
       throw new Error('[PolkascanAdapter] getRuntime: Provide the specName (string) and specVersion (number).');

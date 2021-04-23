@@ -38,10 +38,10 @@ export const getRuntimeEventAttributes = (adapter: Adapter) => {
     const filters: string[] = [];
 
     if (isString(specName) && isNumber(specVersion) && isString(pallet) && isString(eventName)) {
-      filters.push(`specName: ${specName}`);
+      filters.push(`specName: "${specName}"`);
       filters.push(`specVersion: ${specVersion}`);
-      filters.push(`pallet: ${pallet}`);
-      filters.push(`eventName: ${eventName}`);
+      filters.push(`pallet: "${pallet}"`);
+      filters.push(`eventName: "${eventName}"`);
     } else {
       throw new Error(
         '[PolkascanAdapter] getRuntimeEventAttributes: Provide the specName (string), specVersion (number), pallet (string) and eventName (string).'
@@ -53,7 +53,7 @@ export const getRuntimeEventAttributes = (adapter: Adapter) => {
     const result = await adapter.socket.query(query);
     const runtimeEventAttributes = result.getRuntimeEventAttributes.objects;
     if (isArray(runtimeEventAttributes)) {
-      return result.getRuntimeCalls;
+      return result.getRuntimeEventAttributes;
     } else {
       throw new Error(`[PolkascanAdapter] getRuntimeEventAttributes: Returned response is invalid.`);
     }

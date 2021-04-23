@@ -46,9 +46,9 @@ export const getRuntimePallet = (adapter: Adapter) => {
     const filters: string[] = [];
 
     if (isString(specName) && isNumber(specVersion) && isString(pallet)) {
-      filters.push(`specName: ${specName}`);
+      filters.push(`specName: "${specName}"`);
       filters.push(`specVersion: ${specVersion}`);
-      filters.push(`pallet: ${pallet}`);
+      filters.push(`pallet: "${pallet}"`);
     } else {
       throw new Error(
         '[PolkascanAdapter] getRuntimePallet: Provide the specName (string), specVersion (number) and pallet (string).'
@@ -75,7 +75,7 @@ export const getRuntimePallets = (adapter: Adapter) => {
     const filters: string[] = [];
 
     if (isString(specName) && isNumber(specVersion)) {
-      filters.push(`specName: ${specName}`);
+      filters.push(`specName: "${specName}"`);
       filters.push(`specVersion: ${specVersion}`);
     } else {
       throw new Error(

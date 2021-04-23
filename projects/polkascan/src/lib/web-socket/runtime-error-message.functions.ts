@@ -36,10 +36,10 @@ export const getRuntimeErrorMessage = (adapter: Adapter) => {
     const filters: string[] = [];
 
     if (isString(specName) && isNumber(specVersion) && isString(pallet) && isString(errorName)) {
-      filters.push(`specName: ${specName}`);
+      filters.push(`specName: "${specName}"`);
       filters.push(`specVersion: ${specVersion}`);
-      filters.push(`pallet: ${pallet}`);
-      filters.push(`errorName: ${errorName}`);
+      filters.push(`pallet: "${pallet}"`);
+      filters.push(`errorName: "${errorName}"`);
     } else {
       throw new Error(
         '[PolkascanAdapter] getRuntimeErrorMessage: Provide the specName (string), specVersion (number), pallet (string) and errorName (string).'
@@ -66,10 +66,10 @@ export const getRuntimeErrorMessages = (adapter: Adapter) => {
     const filters: string[] = [];
 
     if (isString(specName) && isNumber(specVersion)) {
-      filters.push(`specName: ${specName}`);
+      filters.push(`specName: "${specName}"`);
       filters.push(`specVersion: ${specVersion}`);
       if (isString(pallet)) {
-        filters.push(`pallet: ${pallet}`);
+        filters.push(`pallet: "${pallet}"`);
       }
     } else {
       throw new Error(

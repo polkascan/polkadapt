@@ -46,10 +46,10 @@ export const getRuntimeCallArguments = (adapter: Adapter) => {
     const filters: string[] = [];
 
     if (isString(specName) && isNumber(specVersion) && isString(pallet) && isString(callName)) {
-      filters.push(`specName: ${specName}`);
+      filters.push(`specName: "${specName}"`);
       filters.push(`specVersion: ${specVersion}`);
-      filters.push(`pallet: ${pallet}`);
-      filters.push(`callName: ${callName}`);
+      filters.push(`pallet: "${pallet}"`);
+      filters.push(`callName: "${callName}"`);
     } else {
       throw new Error(
         '[PolkascanAdapter] getRuntimeCallArguments: Provide the specName (string), specVersion (number), pallet (string) and callName (string).'
@@ -61,7 +61,7 @@ export const getRuntimeCallArguments = (adapter: Adapter) => {
     const result = await adapter.socket.query(query);
     const runtimeCallArguments = result.getRuntimeCallArguments.objects;
     if (isArray(runtimeCallArguments)) {
-      return result.getRuntimeCalls;
+      return result.getRuntimeCallArguments;
     } else {
       throw new Error(`[PolkascanAdapter] getRuntimeCallArguments: Returned response is invalid.`);
     }

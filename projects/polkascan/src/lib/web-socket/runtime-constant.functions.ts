@@ -44,10 +44,10 @@ export const getRuntimeConstant = (adapter: Adapter) => {
     const filters: string[] = [];
 
     if (isString(specName) && isNumber(specVersion) && isString(pallet) && isString(constantName)) {
-      filters.push(`specName: ${specName}`);
+      filters.push(`specName: "${specName}"`);
       filters.push(`specVersion: ${specVersion}`);
-      filters.push(`pallet: ${pallet}`);
-      filters.push(`constantName: ${constantName}`);
+      filters.push(`pallet: "${pallet}"`);
+      filters.push(`constantName: "${constantName}"`);
     } else {
       throw new Error(
         '[PolkascanAdapter] getRuntimeConstant: Provide the specName (string), specVersion (number), pallet (string) and constantName (string).'
@@ -74,10 +74,10 @@ export const getRuntimeConstants = (adapter: Adapter) => {
     const filters: string[] = [];
 
     if (isString(specName) && isNumber(specVersion)) {
-      filters.push(`specName: ${specName}`);
+      filters.push(`specName: "${specName}"`);
       filters.push(`specVersion: ${specVersion}`);
       if (isString(pallet)) {
-        filters.push(`pallet: ${pallet}`);
+        filters.push(`pallet: "${pallet}"`);
       }
     } else {
       throw new Error(

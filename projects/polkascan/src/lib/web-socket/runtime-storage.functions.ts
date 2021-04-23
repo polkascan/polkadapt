@@ -45,10 +45,10 @@ export const getRuntimeStorage = (adapter: Adapter) => {
     const filters: string[] = [];
 
     if (isString(specName) && isNumber(specVersion) && isString(pallet) && isString(storageName)) {
-      filters.push(`specName: ${specName}`);
+      filters.push(`specName: "${specName}"`);
       filters.push(`specVersion: ${specVersion}`);
-      filters.push(`pallet: ${pallet}`);
-      filters.push(`storageName: ${storageName}`);
+      filters.push(`pallet: "${pallet}"`);
+      filters.push(`storageName: "${storageName}"`);
     } else {
       throw new Error(
         '[PolkascanAdapter] getRuntimeStorage: Provide the specName (string), specVersion (number), pallet (string) and storageName (string).'
@@ -74,10 +74,10 @@ export const getRuntimeStorages = (adapter: Adapter) => {
     const filters: string[] = [];
 
     if (isString(specName) && isNumber(specVersion)) {
-      filters.push(`specName: ${specName}`);
+      filters.push(`specName: "${specName}"`);
       filters.push(`specVersion: ${specVersion}`);
       if (isString(pallet)) {
-        filters.push(`pallet: ${pallet}`);
+        filters.push(`pallet: "${pallet}"`);
       }
     } else {
       throw new Error(

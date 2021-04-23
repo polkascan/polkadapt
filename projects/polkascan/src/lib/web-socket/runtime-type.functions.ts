@@ -36,10 +36,10 @@ export const getRuntimeType = (adapter: Adapter) => {
     const filters: string[] = [];
 
     if (isString(specName) && isNumber(specVersion) && isString(pallet) && isString(scaleType)) {
-      filters.push(`specName: ${specName}`);
+      filters.push(`specName: "${specName}"`);
       filters.push(`specVersion: ${specVersion}`);
-      filters.push(`pallet: ${pallet}`);
-      filters.push(`scaleType: ${scaleType}`);
+      filters.push(`pallet: "${pallet}"`);
+      filters.push(`scaleType: "${scaleType}"`);
     } else {
       throw new Error(
         '[PolkascanAdapter] getRuntimeType: Provide the specName (string), specVersion (number), pallet (string) and scaleType (string).'
@@ -65,10 +65,10 @@ export const getRuntimeTypes = (adapter: Adapter) => {
     const filters: string[] = [];
 
     if (isString(specName) && isNumber(specVersion)) {
-      filters.push(`specName: ${specName}`);
+      filters.push(`specName: "${specName}"`);
       filters.push(`specVersion: ${specVersion}`);
       if (isString(pallet)) {
-        filters.push(`pallet: ${pallet}`);
+        filters.push(`pallet: "${pallet}"`);
       }
     } else {
       throw new Error(
