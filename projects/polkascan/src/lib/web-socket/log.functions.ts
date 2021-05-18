@@ -25,6 +25,16 @@ import {
 } from './helpers';
 
 const genericLogFields = [
+  'blockNumber',
+  'logIdx',
+  'typeId',
+  'typeName',
+  'data',
+  'blockDateTime',
+  'blockHash',
+  'specName',
+  'specVersion',
+  'complete'
 ];
 
 

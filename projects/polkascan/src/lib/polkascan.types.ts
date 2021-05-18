@@ -27,7 +27,7 @@ export type ListResponse<T> = {
 
 
 export type Block = {
-  number: number;  // primary key
+  number: number;  // PK
   parentNumber: number | null;
   hash: string;
   parentHash: string;
@@ -50,8 +50,8 @@ export type Block = {
 
 
 export type Event = {
-  blockNumber: number;  // combined primary key blockNumber, eventIdx
-  eventIdx: number;  // combined primary key blockNumber, eventIdx
+  blockNumber: number;  // PK
+  eventIdx: number;  // PK
   extrinsicIdx: number | null;
   event: string | null;
   eventModule: string | null;
@@ -69,8 +69,8 @@ export type Event = {
 
 
 export type Extrinsic = {
-  blockNumber: number;  // combined primary key blockNumber, extrinsicIdx
-  extrinsicIdx: number;  // combined primary key blockNumber, extrinsicIdx
+  blockNumber: number;  // PK
+  extrinsicIdx: number;  // PK
   hash: string | null;
   version: number | null;
   versionInfo: number | null;
@@ -238,15 +238,21 @@ export type RuntimeType = {
 };
 
 
-export type Log = {  // TODO Assumption of typing
-  blockNumber: number;  // combined primary key blockNumber, logIdx
-  logIdx: number;  // combined primary key blockNumber, logIdx
-  type: string;
+export type Log = {
+  blockNumber: number;  // PK
+  logIdx: number;  // PK
+  typeId: number | null;
+  typeName: string | null;
   data: string;
+  blockDateTime: string | null;
+  blockHash: string;
+  specName: string | null;
+  specVersion: string | null;
+  complete: number;
 };
 
 
-export type Transfer = {  // TODO Assumption
+export type Transfer = {
   blockNumber: number;  // PK
   eventIdx: number;  // PK
   extrinsicIdx: number | null;
