@@ -25,6 +25,25 @@ import {
 } from './helpers';
 
 const genericTransferFields = [
+  'blockNumber',
+  'eventIdx',
+  'extrinsicIdx',
+  'fromMultiAddressType',
+  'fromMultiAddressAccountId',
+  'fromMultiAddressAccountIndex',
+  'fromMultiAddressRaw',
+  'fromMultiAddressAddress32',
+  'fromMultiAddressAddress20',
+  'toMultiAddressType',
+  'toMultiAddressAccountId',
+  'toMultiAddressAccountIndex',
+  'toMultiAddressRaw',
+  'toMultiAddressAddress32',
+  'toMultiAddressAddress20',
+  'value',
+  'blockDatetime',
+  'blockHash',
+  'complete'
 ];
 
 

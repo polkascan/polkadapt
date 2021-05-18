@@ -249,6 +249,7 @@ export type Log = {  // TODO Assumption of typing
 export type Transfer = {  // TODO Assumption
   blockNumber: number;  // PK
   eventIdx: number;  // PK
+  extrinsicIdx: number | null;
   fromMultiAddressType: string | null;
   fromMultiAddressAccountId: string | null;
   fromMultiAddressAccountIndex: number | null;
@@ -261,6 +262,8 @@ export type Transfer = {  // TODO Assumption
   toMultiAddressRaw: string | null;
   toMultiAddressAddress32: string | null;
   toMultiAddressAddress20: string | null;
-  value: number;
-  fee: number;
+  value: number | null;
+  blockDatetime: string | null;
+  blockHash: string;
+  complete: boolean;
 };
