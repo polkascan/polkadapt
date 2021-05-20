@@ -48,7 +48,7 @@ export const getRuntime = (adapter: Adapter) => {
 
     const query = generateObjectQuery('getRuntime', runtimeFields, filters);
 
-    const result = await adapter.socket.query(query);
+    const result = adapter.socket ? await adapter.socket.query(query) : {};
     const runtime: pst.Runtime = result.getRuntime;
     if (isObject(runtime)) {
       runtime.specVersion = parseInt(runtime.specVersion as unknown as string, 10);  // TODO hack
@@ -63,7 +63,7 @@ export const getRuntime = (adapter: Adapter) => {
 export const getLatestRuntime = (adapter: Adapter) => {
   return async (): Promise<pst.Runtime> => {
     const query = generateObjectQuery('getLatestRuntime', runtimeFields, []);
-    const result = await adapter.socket.query(query);
+    const result = adapter.socket ? await adapter.socket.query(query) : {};
     const runtime: pst.Runtime = result.getLatestRuntime;
     if (isObject(runtime)) {
       runtime.specVersion = parseInt(runtime.specVersion as unknown as string, 10);  // TODO hack
@@ -79,7 +79,7 @@ export const getRuntimes = (adapter: Adapter) => {
   return async (pageSize?: number, pageKey?: string): Promise<pst.ListResponse<pst.Runtime>> => {
     const query = generateObjectsListQuery('getRuntimes', runtimeFields, [], pageSize, pageKey);
 
-    const result = await adapter.socket.query(query);
+    const result = adapter.socket ? await adapter.socket.query(query) : {};
     const runtimes = result.getRuntimes.objects;
     if (isArray(runtimes)) {
       return result.getRuntimes;

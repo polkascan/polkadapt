@@ -23,9 +23,9 @@ const chainName = 'test chain';
 class TestAdapterBase extends AdapterBase {
   name = 'test adapter';
   promise: Promise<any>;
-  letter: string;
-  timeout: number;
-  api;
+  letter: string | undefined;
+  timeout: number | undefined;
+  api: any;
 
   get isReady(): Promise<boolean> {
     return Promise.resolve(true);
@@ -36,27 +36,27 @@ class TestAdapterBase extends AdapterBase {
     this.api = {
       values: {
         successFromBoth: async () => {
-          const obj = {
+          const obj: any = {
             nested: {
               conflicted: this.letter,
             }
           };
-          obj.nested[this.letter] = true;
+          obj.nested[this.letter as string] = true;
           return Promise.resolve(obj);
         }
       },
       subscriptions: {
-        successFromBoth: async (callback) => {
+        successFromBoth: async (callback: any) => {
           // Start subscription.
           let i = 0;
           const interval = setInterval(() => {
             // Pass every subscription event/message to the callback function.
-            const obj = {
+            const obj: any = {
               nested: {
-                conflicted: this.letter + i,
+                conflicted: (this.letter as string) + i,
               }
             };
-            obj.nested[this.letter] = i;
+            obj.nested[this.letter as string] = i;
             callback(obj);
             i += 1;
           }, this.timeout);
@@ -90,7 +90,7 @@ class TestAdapterA extends TestAdapterBase {
     super();
     this.api.values.successFromA = async () => Promise.resolve('a');
     this.api.values.partialFailure = this.api.values.successFromA;
-    this.api.subscriptions.successFromA = async (callback) => {
+    this.api.subscriptions.successFromA = async (callback: any) => {
       // Start subscription.
       let i = 0;
       const interval = setInterval(() => {
@@ -121,7 +121,7 @@ class TestAdapterB extends TestAdapterBase {
     this.api.values.successFromB = async () => Promise.resolve('b');
     this.api.values.failureFromB = async () => Promise.reject('whatever');
     this.api.values.partialFailure = this.api.values.failureFromB;
-    this.api.subscriptions.failureFromB = async (callback) => {
+    this.api.subscriptions.failureFromB = async (callback: any) => {
       // Start subscription.
       let i = 0;
       const interval = setInterval(() => {

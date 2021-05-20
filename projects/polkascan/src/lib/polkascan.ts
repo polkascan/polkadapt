@@ -154,9 +154,9 @@ export interface Config {
 
 export class Adapter extends AdapterBase {
   name = 'polkascan';
-  promise: Promise<Api>;
-  socket: PolkascanWebSocket;
-  api: PolkascanApi;
+  promise: Promise<Api> | undefined;
+  socket: PolkascanWebSocket | undefined;
+  api: PolkascanApi | undefined;
   config: Config;
 
   constructor(config: Config) {
@@ -226,12 +226,16 @@ export class Adapter extends AdapterBase {
 
 
   connect(): void {
-    this.socket.connect();
+    if (this.socket) {
+      this.socket.connect();
+    }
   }
 
 
   disconnect(): void {
-    this.socket.disconnect();
+    if (this.socket) {
+      this.socket.disconnect();
+    }
   }
 
 
@@ -258,8 +262,10 @@ export class Adapter extends AdapterBase {
 
         const removeListeners = () => {
           // Remove listeners after error or readyChange.
-          this.socket.off('readyChange', readyCallback);
-          this.socket.off('close', closeCallback);
+          if (this.socket) {
+            this.socket.off('readyChange', readyCallback);
+            this.socket.off('close', closeCallback);
+          }
         };
 
         // Subscribe to the websockets readyChange or error.

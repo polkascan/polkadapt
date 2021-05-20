@@ -77,7 +77,7 @@ export const getExtrinsic = (adapter: Adapter) => {
 
     const query = generateObjectQuery('getExtrinsic', extrinsicDetailFields, filters);
 
-    const result = await adapter.socket.query(query);
+    const result = adapter.socket ? await adapter.socket.query(query) : {};
     const extrinsic: pst.Extrinsic = result.getExtrinsic;
     if (isObject(extrinsic)) {
       return extrinsic;
@@ -88,10 +88,10 @@ export const getExtrinsic = (adapter: Adapter) => {
 };
 
 
-const createExtrinsicsFilters = (extrinsicsFilters: ExtrinsicsFilters): string[] => {
+const createExtrinsicsFilters = (extrinsicsFilters?: ExtrinsicsFilters): string[] => {
   const filters: string[] = [];
 
-  if (isObject(extrinsicsFilters)) {
+  if (extrinsicsFilters && isObject(extrinsicsFilters)) {
     const blockNumber = extrinsicsFilters.blockNumber;
     const callModule = extrinsicsFilters.callModule;
     const callName = extrinsicsFilters.callName;
@@ -151,7 +151,7 @@ export const getExtrinsics = (adapter: Adapter) => {
 
     const query = generateObjectsListQuery('getExtrinsics', genericExtrinsicFields, filters, pageSize, pageKey);
 
-    const result = await adapter.socket.query(query);
+    const result = adapter.socket ? await adapter.socket.query(query) : {};
     const extrinsics = result.getExtrinsics.objects;
     if (isArray(extrinsics)) {
       return result.getExtrinsics;
@@ -163,13 +163,13 @@ export const getExtrinsics = (adapter: Adapter) => {
 
 
 export const subscribeNewExtrinsic = (adapter: Adapter) => {
-  return async (...args: ((extrinsic: pst.Extrinsic) => void | ExtrinsicsFilters)[]): Promise<() => void> => {
-    const callback = args.find((arg) => isFunction(arg));
+  return async (...args: (((extrinsic: pst.Extrinsic) => void) | ExtrinsicsFilters | undefined)[]): Promise<() => void> => {
+    const callback = args.find((arg) => isFunction(arg)) as (undefined | ((extrinsic: pst.Extrinsic) => void));
     if (!callback) {
       throw new Error(`[PolkascanAdapter] subscribeNewExtrinsic: No callback function is provided.`);
     }
 
-    let filters: string[];
+    let filters: string[] = [];
     if (isObject(args[0])) {
       filters = createExtrinsicsFilters(args[0] as ExtrinsicsFilters);
     }
@@ -177,7 +177,7 @@ export const subscribeNewExtrinsic = (adapter: Adapter) => {
     const query = generateSubscription('subscribeNewExtrinsic', genericExtrinsicFields, filters);
 
     // return the unsubscribe function.
-    return await adapter.socket.createSubscription(query, (result) => {
+    return !adapter.socket ? {} : await adapter.socket.createSubscription(query, (result) => {
       try {
         const extrinsic: pst.Extrinsic = result.subscribeNewExtrinsic;
         if (isObject(extrinsic)) {

@@ -37,9 +37,9 @@ const reconnectTimeout = 500;
 export class PolkascanWebSocket {
   wsEndpoint: string;
   chain: string;
-  webSocket: WebSocket;
+  webSocket: WebSocket | null = null;
   websocketReady = false;
-  websocketReconnectTimeout: number;
+  websocketReconnectTimeout: number | null = null;
   adapterRegistered = false;
 
   addListener = this.on;
@@ -47,7 +47,7 @@ export class PolkascanWebSocket {
 
   private nonce = 0;
 
-  private eventListeners: { [eventName: string]: ((...args) => any)[] } = {};
+  private eventListeners: { [eventName: string]: ((...args: any[]) => any)[] } = {};
 
   // When reconnecting to a websocket we want to rebuild the subscriptions.
   private connectedSubscriptions: Map<number, any> = new Map(); // Payload to be send to the websocket.
@@ -97,6 +97,8 @@ export class PolkascanWebSocket {
         throw new Error(`There is an active subscription running on id ${id}.`);
       }
 
+      let timeout: number;
+
       const payload = {
         type: GQLMSG.START,
         id,
@@ -114,7 +116,7 @@ export class PolkascanWebSocket {
 
           this.off('data', listenerFn);
           this.off('error', errorListenerFn);
-          this.connectedSubscriptions.delete(id);
+          this.connectedSubscriptions.delete(id as number);
 
           if (data.payload && data.payload.data) {
             resolve(data.payload.data);
@@ -132,18 +134,17 @@ export class PolkascanWebSocket {
 
           this.off('data', listenerFn);
           this.off('error', errorListenerFn);
-          this.connectedSubscriptions.delete(id);
+          this.connectedSubscriptions.delete(id as number);
 
           reject(errorData.payload && errorData.payload.message);
         }
       };
 
-      let timeout;
       if (Number.isInteger(timeoutAmount) && timeoutAmount > 0) {
         timeout = setTimeout(() => {
           this.off('data', listenerFn);
           this.off('error', errorListenerFn);
-          this.connectedSubscriptions.delete(id);
+          this.connectedSubscriptions.delete(id as number);
           reject('Query timed out: ' + query);
         }, timeoutAmount);
       }
@@ -157,7 +158,7 @@ export class PolkascanWebSocket {
   }
 
 
-  createSubscription(query: string, callback: (...attr) => any, id?: number): Promise<any> {
+  createSubscription(query: string, callback: (...attr: any[]) => any, id?: number): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!query.startsWith('subscription')) {
         throw new Error(`Invalid query string, should start with 'subscription'.`);
@@ -196,7 +197,7 @@ export class PolkascanWebSocket {
       const clearListenerFn = async () => {
         this.off('data', listenerFn);
         this.off('error', listenerFn);
-        this.connectedSubscriptions.delete(id);
+        this.connectedSubscriptions.delete(id as number);
         try {
           this.send(JSON.stringify({
             type: GQLMSG.STOP,
@@ -329,7 +330,7 @@ export class PolkascanWebSocket {
 
 
   // Add listener function.
-  on(messageType: PolkascanWebsocketEventNames, listener: (...args) => any): void {
+  on(messageType: PolkascanWebsocketEventNames, listener: (...args: any[]) => any): void {
     if (!this.eventListeners.hasOwnProperty(messageType)) {
       this.eventListeners[messageType] = [];
     }
@@ -338,7 +339,7 @@ export class PolkascanWebSocket {
 
 
   // Remove listener for a specific event.
-  removeListener(eventName: string, listener: (...args) => any): void {
+  removeListener(eventName: string, listener: (...args: any[]) => any): void {
     if (this.eventListeners[eventName] !== undefined) {
       let index = -1;
       this.eventListeners[eventName].forEach((regFn, i) => {
@@ -360,7 +361,7 @@ export class PolkascanWebSocket {
 
 
   // Trigger handler function on event.
-  emit(eventName: string, ...args): boolean {
+  emit(eventName: string, ...args: any[]): boolean {
     if (this.eventListeners[eventName] && this.eventListeners[eventName].length) {
       this.eventListeners[eventName].forEach((listener) => listener(...args));
       return true;
@@ -371,7 +372,7 @@ export class PolkascanWebSocket {
 
   // Get a list of all event names with active listeners.
   eventNames(): string[] {
-    const eventNames = [];
+    const eventNames: string[] = [];
     Object.keys(this.eventListeners).forEach((key) => {
       if (this.eventListeners[key] && this.eventListeners[key].length) {
         eventNames.push(key);
@@ -382,7 +383,7 @@ export class PolkascanWebSocket {
 
 
   // Return all listeners registered on an event.
-  listeners(eventName: string): ((...args) => any)[] {
+  listeners(eventName: string): ((...args: any[]) => any)[] {
     if (this.eventListeners[eventName] && this.eventListeners[eventName].length) {
       return this.eventListeners[eventName];
     } else {

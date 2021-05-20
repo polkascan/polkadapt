@@ -48,7 +48,7 @@ export const getRuntimeErrorMessage = (adapter: Adapter) => {
 
     const query = generateObjectQuery('getRuntimeErrorMessage', runtimeErrorMessageFields, filters);
 
-    const result = await adapter.socket.query(query);
+    const result = adapter.socket ? await adapter.socket.query(query) : {};
     const runtimeErrorMessage: pst.RuntimeErrorMessage = result.getRuntimeErrorMessage;
     if (isObject(runtimeErrorMessage)) {
       return runtimeErrorMessage;
@@ -79,7 +79,7 @@ export const getRuntimeErrorMessages = (adapter: Adapter) => {
 
     const query = generateObjectsListQuery('getRuntimeErrorMessages', runtimeErrorMessageFields, filters, pageSize, pageKey);
 
-    const result = await adapter.socket.query(query);
+    const result = adapter.socket ? await adapter.socket.query(query) : {};
     const RuntimeErrorMessages = result.getRuntimeErrorMessages.objects;
     if (isArray(RuntimeErrorMessages)) {
       return result.getRuntimeErrorMessages;

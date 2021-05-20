@@ -12,12 +12,14 @@
         "build": {
           "builder": "@angular-devkit/build-angular:ng-packagr",
           "options": {
-            "tsConfig": "projects/core/tsconfig.lib.json",
             "project": "projects/core/ng-package.json"
           },
           "configurations": {
             "production": {
               "tsConfig": "projects/core/tsconfig.lib.prod.json"
+            },
+            "development": {
+              "tsConfig": "projects/core/tsconfig.lib.json"
             }
           }
         },
@@ -27,18 +29,6 @@
             "main": "projects/core/src/test.ts",
             "tsConfig": "projects/core/tsconfig.spec.json",
             "karmaConfig": "projects/core/karma.conf.js"
-          }
-        },
-        "lint": {
-          "builder": "@angular-devkit/build-angular:tslint",
-          "options": {
-            "tsConfig": [
-              "projects/core/tsconfig.lib.json",
-              "projects/core/tsconfig.spec.json"
-            ],
-            "exclude": [
-              "**/node_modules/**"
-            ]
           }
         }
       }
@@ -52,12 +42,14 @@
         "build": {
           "builder": "@angular-devkit/build-angular:ng-packagr",
           "options": {
-            "tsConfig": "projects/substrate-rpc/tsconfig.lib.json",
             "project": "projects/substrate-rpc/ng-package.json"
           },
           "configurations": {
             "production": {
               "tsConfig": "projects/substrate-rpc/tsconfig.lib.prod.json"
+            },
+            "development": {
+              "tsConfig": "projects/substrate-rpc/tsconfig.lib.json"
             }
           }
         },
@@ -67,18 +59,6 @@
             "main": "projects/substrate-rpc/src/test.ts",
             "tsConfig": "projects/substrate-rpc/tsconfig.spec.json",
             "karmaConfig": "projects/substrate-rpc/karma.conf.js"
-          }
-        },
-        "lint": {
-          "builder": "@angular-devkit/build-angular:tslint",
-          "options": {
-            "tsConfig": [
-              "projects/substrate-rpc/tsconfig.lib.json",
-              "projects/substrate-rpc/tsconfig.spec.json"
-            ],
-            "exclude": [
-              "**/node_modules/**"
-            ]
           }
         }
       }
@@ -92,12 +72,14 @@
         "build": {
           "builder": "@angular-devkit/build-angular:ng-packagr",
           "options": {
-            "tsConfig": "projects/polkascan/tsconfig.lib.json",
             "project": "projects/polkascan/ng-package.json"
           },
           "configurations": {
             "production": {
               "tsConfig": "projects/polkascan/tsconfig.lib.prod.json"
+            },
+            "development": {
+              "tsConfig": "projects/polkascan/tsconfig.lib.json"
             }
           }
         },
@@ -108,20 +90,9 @@
             "tsConfig": "projects/polkascan/tsconfig.spec.json",
             "karmaConfig": "projects/polkascan/karma.conf.js"
           }
-        },
-        "lint": {
-          "builder": "@angular-devkit/build-angular:tslint",
-          "options": {
-            "tsConfig": [
-              "projects/polkascan/tsconfig.lib.json",
-              "projects/polkascan/tsconfig.spec.json"
-            ],
-            "exclude": [
-              "**/node_modules/**"
-            ]
-          }
         }
       }
-    }},
+    }
+  },
   "defaultProject": "core"
 }

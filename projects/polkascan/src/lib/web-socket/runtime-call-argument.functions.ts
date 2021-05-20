@@ -58,7 +58,7 @@ export const getRuntimeCallArguments = (adapter: Adapter) => {
 
     const query = generateObjectsListQuery('getRuntimeCallArguments', runtimeCallArgumentFields, filters, pageSize, pageKey);
 
-    const result = await adapter.socket.query(query);
+    const result = adapter.socket ? await adapter.socket.query(query) : {};
     const runtimeCallArguments = result.getRuntimeCallArguments.objects;
     if (isArray(runtimeCallArguments)) {
       return result.getRuntimeCallArguments;

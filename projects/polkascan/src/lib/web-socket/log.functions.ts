@@ -64,7 +64,7 @@ export const getLog = (adapter: Adapter) => {
 
     const query = generateObjectQuery('getBlock', genericLogFields);
 
-    const result = await adapter.socket.query(query);
+    const result = adapter.socket ? await adapter.socket.query(query) : {};
     const log: pst.Log = result.getLog;
     if (isObject(log)) {
       return log;
@@ -78,12 +78,12 @@ export const getLog = (adapter: Adapter) => {
 export const getLogs = (adapter: Adapter) => {
   return async (pageSize?: number, pageKey?: string): Promise<pst.ListResponse<pst.Log>> => {
 
-    const query = generateObjectsListQuery('getLogs', genericLogFields, null, pageSize, pageKey);
+    const query = generateObjectsListQuery('getLogs', genericLogFields, undefined, pageSize, pageKey);
 
     let result;
     let logs: pst.Log[];
     try {
-      result = await adapter.socket.query(query);
+      result = adapter.socket ? await adapter.socket.query(query) : {};
       logs = result.getLogs.objects;
     } catch (e) {
       throw new Error(e);
@@ -107,7 +107,7 @@ export const subscribeNewLog = (adapter: Adapter) => {
     const query = generateSubscription('subscribeNewLog', genericLogFields);
 
     // return the unsubscribe function.
-    return await adapter.socket.createSubscription(query, (result) => {
+    return !adapter.socket ? {} : await adapter.socket.createSubscription(query, (result) => {
       try {
         const log: pst.Log = result.subscribeNewLog;
         if (isObject(log)) {

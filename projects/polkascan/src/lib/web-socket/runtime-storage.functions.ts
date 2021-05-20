@@ -57,7 +57,7 @@ export const getRuntimeStorage = (adapter: Adapter) => {
 
     const query = generateObjectQuery('getRuntimeStorage', runtimeStorageFields, filters);
 
-    const result = await adapter.socket.query(query);
+    const result = adapter.socket ? await adapter.socket.query(query) : {};
     const RuntimeStorage: pst.RuntimeStorage = result.getRuntimeStorages;
     if (isObject(RuntimeStorage)) {
       return RuntimeStorage;
@@ -87,7 +87,7 @@ export const getRuntimeStorages = (adapter: Adapter) => {
 
     const query = generateObjectsListQuery('getRuntimeStorages', runtimeStorageFields, filters, pageSize, pageKey);
 
-    const result = await adapter.socket.query(query);
+    const result = adapter.socket ? await adapter.socket.query(query) : {};
     const RuntimeStorages = result.getRuntimeStorages.objects;
     if (isArray(RuntimeStorages)) {
       return result.getRuntimeStorages;

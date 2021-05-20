@@ -60,7 +60,7 @@ export const getBlock = (adapter: Adapter) => {
 
     const query = generateObjectQuery('getBlock', genericBlockFields, filters);
 
-    const result = await adapter.socket.query(query);
+    const result = adapter.socket ? await adapter.socket.query(query) : {};
     const block: pst.Block = result.getBlock;
     if (isObject(block)) {
       return block;
@@ -72,7 +72,7 @@ export const getBlock = (adapter: Adapter) => {
 
 
 const getBlocksFn = (adapter: Adapter, direction?: 'from' | 'until') => {
-  return async (hashOrNumber: string | number,
+  return async (hashOrNumber?: string | number,
                 pageSize?: number,
                 pageKey?: string
   ): Promise<pst.ListResponse<pst.Block>> => {
@@ -99,7 +99,7 @@ const getBlocksFn = (adapter: Adapter, direction?: 'from' | 'until') => {
 
     const query = generateObjectsListQuery('getBlocks', genericBlockFields, filters, pageSize, pageKey);
 
-    const result = await adapter.socket.query(query);
+    const result = adapter.socket ? await adapter.socket.query(query) : {};
     const blocks: pst.Block[] = result.getBlocks.objects;
     if (isArray(blocks)) {
       return result.getBlocks;
@@ -113,7 +113,7 @@ const getBlocksFn = (adapter: Adapter, direction?: 'from' | 'until') => {
 export const getLatestBlock = (adapter: Adapter) => {
   return async (): Promise<pst.Block> => {
     const query = generateObjectQuery('getLatestBlock', genericBlockFields, []);
-    const result = await adapter.socket.query(query);
+    const result = adapter.socket ? await adapter.socket.query(query) : {};
     const block: pst.Block = result.getLatestBlock;
     if (isObject(block)) {
       return block;
@@ -126,7 +126,7 @@ export const getLatestBlock = (adapter: Adapter) => {
 
 export const getBlocks = (adapter: Adapter) => {
   return (pageSize?: number, pageKey?: string) => {
-    return getBlocksFn(adapter)(null, pageSize, pageKey);
+    return getBlocksFn(adapter)(undefined, pageSize, pageKey);
   };
 };
 
@@ -151,7 +151,7 @@ export const subscribeNewBlock = (adapter: Adapter) => {
     const query = generateSubscription('subscribeNewBlock', genericBlockFields);
 
     // return the unsubscribe function.
-    return await adapter.socket.createSubscription(query, (result) => {
+    return !adapter.socket ? {} : await adapter.socket.createSubscription(query, (result) => {
       try {
         const block: pst.Block = result.subscribeNewBlock;
         if (isObject(block)) {
@@ -178,7 +178,7 @@ export const getBlockAugmentation = (adapter: Adapter) => {
     const query = generateObjectQuery('getBlock', fields, filters);
 
     try {
-      const result = await adapter.socket.query(query);
+      const result = adapter.socket ? await adapter.socket.query(query) : {};
       const block: pst.Block = result.getBlock;
       if (isObject(block)) {
         return {block};

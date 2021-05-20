@@ -47,7 +47,7 @@ export const isObject = (val: any): boolean => {
 };
 
 
-export const isFunction = (val): boolean => {
+export const isFunction = (val: any): boolean => {
   return typeof val === 'function';
 };
 
@@ -64,18 +64,18 @@ const generateQuery = (
   isSubscription?: boolean,
   isList?: boolean,
   pageSize?: number,
-  pageKey?: string) => {
-
+  pageKey?: string
+) => {
   const type = isSubscription === true ? 'subscription' : 'query';
   let query: string;
   const config: string[] = [];
 
 
-  if (isArray(filters) && filters.length > 0) {
+  if (filters && isArray(filters) && filters.length > 0) {
     config.push(`filters: { ${filters.join(', ')} }`);
   }
 
-  if (Number.isInteger(pageSize) && pageSize > 0) {
+  if (pageSize && Number.isInteger(pageSize) && pageSize >= 1) {
     config.push(`pageSize: ${pageSize}`);
   }
 

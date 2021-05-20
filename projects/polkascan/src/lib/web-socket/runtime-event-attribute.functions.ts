@@ -50,7 +50,7 @@ export const getRuntimeEventAttributes = (adapter: Adapter) => {
 
     const query = generateObjectsListQuery('getRuntimeEventAttributes', runtimeEventAttributeFields, filters, pageSize, pageKey);
 
-    const result = await adapter.socket.query(query);
+    const result = adapter.socket ? await adapter.socket.query(query) : {};
     const runtimeEventAttributes = result.getRuntimeEventAttributes.objects;
     if (isArray(runtimeEventAttributes)) {
       return result.getRuntimeEventAttributes;

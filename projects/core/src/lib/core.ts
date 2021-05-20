@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+import { ProxyClass } from '@angular/compiler';
+
 export enum PolkadaptEventNames {
   readyChange = 'readyChange'
 }
@@ -60,7 +62,7 @@ export class Polkadapt<T> {
 
   addListener = this.on;
   off = this.removeListener;
-  private eventListeners: { [eventName: string]: ((...args) => any)[] } = {};
+  private eventListeners: { [eventName: string]: ((...args: any[]) => any)[] } = {};
 
 
   // Registers adapters in the polkadapt instance.
@@ -122,14 +124,14 @@ export class Polkadapt<T> {
 
 
   // Generate the proxy object that will return a promise on execution.
-  private createRecursiveProxy(chain: string,
+  private createRecursiveProxy(chain: string | undefined,
                                converter: PolkadaptRunConfigConverter,
-                               strategy: PolkadaptRunConfigStrategy,
+                               strategy: PolkadaptRunConfigStrategy | undefined,
                                adapters?: PolkadaptRegisteredAdapter[]): any {
     const path: string[] = [];  // Contains the mirroring path of the method chain.
     const candidateReturnValues: Map<AdapterBase, any> = new Map();  // Map of promises for every adapter that matches the method chain.
     let called = false;  // Called will be true if the method chain is executed.
-    let callArgs;  // A list with the arguments passed to the call at execution.
+    let callArgs: any[];  // A list with the arguments passed to the call at execution.
     let callback: (...attrs: any) => any;  // The user passed callback function to be executed when subscriptions emit.
     const candidateMessages = new Map();  // Messages storage per subscription. (enables combineLatest and merge)
     let unsubscribeFunctions: (() => any)[];  // Storage for all the unsubscribe functions for active subscriptions.
@@ -142,7 +144,7 @@ export class Polkadapt<T> {
         candidateMessages.set(subscription, message);
 
         // Place all adapter messages from the Map in an array.
-        const messages = [];
+        const messages: any[] = [];
         candidateMessages.forEach((value) => {
           messages.push(value);
         });
@@ -248,7 +250,7 @@ export class Polkadapt<T> {
               reject(`No adapters were found containing path ${path.join('.')}`);
 
             } else if (candidateReturnValues.size === 1) {
-              candidateReturnValues.values().next().value.then((returnValue) => {
+              candidateReturnValues.values().next().value.then((returnValue: any) => {
                 if (typeof returnValue === 'function') {
                   unsubscribeFunctions = [() => {
                     if (this.adapters.map(a => a.instance).includes(candidateReturnValues.keys().next().value)) {
@@ -274,8 +276,9 @@ export class Polkadapt<T> {
                           }
                         };
                       }
+                      return null;
                     })
-                    .filter((v) => !!v);
+                    .filter((v) => !!v) as (() => any)[];
 
                   if (unsubscribeFunctions.length > 0) {
                     returnValues.forEach((rv, index) => {
@@ -293,7 +296,7 @@ export class Polkadapt<T> {
                 (errors: any) => {
                   // Check if subscriptions were made. Unsubscribe immediately.
                   for (const value of candidateReturnValues.values()) {
-                    value.then((returnValue) => {
+                    value.then((returnValue: any) => {
                       if (typeof returnValue === 'function') {
                         returnValue();
                       }
@@ -318,7 +321,7 @@ export class Polkadapt<T> {
     // When a method is called (executed) we assume the chain is complete and a promise is returned.
     // In case no method is called the proxy will simply return itself. Eventually it will have to be called sometime
     // in order to get information from the adapters.
-    const proxy = new Proxy(
+    const proxy: () => void = new Proxy(
       () => {
       },
       {
@@ -358,17 +361,23 @@ export class Polkadapt<T> {
   // Run is the entrypoint for the application that starts the method chain and will return a result or create a subscription triggering
   // a passed through callback.
   run(config?: PolkadaptRunConfig | string): T {
-    let chain: string;
-    let converter: PolkadaptRunConfigConverter;
-    let strategy: PolkadaptRunConfigStrategy;
-    let adapters: PolkadaptRegisteredAdapter[];
+    let chain: string | undefined;
+    let converter: PolkadaptRunConfigConverter | undefined;
+    let strategy: PolkadaptRunConfigStrategy | undefined;
+    let adapters: PolkadaptRegisteredAdapter[] | undefined;
 
     if (typeof config === 'string') {
       chain = config;
-    } else if (Object.prototype.toString.call(config) === '[object Object]') {
-      chain = config.chain;
-      strategy = config.strategy;
-      converter = config.converter;
+    } else if (config && Object.prototype.toString.call(config) === '[object Object]') {
+      if (typeof config.chain === 'string') {
+        chain = config.chain;
+      }
+      if (typeof config.strategy === 'string') {
+        strategy = config.strategy;
+      }
+      if (typeof config.converter === 'string') {
+        converter = config.converter;
+      }
 
       if (config.adapters) {
         let adapterNotFound = false;
@@ -399,8 +408,8 @@ export class Polkadapt<T> {
         // This is the default converter of the candidate results.
         // By using a recursive Proxy we can (fake) deep merge the result objects.
         if (results.every((r) => typeof r === 'object')) {
-          const createResultProxy = (candidateObjects) => {
-            const target = {};
+          const createResultProxy = (candidateObjects: any[]): any => {
+            const target: {[k: string]: any} = {};
             candidateObjects.forEach(o => {
               for (const prop in o) {
                 if (!target[prop]) {
@@ -411,7 +420,7 @@ export class Polkadapt<T> {
             return new Proxy(target, {
               get: (obj, prop) => {
                 // Create an Array of all results that contain the property name.
-                const matches = [];
+                const matches: any[] = [];
                 candidateObjects.forEach(o => {
                   if (prop in o) {
                     matches.push(o);
@@ -455,7 +464,7 @@ export class Polkadapt<T> {
   // It is not a native EventEmitter and it is not meant to be one.
 
   // Add listener function.
-  on(eventName: string, listener: (...args) => any): void {
+  on(eventName: string, listener: (...args: any[]) => any): void {
     if (!this.eventListeners.hasOwnProperty(eventName)) {
       this.eventListeners[eventName] = [];
     }
@@ -464,7 +473,7 @@ export class Polkadapt<T> {
 
 
   // Remove listener for a specific event.
-  removeListener(eventName: string, listener: (...args) => any): void {
+  removeListener(eventName: string, listener: (...args: any[]) => any): void {
     if (this.eventListeners[eventName] !== undefined) {
       let index = -1;
       this.eventListeners[eventName].forEach((regFn, i) => {
@@ -486,8 +495,8 @@ export class Polkadapt<T> {
 
 
   // Add listener that triggers only once and then removes itself.
-  once(eventName: string, listener: (...args) => any): void {
-    const onceListener = (...args) => {
+  once(eventName: string, listener: (...args: any[]) => any): void {
+    const onceListener = (...args: any[]) => {
       listener(...args);
       this.off(eventName, onceListener);
     };
@@ -496,7 +505,7 @@ export class Polkadapt<T> {
 
 
   // Trigger handler function on event.
-  emit(eventName: string, ...args): boolean {
+  emit(eventName: string, ...args: any[]): boolean {
     if (this.eventListeners[eventName] && this.eventListeners[eventName].length) {
       this.eventListeners[eventName].forEach((listener) => listener(...args));
       return true;
@@ -507,7 +516,7 @@ export class Polkadapt<T> {
 
   // Get a list of all event names with active listeners.
   eventNames(): string[] {
-    const eventNames = [];
+    const eventNames: string[] = [];
     Object.keys(this.eventListeners).forEach((key) => {
       if (this.eventListeners[key] && this.eventListeners[key].length) {
         eventNames.push(key);
@@ -518,7 +527,7 @@ export class Polkadapt<T> {
 
 
   // Return all listeners registered on an event.
-  listeners(eventName: string): ((...args) => any)[] {
+  listeners(eventName: string): ((...args: any[]) => any)[] {
     if (this.eventListeners[eventName] && this.eventListeners[eventName].length) {
       return this.eventListeners[eventName];
     } else {
@@ -531,7 +540,7 @@ export class Polkadapt<T> {
 export abstract class AdapterBase {
   chain: string;
   abstract name: string;
-  abstract promise: AdapterPromise;
+  abstract promise: AdapterPromise | undefined;
 
   private polkadaptRegistry: Map<Polkadapt<any>, string> = new Map();
 

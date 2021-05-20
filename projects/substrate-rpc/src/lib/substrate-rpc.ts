@@ -30,7 +30,7 @@ export interface Config {
 
 export class Adapter extends AdapterBase {
   name = 'substrate-rpc';
-  promise: Promise<ApiPromise>;
+  promise: Promise<ApiPromise> | undefined;
   config: Config;
 
   constructor(config: Config) {

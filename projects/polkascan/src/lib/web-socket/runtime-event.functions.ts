@@ -49,7 +49,7 @@ export const getRuntimeEvent = (adapter: Adapter) => {
 
     const query = generateObjectQuery('getRuntimeEvent', runtimeEventFields, filters);
 
-    const result = await adapter.socket.query(query);
+    const result = adapter.socket ? await adapter.socket.query(query) : {};
     const runtimeEvent: pst.RuntimeEvent = result.getRuntimeEvent;
     if (isObject(runtimeEvent)) {
       return runtimeEvent;
@@ -80,7 +80,7 @@ export const getRuntimeEvents = (adapter: Adapter) => {
 
     const query = generateObjectsListQuery('getRuntimeEvents', runtimeEventFields, filters, pageSize, pageKey);
 
-    const result = await adapter.socket.query(query);
+    const result = adapter.socket ? await adapter.socket.query(query) : {};
     const RuntimeEvents = result.getRuntimeEvents.objects;
     if (isArray(RuntimeEvents)) {
       return result.getRuntimeEvents;

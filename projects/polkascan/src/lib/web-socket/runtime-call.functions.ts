@@ -49,7 +49,7 @@ export const getRuntimeCall = (adapter: Adapter) => {
 
     const query = generateObjectQuery('getRuntimeCall', runtimeCallFields, filters);
 
-    const result = await adapter.socket.query(query);
+    const result = adapter.socket ? await adapter.socket.query(query) : {};
     const runtimeCall: pst.RuntimeCall = result.getRuntimeCall;
     if (isObject(runtimeCall)) {
       return runtimeCall;
@@ -80,7 +80,7 @@ export const getRuntimeCalls = (adapter: Adapter) => {
 
     const query = generateObjectsListQuery('getRuntimeCalls', runtimeCallFields, filters, pageSize, pageKey);
 
-    const result = await adapter.socket.query(query);
+    const result = adapter.socket ? await adapter.socket.query(query) : {};
     const runtimeCalls = result.getRuntimeCalls.objects;
     if (isArray(runtimeCalls)) {
       return result.getRuntimeCalls;

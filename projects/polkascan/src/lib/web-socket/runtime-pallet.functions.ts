@@ -57,7 +57,7 @@ export const getRuntimePallet = (adapter: Adapter) => {
 
     const query = generateObjectQuery('getRuntimePallet', runtimePalletFields, filters);
 
-    const result = await adapter.socket.query(query);
+    const result = adapter.socket ? await adapter.socket.query(query) : {};
     const runtimePallet: pst.RuntimePallet = result.getRuntimePallet;
     if (isObject(runtimePallet)) {
       return runtimePallet;
@@ -85,7 +85,7 @@ export const getRuntimePallets = (adapter: Adapter) => {
 
     const query = generateObjectsListQuery('getRuntimePallets', runtimePalletFields, filters, pageSize, pageKey);
 
-    const result = await adapter.socket.query(query);
+    const result = adapter.socket ? await adapter.socket.query(query) : {};
     const runtimePallets = result.getRuntimePallets.objects;
     if (isArray(runtimePallets)) {
       return result.getRuntimePallets;

@@ -48,7 +48,7 @@ export const getRuntimeType = (adapter: Adapter) => {
 
     const query = generateObjectQuery('getRuntimeType', runtimeTypeFields, filters);
 
-    const result = await adapter.socket.query(query);
+    const result = adapter.socket ? await adapter.socket.query(query) : {};
     const runtimeType: pst.RuntimeType = result.getRuntimeTypes;
     if (isObject(runtimeType)) {
       return runtimeType;
@@ -78,7 +78,7 @@ export const getRuntimeTypes = (adapter: Adapter) => {
 
     const query = generateObjectsListQuery('getRuntimeTypes', runtimeTypeFields, filters, pageSize, pageKey);
 
-    const result = await adapter.socket.query(query);
+    const result = adapter.socket ? await adapter.socket.query(query) : {};
     const runtimeTypes = result.getRuntimeTypes.objects;
     if (isArray(runtimeTypes)) {
       return result.getRuntimeTypes;

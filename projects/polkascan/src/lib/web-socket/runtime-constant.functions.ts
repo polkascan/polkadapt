@@ -56,7 +56,7 @@ export const getRuntimeConstant = (adapter: Adapter) => {
 
     const query = generateObjectQuery('getRuntimeConstant', runtimeConstantFields, filters);
 
-    const result = await adapter.socket.query(query);
+    const result = adapter.socket ? await adapter.socket.query(query) : {};
     const runtimeConstant: pst.RuntimeConstant = result.getRuntimeConstant;
     if (isObject(runtimeConstant)) {
       return runtimeConstant;
@@ -87,7 +87,7 @@ export const getRuntimeConstants = (adapter: Adapter) => {
 
     const query = generateObjectsListQuery('getRuntimeConstants', runtimeConstantFields, filters, pageSize, pageKey);
 
-    const result = await adapter.socket.query(query);
+    const result = adapter.socket ? await adapter.socket.query(query) : {};
     const RuntimeConstants = result.getRuntimeConstants.objects;
     if (isArray(RuntimeConstants)) {
       return result.getRuntimeConstants;

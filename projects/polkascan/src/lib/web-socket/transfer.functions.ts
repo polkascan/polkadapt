@@ -73,7 +73,7 @@ export const getTransfer = (adapter: Adapter) => {
 
     const query = generateObjectQuery('getTransfer', genericTransferFields);
 
-    const result = await adapter.socket.query(query);
+    const result = adapter.socket ? await adapter.socket.query(query) : {};
     const transfer: pst.Transfer = result.getTransfer;
     if (isObject(transfer)) {
       return transfer;
@@ -87,12 +87,12 @@ export const getTransfer = (adapter: Adapter) => {
 export const getTransfers = (adapter: Adapter) => {
   return async (pageSize?: number, pageKey?: string): Promise<pst.ListResponse<pst.Transfer>> => {
 
-    const query = generateObjectsListQuery('getTransfers', genericTransferFields, null, pageSize, pageKey);
+    const query = generateObjectsListQuery('getTransfers', genericTransferFields, undefined, pageSize, pageKey);
 
     let result;
     let transfers: pst.Transfer[];
     try {
-      result = await adapter.socket.query(query);
+      result = adapter.socket ? await adapter.socket.query(query) : {};
       transfers = result.getTransfers.objects;
     } catch (e) {
       throw new Error(e);
@@ -116,7 +116,7 @@ export const subscribeNewTransfer = (adapter: Adapter) => {
     const query = generateSubscription('subscribeNewTransfer', genericTransferFields);
 
     // return the unsubscribe function.
-    return await adapter.socket.createSubscription(query, (result) => {
+    return !adapter.socket ? {} : await adapter.socket.createSubscription(query, (result) => {
       try {
         const transfer: pst.Transfer = result.subscribeNewTransfer;
         if (isObject(transfer)) {

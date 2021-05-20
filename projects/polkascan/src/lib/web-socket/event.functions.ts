@@ -70,7 +70,7 @@ export const getEvent = (adapter: Adapter) => {
 
     const query = generateObjectQuery('getEvent', genericEventFields, filters);
 
-    const result = await adapter.socket.query(query);
+    const result = adapter.socket ? await adapter.socket.query(query) : {};
     const event: pst.Event = result.getEvent;
     if (isObject(event)) {
       return event;
@@ -81,10 +81,10 @@ export const getEvent = (adapter: Adapter) => {
 };
 
 
-const createEventsFilters = (eventsFilters: EventsFilters): string[] => {
+const createEventsFilters = (eventsFilters?: EventsFilters): string[] => {
   const filters: string[] = [];
 
-  if (isObject(eventsFilters)) {
+  if (eventsFilters && isObject(eventsFilters)) {
     const blockNumber = eventsFilters.blockNumber;
     const eventModule = eventsFilters.eventModule;
     const eventName = eventsFilters.eventName;
@@ -150,7 +150,7 @@ export const getEvents = (adapter: Adapter) => {
     let result;
     let events: pst.Event[];
     try {
-      result = await adapter.socket.query(query);
+      result = adapter.socket ? await adapter.socket.query(query) : {};
       events = result.getEvents.objects;
     } catch (e) {
       throw new Error(e);
@@ -165,13 +165,13 @@ export const getEvents = (adapter: Adapter) => {
 
 
 export const subscribeNewEvent = (adapter: Adapter) => {
-  return async (...args: ((event: pst.Event) => void | EventsFilters)[]): Promise<() => void> => {
-    const callback = args.find((arg) => isFunction(arg));
+  return async (...args: (((event: pst.Event) => void) | EventsFilters | undefined)[]): Promise<() => void> => {
+    const callback = args.find((arg) => isFunction(arg)) as (undefined | ((event: pst.Event) => void));
     if (!callback) {
       throw new Error(`[PolkascanAdapter] subscribeNewEvent: No callback function is provided.`);
     }
 
-    let filters: string[];
+    let filters: string[] = [];
     if (isObject(args[0])) {
       try {
         filters = createEventsFilters(args[0] as EventsFilters);
@@ -183,7 +183,7 @@ export const subscribeNewEvent = (adapter: Adapter) => {
     const query = generateSubscription('subscribeNewEvent', genericEventFields, filters);
 
     // return the unsubscribe function.
-    return await adapter.socket.createSubscription(query, (result) => {
+    return !adapter.socket ? {} : await adapter.socket.createSubscription(query, (result) => {
       try {
         const event: pst.Event = result.subscribeNewEvent;
         if (isObject(event)) {
