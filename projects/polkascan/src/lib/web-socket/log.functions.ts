@@ -30,7 +30,7 @@ const genericLogFields = [
   'typeId',
   'typeName',
   'data',
-  'blockDateTime',
+  'blockDatetime',
   'blockHash',
   'specName',
   'specVersion',
