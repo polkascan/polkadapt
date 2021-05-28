@@ -71,7 +71,7 @@ export const getTransfer = (adapter: Adapter) => {
       throw new Error(`[PolkascanAdapter] getTransfer: Provided eventIdx must be a positive number.`);
     }
 
-    const query = generateObjectQuery('getTransfer', genericTransferFields);
+    const query = generateObjectQuery('getTransfer', genericTransferFields, filters);
 
     const result = adapter.socket ? await adapter.socket.query(query) : {};
     const transfer: pst.Transfer = result.getTransfer;
@@ -100,7 +100,7 @@ export const getTransfers = (adapter: Adapter) => {
     if (isArray(transfers)) {
       return result.getTransfers;
     } else {
-      throw new Error(`[PolkascanAdapter] getEvents: Returned response is invalid.`);
+      throw new Error(`[PolkascanAdapter] getTransfers: Returned response is invalid.`);
     }
   };
 };

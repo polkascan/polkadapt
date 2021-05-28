@@ -62,7 +62,7 @@ export const getLog = (adapter: Adapter) => {
       throw new Error(`[PolkascanAdapter] getLog: Provided logIdx must be a positive number.`);
     }
 
-    const query = generateObjectQuery('getBlock', genericLogFields);
+    const query = generateObjectQuery('getLog', genericLogFields, filters);
 
     const result = adapter.socket ? await adapter.socket.query(query) : {};
     const log: pst.Log = result.getLog;
@@ -91,7 +91,7 @@ export const getLogs = (adapter: Adapter) => {
     if (isArray(logs)) {
       return result.getLogs;
     } else {
-      throw new Error(`[PolkascanAdapter] getEvents: Returned response is invalid.`);
+      throw new Error(`[PolkascanAdapter] getLogs: Returned response is invalid.`);
     }
   };
 };
