@@ -1,6 +1,7 @@
 {
   "name": "@polkadapt/substrate-rpc",
   "version": "0.0.1",
+  "license": "Apache-2.0",
   "peerDependencies": {
     "@polkadapt/core": "latest",
     "@polkadot/api": "^4.12.1"
