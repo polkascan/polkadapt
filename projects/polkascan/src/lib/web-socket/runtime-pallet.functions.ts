@@ -19,14 +19,7 @@
 
 import { Adapter } from '../polkascan';
 import * as pst from '../polkascan.types';
-import {
-  generateObjectQuery,
-  generateObjectsListQuery,
-  isArray,
-  isDefined,
-  isNumber,
-  isObject, isString
-} from './helpers';
+import { generateObjectQuery, generateObjectsListQuery, isArray, isNumber, isObject, isString } from './helpers';
 
 const runtimePalletFields: (keyof pst.RuntimePallet)[] = [
   'specName',

@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-import { ProxyClass } from '@angular/compiler';
-
 export enum PolkadaptEventNames {
   readyChange = 'readyChange'
 }

@@ -20,7 +20,13 @@
 import { Adapter } from '../polkascan';
 import * as pst from '../polkascan.types';
 import {
-  generateObjectQuery, generateObjectsListQuery, generateSubscription, isArray, isDefined, isFunction, isObject,
+  generateObjectQuery,
+  generateObjectsListQuery,
+  generateSubscription,
+  isArray,
+  isDefined,
+  isFunction,
+  isObject,
   isPositiveNumber
 } from './helpers';
 

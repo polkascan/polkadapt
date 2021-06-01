@@ -22,9 +22,12 @@ import { PolkascanWebSocket } from './polkascan.web-socket';
 import * as pst from './polkascan.types';
 import {
   getBlock,
-  getBlocks,
   getBlockAugmentation,
-  subscribeNewBlock, getBlocksFrom, getBlocksUntil, getLatestBlock
+  getBlocks,
+  getBlocksFrom,
+  getBlocksUntil,
+  getLatestBlock,
+  subscribeNewBlock
 } from './web-socket/block.functions';
 import { EventsFilters, getEvent, getEvents, subscribeNewEvent } from './web-socket/event.functions';
 import {

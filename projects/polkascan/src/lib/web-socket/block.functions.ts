@@ -25,10 +25,9 @@ import {
   generateSubscription,
   isArray,
   isBlockHash,
-  isPositiveNumber,
-  isDefined,
   isFunction,
-  isObject
+  isObject,
+  isPositiveNumber
 } from './helpers';
 
 const genericBlockFields = [
