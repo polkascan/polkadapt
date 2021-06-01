@@ -141,7 +141,7 @@ export class PolkascanWebSocket {
       };
 
       if (Number.isInteger(timeoutAmount) && timeoutAmount > 0) {
-        timeout = setTimeout(() => {
+        timeout = window.setTimeout(() => {
           this.off('data', listenerFn);
           this.off('error', errorListenerFn);
           this.connectedSubscriptions.delete(id as number);
@@ -249,7 +249,7 @@ export class PolkascanWebSocket {
       this.webSocket = webSocket;
     } catch (e) {
       if (!this.websocketReconnectTimeout) {
-        this.websocketReconnectTimeout = setTimeout(() => {
+        this.websocketReconnectTimeout = window.setTimeout(() => {
           // WebSocket could not be created, retry;
           this.createWebSocket();
           this.websocketReconnectTimeout = null;
@@ -302,7 +302,7 @@ export class PolkascanWebSocket {
     webSocket.onerror = (error) => {
       if (this.webSocket === webSocket) {
         if (!this.websocketReconnectTimeout) {
-          this.websocketReconnectTimeout = setTimeout(() => {
+          this.websocketReconnectTimeout = window.setTimeout(() => {
             // WebSocket disconnected after error, retry connecting;
             this.createWebSocket(true);
             this.websocketReconnectTimeout = null;
