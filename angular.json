@@ -92,6 +92,37 @@
           }
         }
       }
+    },
+    "coingecko": {
+      "projectType": "library",
+      "root": "projects/coingecko",
+      "sourceRoot": "projects/coingecko/src",
+      "prefix": "lib",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:ng-packagr",
+          "options": {
+            "project": "projects/coingecko/ng-package.json"
+          },
+          "configurations": {
+            "production": {
+              "tsConfig": "projects/coingecko/tsconfig.lib.prod.json"
+            },
+            "development": {
+              "tsConfig": "projects/coingecko/tsconfig.lib.json"
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "main": "projects/coingecko/src/test.ts",
+            "tsConfig": "projects/coingecko/tsconfig.spec.json",
+            "karmaConfig": "projects/coingecko/karma.conf.js"
+          }
+        }
+      }
     }
   },
   "defaultProject": "core"

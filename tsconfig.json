@@ -20,6 +20,10 @@
       "dom"
     ],
     "paths": {
+      "coingecko": [
+        "dist/coingecko/coingecko",
+        "dist/coingecko"
+      ],
       "polkadapt": [
         "dist/polkadapt/polkadapt",
         "dist/polkadapt"
