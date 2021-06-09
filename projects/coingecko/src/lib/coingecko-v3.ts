@@ -2,16 +2,15 @@ import { AdapterBase } from '@polkadapt/core';
 
 export type Api = {
   prices: {
-    getPrice: () =>
+    getPrice: (currency: string) =>
       Promise<number>;
-    getHistoricalPrice: (day: number, month: number, year: number) =>
+    getHistoricalPrice: (day: number, month: number, year: number, currency: string) =>
       Promise<number>;
   }
 };
 
 export type Config = {
   chain: string;
-  currency: string;
   apiEndpoint: string;
 }
 
@@ -20,7 +19,7 @@ export class Adapter extends AdapterBase {
   promise: Promise<Api> | undefined;
   api: Api | undefined;
   config: Config;
-  readyPromise: Promise<boolean> = Promise.reject('false');
+  readyPromise: Promise<boolean> | null = null;
   pingTimeout: number | null = null;
   activeRequests: XMLHttpRequest[] = [];
 
@@ -31,20 +30,20 @@ export class Adapter extends AdapterBase {
     this.promise = new Promise((resolve) => {
       resolve({
         prices: {
-          getPrice: async () => {
+          getPrice: async (currency: string) => {
             try {
-              const price = await this.request(`simple/price?ids=${this.config.chain}&vs_currencies=${this.config.currency}`);
-              return price[this.config.chain][this.config.currency];
+              const price = await this.request(`simple/price?ids=${this.config.chain}&vs_currencies=${currency}`);
+              return price[this.config.chain][currency.toLocaleLowerCase()];
             } catch (e) {
               console.error('CoinGecko v3 adapter', e);
               return undefined;
             }
           },
-          getHistoricalPrice: async (day, month, year) => {
+          getHistoricalPrice: async (day, month, year, currency: string) => {
             // Date format is dd-mm-yyyy.
             try {
               const price = await this.request(`coins/${this.config.chain}/history?date=${day}-${month}-${year}&localization=false`);
-              return price.market_data.current_price[this.config.currency];
+              return price.market_data.current_price[currency.toLocaleLowerCase()];
             } catch (e) {
               console.error('CoinGecko v3 adapter', e);
               return undefined;
@@ -82,7 +81,7 @@ export class Adapter extends AdapterBase {
 
 
   disconnect(): void {
-    this.readyPromise = Promise.reject(false);
+    this.readyPromise = null;
 
     if (this.pingTimeout) {
       clearTimeout(this.pingTimeout);
@@ -97,13 +96,13 @@ export class Adapter extends AdapterBase {
 
 
   get isReady(): Promise<boolean> {
-    return this.readyPromise;
+    return this.readyPromise || Promise.reject();
   }
 
 
   request(path: string): Promise<any> {
     const request = new XMLHttpRequest();
-    const url = `${this.config.apiEndpoint}/${path}`.replace('//', '/');
+    const url = `${this.config.apiEndpoint}${this.config.apiEndpoint.endsWith('/') ? '' : '/'}${path}`;
 
     const promise = new Promise<any>((resolve, reject) => {
 

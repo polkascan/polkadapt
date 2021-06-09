@@ -2,7 +2,13 @@
   "name": "@polkadapt/coingecko",
   "version": "0.0.1",
   "license": "Apache-2.0",
+  "peerDependencies": {
+    "@polkadapt/core": "latest"
+  },
   "dependencies": {
     "tslib": "^2.1.0"
+  },
+  "devDependencies": {
+    "@polkadapt/core": "file:../../dist/core"
   }
 }
