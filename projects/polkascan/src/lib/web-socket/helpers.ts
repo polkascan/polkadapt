@@ -80,7 +80,7 @@ const generateQuery = (
   }
 
   if (typeof pageKey === 'string') {
-    config.push(`pageKey: ${pageKey}`);
+    config.push(`pageKey: "${pageKey}"`);
   }
 
   if (isList === true) {
