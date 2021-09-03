@@ -39,7 +39,6 @@ const genericBlockFields = [
   'countExtrinsics',
   'countEvents',
   'datetime',
-  'slotNumber',
   'specVersion',
   'complete'
 ];
