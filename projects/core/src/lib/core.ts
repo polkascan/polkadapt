@@ -23,8 +23,7 @@ export enum PolkadaptEventNames {
 export type AdapterPromise = Promise<any>;
 
 type PolkadaptRegisteredAdapter = {
-    instance: AdapterBase,
-    entrypoint: any
+    instance: AdapterBase
   };
 type PolkadaptRunConfigConverter = (results: any) => any;
 type PolkadaptRunConfigStrategy = 'merge' | 'combineLatest';
@@ -69,8 +68,8 @@ export class Polkadapt<T> {
     for (const adapter of adapters) {
       const duplicate = this.adapters.find(a => a.instance === adapter);
       if (!duplicate) {
+        this.adapters.push({instance: adapter});
         adapter.connect();
-        this.adapters.push({instance: adapter, entrypoint: null});
       }
     }
     this.emit('readyChange', false);
@@ -105,19 +104,11 @@ export class Polkadapt<T> {
     }
 
     // Wait for all adapters to have been created.
-    const entrypoints: any[] = await Promise.all(adapters.map(a => a.instance.promise));
-    // All adapters created, store the entrypoints per adapter.
-    adapters.forEach((a, index) => {
-      a.entrypoint = entrypoints[index];
-    });
+    await Promise.all(adapters.map(a => a.instance.promise));
 
     // Wait until all connections are initialized.
-    try {
-      await Promise.all(adapters.map(a => a.instance.isReady));
-      return true;
-    } catch (e) {
-      throw new Error(e);
-    }
+    await Promise.all(adapters.map(a => a.instance.isReady));
+    return true;
   }
 
 
@@ -177,7 +168,7 @@ export class Polkadapt<T> {
     // The actual promise returned to the application containing data or unsubscribe functionality.
     const resultPromise = new Promise<any>((resolve, reject) => {
       this.ready(adapters).then(
-        () => {
+        async () => {
           if (!chain) {
             const possibleChains = new Set(this.adapters.map(a => a.instance.chain));
             if (possibleChains.size > 1) {
@@ -186,13 +177,12 @@ export class Polkadapt<T> {
               chain = [...possibleChains][0];
             }
           }
-          // Get entrypoints for each adapter.
+          // Get Promise entrypoints for each adapter.
           let candidates = this.adapters.filter(a =>
             !a.instance.chain || (Object.prototype.toString.call(a.instance.chain) === '[object String]' && chain === a.instance.chain)
           );
 
           if (adapters) {
-            candidates = candidates.filter(({entrypoint}) => adapters.map((ei) => ei.entrypoint).includes(entrypoint));
             if (candidates.length === 0) {
               throw new Error('The requested adapters are not registered for the supplied chain.');
             }
@@ -204,7 +194,7 @@ export class Polkadapt<T> {
 
           // Walk the chain path for every adapter.
           for (const c of candidates) {
-            let item = c.entrypoint;
+            let item = await c.instance.promise;
             let pathFailed = false;
 
             for (const prop of path) {
@@ -540,8 +530,6 @@ export abstract class AdapterBase {
   abstract name: string;
   abstract promise: AdapterPromise | undefined;
 
-  private polkadaptRegistry: Map<Polkadapt<any>, string> = new Map();
-
   constructor(chain: string) {
     this.chain = chain;
   }
@@ -551,29 +539,6 @@ export abstract class AdapterBase {
   abstract disconnect(): void;
 
   abstract get isReady(): Promise<boolean>;
-
-  public registerPolkadapt(polkadapt: Polkadapt<any>): void {
-    if (this.polkadaptRegistry.has(polkadapt)) {
-      throw new Error(`Adapter ${this.name} for ${this.chain} has already been registered in current Polkadapt.`);
-    }
-
-    if (this.polkadaptRegistry.size === 0) {
-      this.connect();
-    }
-    this.polkadaptRegistry.set(polkadapt, this.guid);
-  }
-
-  public unregisterPolkadapt(polkadapt: Polkadapt<any>): void {
-    if (!this.polkadaptRegistry.has(polkadapt)) {
-      throw new Error(`Adapter ${this.name} for ${this.chain} has not been registered in current Polkadapt.`);
-    }
-
-    this.polkadaptRegistry.delete(polkadapt);
-
-    if (this.polkadaptRegistry.size === 0) {
-      this.disconnect();
-    }
-  }
 
   get guid(): string {
     return `${this.name}.${this.chain}`;

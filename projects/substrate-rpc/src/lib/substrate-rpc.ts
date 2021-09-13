@@ -19,71 +19,377 @@
 import { ApiPromise, WsProvider } from '@polkadot/api';
 import { AdapterBase } from '@polkadapt/core';
 import { ApiOptions } from '@polkadot/api/types';
+import { bool } from '@polkadot/types';
 
 export type Api = ApiPromise;
 
 export interface Config {
   chain: string;
-  providerURL: string;
+  providerUrl?: string;
   apiOptions?: ApiOptions;
+}
+
+export type EventNames = 'readyStateChange' | 'endpointChange' | 'error' | 'connected' | 'disconnected';
+
+type ActiveCall = {
+  created: Date;
+  apiPath: string[];
+  argArray: any[];
+  resolve: (result: any) => void;
+  unsubscribe?: () => void;
 }
 
 export class Adapter extends AdapterBase {
   name = 'substrate-rpc';
-  promise: Promise<ApiPromise> | undefined;
   config: Config;
+  promise: Promise<ApiPromise>;
+  private resolvePromise: ((api: ApiPromise) => void) | undefined;
+  private api: ApiPromise | undefined;
+  private unproxiedApi: ApiPromise | undefined;
+  private isConnected: Promise<boolean> = Promise.resolve(false);
+  private resolveConnected: ((v: boolean) => void) | undefined;
+  private activeCalls: {[K: string]: ActiveCall} = {};
+  private activeSubscriptions: {[K: string]: ActiveCall} = {};
+  private lastNonce = -1;
+  private wsProvider: WsProvider | null = null;
+  private wsEventOffFunctions: (() => void)[] = [];
+  private wsConnected: boolean = false;
+  private eventListeners: { [eventName: string]: ((...args: any[]) => any)[] } = {};
+  private urlChanged = false;
 
   constructor(config: Config) {
     super(config.chain);
     this.config = config;
+    // Create the initial Promise to expose to PolkADAPT Core.
+    this.promise = this.createPromise();
   }
 
-  connect(): void {
-    if (!this.promise) {
-      // No apiPromise-promise initialised, create it
+  private createPromise(): Promise<ApiPromise> {
+    return new Promise<ApiPromise>(resolve => {
+      // Set up a one-time-only function to resolve the initial entrypoint Promise after connecting.
+      this.resolvePromise = api => {
+        // Unset the function.
+        this.resolvePromise = undefined;
+        // Resolve the entrypoint.
+        resolve(api);
+      };
+    });
+  }
+
+  private createFollowUpProxy(target: any, apiPath: string[]): any {
+    // We use a recursive Proxy to do some bookkeeping on active calls and subscriptions.
+    if (!target) {
+      return;
+    }
+    return new Proxy(target, {
+      get: (t, p: string) => {
+        if (p in t) {
+          apiPath.push(p);
+          return this.createFollowUpProxy(t[p], apiPath);
+        }
+        return;
+      },
+      apply: (t: (...args: any[]) => unknown, thisArg, argArray) => {
+        // Because all Polkadot.js calls return a Promise, we can hijack it and return our own.
+        return new Promise(async resolve => {
+          // Register this call. If it's disconnected without result, we can re-submit the call to another endpoint.
+          this.lastNonce += 1;
+          const nonce = this.lastNonce.toString();
+          this.activeCalls[nonce] = {created: new Date(), apiPath, argArray, resolve};
+          // Now do the actual API call, await the result and resolve this result Promise.
+          console.log('Proxy call', nonce, apiPath.join('.'), 'with', argArray.length, 'arguments');
+          let result: any = await t(...argArray);
+          this.resolveActiveCall(nonce, result);
+        });
+      }
+    });
+  }
+
+  resolveActiveCall(nonce: string, result: any): void {
+    const aCall: ActiveCall = this.activeCalls[nonce];
+    if (aCall) {
+      console.log('Resolve result for', nonce);
+      if (typeof result === 'function') {
+        // The returned function is an unsubscribe function. We must remember this subscription, so we can
+        // re-subscribe it when the endpoint of this adapter is changed intermittently.
+        console.log('save subscription', nonce);
+        this.activeSubscriptions[nonce] = aCall;
+        // Save the current unsubscribe function in the remembered subscription.
+        this.activeSubscriptions[nonce].unsubscribe = result;
+        // Hijack the returned unsubscribe function, so we can fire the correct original function (which may have
+        // changed after a resubscribe) and forget this subscription once unsubscribed.
+        result = () => {
+          console.log('unsubscribe called, forget subscription', nonce)
+          const fn = this.activeSubscriptions[nonce].unsubscribe;
+          if (fn) {
+            fn();
+          }
+          delete this.activeSubscriptions[nonce];
+        };
+      }
+      // Finally, after registering the API call and hijacking any unsubscribe function, we can resolve this Promise with the result.
+      aCall.resolve(result);
+      // Now that we've received a response from the original call, we can forget it.
+      console.log('delete activeCall', nonce);
+      delete this.activeCalls[nonce];
+      console.log(Object.keys(this.activeCalls).length, 'active calls, ', Object.keys(this.activeSubscriptions).length, 'active subs');
+    }
+  }
+
+  async connect(): Promise<void> {
+    console.log('await isconnected');
+    const connected: boolean = await this.isConnected;
+    if (connected && !this.urlChanged) {
+      // Active connection was already established and url hasn't changed. Nothing to do.
+      return;
+    }
+
+    // If the url was changed, we can now reset the flag.
+    this.urlChanged = false;
+
+    // Should it already have been connected, disconnect now.
+    await this.disconnect();
+    // Create a Promise for the connection to complete. This is used on several occasions.
+    this.isConnected = new Promise(async resolve => {
+      // Create the actual Polkadot.js API instance.
+      try {
+        console.log('create api');
+        this.unproxiedApi = await this.createApi();
+      } catch (e) {
+        console.log('error creating api');
+        // Could not create API. Exit.
+        resolve(false);
+        throw e;
+      }
+      // Set up a Proxy so we can hijack the API.
+      this.api = new Proxy(this.unproxiedApi, {
+        get: (target, p: string) => {
+          return this.createFollowUpProxy((target as { [K: string]: any })[p], [p])
+        }
+      });
+      console.log('api created');
+      // Set up the resolve function.
+      this.resolveConnected = (v) => {
+        this.resolveConnected = undefined;
+        this.dispatchEvent('connected', {providerUrl: this.config.providerUrl});
+        console.log('resolve isconnected');
+        resolve(v);
+      };
+      // If the ws 'connected' event fired *before* this.api was set, we can now resolve the promises.
+      if (this.wsConnected) {
+        this.resolveCombined();
+      }
+    });
+    await this.isConnected;
+  }
+
+  private resolveCombined() {
+    if (this.wsConnected && this.api) {
+      if (this.resolvePromise) {
+        // Resolve the unresolved Promise.
+        this.resolvePromise(this.api);
+      } else {
+        // This is a new connection. We can just replace the Promise with an already resolved one.
+        this.promise = Promise.resolve(this.api);
+      }
+      if (this.resolveConnected) {
+        this.resolveConnected(true);
+      }
+      this.resumeCalls();
+    }
+  }
+
+  private resumeCalls(): void {
+    Object.keys(this.activeSubscriptions).forEach(async nonce => {
+      console.log('resume subscription', nonce);
+      const sub: ActiveCall = this.activeSubscriptions[nonce];
+      sub.created = new Date();
+      // Replay the subscription function on the unproxied API, so it won't be saved multiple times in activeSubscriptions.
+      let fn = this.unproxiedApi as any;
+      sub.apiPath.forEach(p => {
+        fn = fn[p];
+      });
+      // We need to re-use the existing subscription object, because the subscription caller has received a pointer to
+      // the hijacked unsubscribe function in the existing object.
+      sub.unsubscribe = await fn(...sub.argArray);
+    });
+    // Run activeCalls again *after* activeSubscriptions, because these calls might end up creating new subscriptions.
+    Object.keys(this.activeCalls).forEach(async nonce => {
+      console.log('resume call', nonce);
+      const aCall: ActiveCall = this.activeCalls[nonce];
+      aCall.created = new Date();
+      let fn = this.unproxiedApi as any;
+      aCall.apiPath.forEach(p => {
+        fn = fn[p];
+      });
+      const result: any = await fn(...aCall.argArray);
+      this.resolveActiveCall(nonce, result);
+    });
+  }
+
+  async disconnect(isError: boolean = false) {
+    console.log('start disconnect');
+    // If the promise is still unresolved, we can re-use it for the new connection.
+    if (!this.resolvePromise) {
+      // But it was already resolved, so we need to reset it.
       this.promise = this.createPromise();
     }
-  }
-
-  disconnect(): void {
-    if (this.promise) {
-      this.promise.then((apiPromise) => {
-        apiPromise.isReady.then((api) => {
-          api.disconnect();
-        });
-      });
+    if (this.wsProvider) {
+      // Remove the event listeners from the old wsProvider.
+      this.wsEventOffFunctions.forEach(off => off());
+      this.wsEventOffFunctions = [];
+      this.wsProvider = null;
     }
-    this.promise = undefined;
+    // Wait for isConnected to resolve, either being true or false.
+    //await this.isConnected;
+    if (this.unproxiedApi) {
+      await this.unproxiedApi.disconnect();
+      this.api = undefined;
+      this.unproxiedApi = undefined;
+    }
+    this.isConnected = Promise.resolve(false);
+    console.log('done disconnecting');
+    this.dispatchEvent(isError ? 'error' : 'disconnected');
   }
 
   get isReady(): Promise<boolean> {
-    return new Promise<boolean>(async (resolve) => {
-      if (this.promise) {
-        const apiPromise = await this.promise;
-        try {
-          await apiPromise.isReadyOrError;
-          resolve(true);
-        } catch (e) {
-          throw new Error(e);
-        }
+    console.log('isReady?');
+    return new Promise<boolean>(async resolve => {
+      const connected: boolean = await this.isConnected;
+      console.log('isReady connection status', connected);
+      if (!connected) {
+        throw new Error('[SubstrateRPCAdapter] Could not check readiness, adapter is not connected');
+      }
+      if (this.unproxiedApi) {
+        console.log('api.isReadyOrError');
+        await this.unproxiedApi.isReadyOrError;
+        console.log('resolve isReady');
+        resolve(true);
       } else {
         throw new Error('[SubstrateRPCAdapter] Could not check readiness, no apiPromise available');
       }
     });
   }
 
-  private async createPromise(): Promise<ApiPromise> {
-    const wsProvider = new WsProvider(this.config.providerURL);
+  private async createApi(): Promise<ApiPromise> {
+    if (!this.config.providerUrl) {
+      throw new Error("[SubstrateRPCAdapter] Can't create Polkadot.js API without a providerUrl.");
+    }
+    this.wsProvider = new WsProvider(this.config.providerUrl, 0);
+    this.wsEventOffFunctions.push(this.wsProvider.on('error', () => this.handleWsError()));
+    this.wsEventOffFunctions.push(this.wsProvider.on('connected', () => this.handleWsConnected()));
+    this.wsEventOffFunctions.push(this.wsProvider.on('disconnected', () => this.handleWsDisconnected()));
+    await this.wsProvider.connect();
+
     try {
-      const apiOptions: ApiOptions = {provider: wsProvider};
+      const apiOptions: ApiOptions = {provider: this.wsProvider};
       if (this.config.apiOptions) {
         // Provider can be overwritten by the given apiOptions.
         Object.assign(apiOptions, this.config.apiOptions);
       }
-      return ApiPromise.create(apiOptions);
+      return await ApiPromise.create(apiOptions);
     } catch (e) {
       console.error('[SubstrateRPCAdapter] Could not create apiPromise', e);
       throw new Error(e);
     }
   }
+
+  private handleWsConnected() {
+    this.wsConnected = true;
+    if (this.api) {
+      // Connection has been established *after* this.api was set. Resolve the promises.
+      this.resolveCombined();
+    }
+  }
+
+  private async handleWsError() {
+    this.wsConnected = false;
+    await this.disconnect(true);
+  }
+
+  private async handleWsDisconnected() {
+    this.wsConnected = false;
+    await this.disconnect();
+  }
+
+  setUrl(url: string) {
+    console.log('seturl', url);
+    if (url && url !== this.config.providerUrl) {
+      this.config.providerUrl = url;
+      this.urlChanged = true;
+    }
+  }
+
+  // Add listener function.
+  addEventListener(messageType: EventNames, listener: (...args: any[]) => any): void {
+    if (!this.eventListeners.hasOwnProperty(messageType)) {
+      this.eventListeners[messageType] = [];
+    }
+    this.eventListeners[messageType].push(listener);
+  }
+
+
+  // Remove listener for a specific event.
+  removeEventListener(eventName: string, listener: (...args: any[]) => any): void {
+    if (this.eventListeners[eventName] !== undefined) {
+      let index = -1;
+      this.eventListeners[eventName].forEach((regFn, i) => {
+        if (regFn === listener) {
+          index = i;
+        }
+      });
+      if (index !== -1) {
+        this.eventListeners[eventName].splice(index, 1);
+      }
+    }
+  }
+
+
+  // Remove all listeners for a specific event.
+  removeAllEventListeners(eventName: string): void {
+    delete this.eventListeners[eventName];
+  }
+
+
+  // Trigger handler function on event.
+  private dispatchEvent(eventName: string, ...args: any[]): boolean {
+    if (this.eventListeners[eventName] && this.eventListeners[eventName].length) {
+      this.eventListeners[eventName].forEach((listener) => listener(...args));
+      return true;
+    }
+    return false;
+  }
+
+
+  // Get a list of all event names with active listeners.
+  eventNames(): string[] {
+    const eventNames: string[] = [];
+    Object.keys(this.eventListeners).forEach((key) => {
+      if (this.eventListeners[key] && this.eventListeners[key].length) {
+        eventNames.push(key);
+      }
+    });
+    return eventNames;
+  }
+
+
+  // Return all listeners registered on an event.
+  listeners(eventName: string): ((...args: any[]) => any)[] {
+    if (this.eventListeners[eventName] && this.eventListeners[eventName].length) {
+      return this.eventListeners[eventName];
+    } else {
+      return [];
+    }
+  }
+
+  once(messageType: EventNames, listener: (...args: any[]) => any): void {
+    const wrapped = (...args: any[]) => {
+      listener(...args);
+      this.removeEventListener(messageType, wrapped);
+    };
+    this.addEventListener(messageType, wrapped);
+  }
+
+  on = this.addEventListener;
+  off = this.removeEventListener;
 }

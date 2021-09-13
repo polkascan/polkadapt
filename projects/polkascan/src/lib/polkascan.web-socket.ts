@@ -79,6 +79,13 @@ export class PolkascanWebSocket {
   }
 
 
+  reconnect(): void {
+    if (this.webSocket) {
+      this.webSocket.close(1000); // Normal closure.
+    }
+  }
+
+
   generateNonce(): number {
     this.nonce = this.nonce + 1;
     return this.nonce;
@@ -183,7 +190,8 @@ export class PolkascanWebSocket {
         if (response.id === id) {
           if (response.type === GQLMSG.ERROR) {
             clearListenerFn();
-            reject(response.message);
+            throw new Error(response.payload && response.payload.message ||
+              '[PolkascanAdapter] Subscription returned an error without a payload.');
           } else if (response.type === GQLMSG.DATA) {
             try {
               callback(response.payload.data);

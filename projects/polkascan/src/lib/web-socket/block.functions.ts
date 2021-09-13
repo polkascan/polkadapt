@@ -148,15 +148,15 @@ export const subscribeNewBlock = (adapter: Adapter) => {
 
     const query = generateSubscription('subscribeNewBlock', genericBlockFields);
 
+    if (!adapter.socket) {
+      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+    }
+
     // return the unsubscribe function.
-    return !adapter.socket ? {} : await adapter.socket.createSubscription(query, (result) => {
-      try {
-        const block: pst.Block = result.subscribeNewBlock;
-        if (isObject(block)) {
-          callback(block);
-        }
-      } catch (e) {
-        // Ignore.
+    return await adapter.socket.createSubscription(query, (result) => {
+      const block: pst.Block = result.subscribeNewBlock;
+      if (isObject(block)) {
+        callback(block);
       }
     });
   };

@@ -150,8 +150,9 @@ export type Api = {
 
 export interface Config {
   chain: string;
-  apiEndpoint: string;
-  wsEndpoint: string;
+  apiEndpoint?: string;
+  wsEndpoint?: string;
+  connectionRetries?: number;
 }
 
 
@@ -231,6 +232,8 @@ export class Adapter extends AdapterBase {
   connect(): void {
     if (this.socket) {
       this.socket.connect();
+    } else {
+      throw new Error("[PolkascanAdapter] Can't connect! Socket not initialized.");
     }
   }
 
@@ -238,6 +241,8 @@ export class Adapter extends AdapterBase {
   disconnect(): void {
     if (this.socket) {
       this.socket.disconnect();
+    } else {
+      throw new Error("[PolkascanAdapter] Can't disconnect! Socket not intialized.");
     }
   }
 
@@ -276,5 +281,19 @@ export class Adapter extends AdapterBase {
         this.socket.on('close', closeCallback);
       }
     });
+  }
+
+  async setWsUrl(url: string): Promise<void> {
+    if (url !== this.config.wsEndpoint) {
+      this.config.wsEndpoint = url;
+      if (this.socket) {
+        this.socket.wsEndpoint = this.config.wsEndpoint;
+        if (this.socket.adapterRegistered) {
+          this.socket.reconnect();
+        }
+      } else {
+        this.socket = new PolkascanWebSocket(this.config.wsEndpoint, this.config.chain);
+      }
+    }
   }
 }
