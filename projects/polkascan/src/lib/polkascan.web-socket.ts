@@ -29,7 +29,7 @@ export const GQLMSG = {
   STOP: 'stop'
 };
 
-export type PolkascanWebsocketEventNames = 'open' | 'error' | 'readyChange' | 'data' | 'close';
+export type PolkascanWebsocketEventNames = 'open' | 'socketError' | 'dataError' | 'readyChange' | 'data' | 'close';
 
 const PolkascanChannelName = 'graphql-ws';
 const reconnectTimeout = 500;
@@ -82,6 +82,13 @@ export class PolkascanWebSocket {
   reconnect(): void {
     if (this.webSocket) {
       this.webSocket.close(1000); // Normal closure.
+      if (!this.websocketReconnectTimeout) {
+        this.websocketReconnectTimeout = window.setTimeout(() => {
+          // WebSocket disconnected after error, retry connecting;
+          this.createWebSocket(true);
+          this.websocketReconnectTimeout = null;
+        }, reconnectTimeout);
+      }
     }
   }
 
@@ -122,7 +129,7 @@ export class PolkascanWebSocket {
           }
 
           this.off('data', listenerFn);
-          this.off('error', errorListenerFn);
+          this.off('dataError', errorListenerFn);
           this.connectedSubscriptions.delete(id as number);
 
           if (data.payload && data.payload.data) {
@@ -138,9 +145,9 @@ export class PolkascanWebSocket {
           if (timeout) {
             clearTimeout(timeout);
           }
-
+          errorData.query = query;
           this.off('data', listenerFn);
-          this.off('error', errorListenerFn);
+          this.off('dataError', errorListenerFn);
           this.connectedSubscriptions.delete(id as number);
 
           reject(errorData.payload && errorData.payload.message);
@@ -150,7 +157,7 @@ export class PolkascanWebSocket {
       if (Number.isInteger(timeoutAmount) && timeoutAmount > 0) {
         timeout = window.setTimeout(() => {
           this.off('data', listenerFn);
-          this.off('error', errorListenerFn);
+          this.off('dataError', errorListenerFn);
           this.connectedSubscriptions.delete(id as number);
           reject('Query timed out: ' + query);
         }, timeoutAmount);
@@ -160,7 +167,7 @@ export class PolkascanWebSocket {
 
       this.connectedSubscriptions.set(id, payload);
       this.on('data', listenerFn);
-      this.on('error', errorListenerFn);
+      this.on('dataError', errorListenerFn);
     });
   }
 
@@ -189,22 +196,19 @@ export class PolkascanWebSocket {
       const listenerFn = (response: any): void => {
         if (response.id === id) {
           if (response.type === GQLMSG.ERROR) {
+            response.query = query;
             clearListenerFn();
             throw new Error(response.payload && response.payload.message ||
               '[PolkascanAdapter] Subscription returned an error without a payload.');
           } else if (response.type === GQLMSG.DATA) {
-            try {
-              callback(response.payload.data);
-            } catch (e) {
-              console.error('[PolkascanAdapter] Subscription callback encountered an error or no data has been received.', e);
-            }
+            callback(response.payload.data);
           }
         }
       };
 
       const clearListenerFn = async () => {
         this.off('data', listenerFn);
-        this.off('error', listenerFn);
+        this.off('dataError', listenerFn);
         this.connectedSubscriptions.delete(id as number);
         try {
           this.send(JSON.stringify({
@@ -221,7 +225,7 @@ export class PolkascanWebSocket {
 
       this.connectedSubscriptions.set(id, payload);
       this.on('data', listenerFn);
-      this.on('error', listenerFn);
+      this.on('dataError', listenerFn);
 
       resolve(clearListenerFn);
     });
@@ -264,7 +268,7 @@ export class PolkascanWebSocket {
         }, reconnectTimeout);
       }
       console.error('[PolkascanAdapter] Websocket creation failed.', e);
-      this.emit('error', e);
+      this.emit('socketError', e);
 
       return;
     }
@@ -289,7 +293,8 @@ export class PolkascanWebSocket {
             this.emit('data', data);
             break;
           case GQLMSG.ERROR:
-            this.emit('error', data);
+            console.error('[PolkascanAdapter] dataError:', data.payload?.message || '(No message)', data);
+            this.emit('dataError', data);
             break;
           case GQLMSG.CONNECTION_ACK:
             this.websocketReady = true;
@@ -319,7 +324,7 @@ export class PolkascanWebSocket {
 
         if (this.adapterRegistered) {
           console.error('[PolkascanAdapter] Websocket encountered an error.', error);
-          this.emit('error', error);
+          this.emit('socketError', error);
         }
       }
     };

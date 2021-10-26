@@ -230,10 +230,18 @@ export class Adapter extends AdapterBase {
 
 
   connect(): void {
-    if (this.socket) {
-      this.socket.connect();
-    } else {
-      throw new Error("[PolkascanAdapter] Can't connect! Socket not initialized.");
+    if (this.config.wsEndpoint) {
+      if (this.socket) {
+        this.socket.wsEndpoint = this.config.wsEndpoint;
+        if (this.socket.adapterRegistered) {
+          this.socket.reconnect();
+        } else {
+          this.socket.connect();
+        }
+      } else {
+        this.socket = new PolkascanWebSocket(this.config.wsEndpoint, this.config.chain);
+        this.socket.connect();
+      }
     }
   }
 
@@ -283,17 +291,9 @@ export class Adapter extends AdapterBase {
     });
   }
 
-  async setWsUrl(url: string): Promise<void> {
+  setWsUrl(url: string): void {
     if (url !== this.config.wsEndpoint) {
       this.config.wsEndpoint = url;
-      if (this.socket) {
-        this.socket.wsEndpoint = this.config.wsEndpoint;
-        if (this.socket.adapterRegistered) {
-          this.socket.reconnect();
-        }
-      } else {
-        this.socket = new PolkascanWebSocket(this.config.wsEndpoint, this.config.chain);
-      }
     }
   }
 }

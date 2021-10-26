@@ -97,7 +97,6 @@ export class Adapter extends AdapterBase {
           const nonce = this.lastNonce.toString();
           this.activeCalls[nonce] = {created: new Date(), apiPath, argArray, resolve};
           // Now do the actual API call, await the result and resolve this result Promise.
-          console.log('Proxy call', nonce, apiPath.join('.'), 'with', argArray.length, 'arguments');
           let result: any = await t(...argArray);
           this.resolveActiveCall(nonce, result);
         });
@@ -108,18 +107,15 @@ export class Adapter extends AdapterBase {
   resolveActiveCall(nonce: string, result: any): void {
     const aCall: ActiveCall = this.activeCalls[nonce];
     if (aCall) {
-      console.log('Resolve result for', nonce);
       if (typeof result === 'function') {
         // The returned function is an unsubscribe function. We must remember this subscription, so we can
         // re-subscribe it when the endpoint of this adapter is changed intermittently.
-        console.log('save subscription', nonce);
         this.activeSubscriptions[nonce] = aCall;
         // Save the current unsubscribe function in the remembered subscription.
         this.activeSubscriptions[nonce].unsubscribe = result;
         // Hijack the returned unsubscribe function, so we can fire the correct original function (which may have
         // changed after a resubscribe) and forget this subscription once unsubscribed.
         result = () => {
-          console.log('unsubscribe called, forget subscription', nonce)
           const fn = this.activeSubscriptions[nonce].unsubscribe;
           if (fn) {
             fn();
@@ -130,14 +126,11 @@ export class Adapter extends AdapterBase {
       // Finally, after registering the API call and hijacking any unsubscribe function, we can resolve this Promise with the result.
       aCall.resolve(result);
       // Now that we've received a response from the original call, we can forget it.
-      console.log('delete activeCall', nonce);
       delete this.activeCalls[nonce];
-      console.log(Object.keys(this.activeCalls).length, 'active calls, ', Object.keys(this.activeSubscriptions).length, 'active subs');
     }
   }
 
   async connect(): Promise<void> {
-    console.log('await isconnected');
     const connected: boolean = await this.isConnected;
     if (connected && !this.urlChanged) {
       // Active connection was already established and url hasn't changed. Nothing to do.
@@ -153,10 +146,8 @@ export class Adapter extends AdapterBase {
     this.isConnected = new Promise(async resolve => {
       // Create the actual Polkadot.js API instance.
       try {
-        console.log('create api');
         this.unproxiedApi = await this.createApi();
       } catch (e) {
-        console.log('error creating api');
         // Could not create API. Exit.
         resolve(false);
         throw e;
@@ -167,12 +158,10 @@ export class Adapter extends AdapterBase {
           return this.createFollowUpProxy((target as { [K: string]: any })[p], [p])
         }
       });
-      console.log('api created');
       // Set up the resolve function.
       this.resolveConnected = (v) => {
         this.resolveConnected = undefined;
         this.dispatchEvent('connected', {providerUrl: this.config.providerUrl});
-        console.log('resolve isconnected');
         resolve(v);
       };
       // If the ws 'connected' event fired *before* this.api was set, we can now resolve the promises.
@@ -201,7 +190,6 @@ export class Adapter extends AdapterBase {
 
   private resumeCalls(): void {
     Object.keys(this.activeSubscriptions).forEach(async nonce => {
-      console.log('resume subscription', nonce);
       const sub: ActiveCall = this.activeSubscriptions[nonce];
       sub.created = new Date();
       // Replay the subscription function on the unproxied API, so it won't be saved multiple times in activeSubscriptions.
@@ -215,7 +203,6 @@ export class Adapter extends AdapterBase {
     });
     // Run activeCalls again *after* activeSubscriptions, because these calls might end up creating new subscriptions.
     Object.keys(this.activeCalls).forEach(async nonce => {
-      console.log('resume call', nonce);
       const aCall: ActiveCall = this.activeCalls[nonce];
       aCall.created = new Date();
       let fn = this.unproxiedApi as any;
@@ -228,7 +215,6 @@ export class Adapter extends AdapterBase {
   }
 
   async disconnect(isError: boolean = false) {
-    console.log('start disconnect');
     // If the promise is still unresolved, we can re-use it for the new connection.
     if (!this.resolvePromise) {
       // But it was already resolved, so we need to reset it.
@@ -241,29 +227,23 @@ export class Adapter extends AdapterBase {
       this.wsProvider = null;
     }
     // Wait for isConnected to resolve, either being true or false.
-    //await this.isConnected;
     if (this.unproxiedApi) {
       await this.unproxiedApi.disconnect();
       this.api = undefined;
       this.unproxiedApi = undefined;
     }
     this.isConnected = Promise.resolve(false);
-    console.log('done disconnecting');
     this.dispatchEvent(isError ? 'error' : 'disconnected');
   }
 
   get isReady(): Promise<boolean> {
-    console.log('isReady?');
     return new Promise<boolean>(async resolve => {
       const connected: boolean = await this.isConnected;
-      console.log('isReady connection status', connected);
       if (!connected) {
         throw new Error('[SubstrateRPCAdapter] Could not check readiness, adapter is not connected');
       }
       if (this.unproxiedApi) {
-        console.log('api.isReadyOrError');
         await this.unproxiedApi.isReadyOrError;
-        console.log('resolve isReady');
         resolve(true);
       } else {
         throw new Error('[SubstrateRPCAdapter] Could not check readiness, no apiPromise available');
@@ -313,7 +293,6 @@ export class Adapter extends AdapterBase {
   }
 
   setUrl(url: string) {
-    console.log('seturl', url);
     if (url && url !== this.config.providerUrl) {
       this.config.providerUrl = url;
       this.urlChanged = true;

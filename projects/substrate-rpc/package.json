@@ -4,14 +4,14 @@
   "license": "Apache-2.0",
   "peerDependencies": {
     "@polkadapt/core": "latest",
-    "@polkadot/api": "^5.8.3"
+    "@polkadot/api": "^6.3.1"
   },
   "dependencies": {
     "tslib": "^2.1.0"
   },
   "devDependencies": {
     "@polkadapt/core": "file:../../dist/core",
-    "@polkadot/api": "^5.8.3",
-    "@polkadot/types": "^5.8.3"
+    "@polkadot/api": "^6.3.1",
+    "@polkadot/types": "^6.3.1"
   }
 }
