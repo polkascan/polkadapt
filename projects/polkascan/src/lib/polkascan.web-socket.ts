@@ -216,7 +216,7 @@ export class PolkascanWebSocket {
             id
           }));
         } catch (e) {
-          console.error('[PolkascanAdapter] Stop subscription encountered an error.', e);
+          console.error('[PolkascanAdapter] Stop subscription encountered an error.');
           // Ignore.
         }
       };
@@ -267,7 +267,7 @@ export class PolkascanWebSocket {
           this.websocketReconnectTimeout = null;
         }, reconnectTimeout);
       }
-      console.error('[PolkascanAdapter] Websocket creation failed.', e);
+      console.error('[PolkascanAdapter] Websocket creation failed.');
       this.emit('socketError', e);
 
       return;
@@ -293,7 +293,7 @@ export class PolkascanWebSocket {
             this.emit('data', data);
             break;
           case GQLMSG.ERROR:
-            console.error('[PolkascanAdapter] dataError:', data.payload?.message || '(No message)', data);
+            console.error('[PolkascanAdapter] dataError:', data.payload?.message || '(No message)');
             this.emit('dataError', data);
             break;
           case GQLMSG.CONNECTION_ACK:
@@ -323,7 +323,7 @@ export class PolkascanWebSocket {
         }
 
         if (this.adapterRegistered) {
-          console.error('[PolkascanAdapter] Websocket encountered an error.', error);
+          console.error('[PolkascanAdapter] Websocket encountered an error.');
           this.emit('socketError', error);
         }
       }

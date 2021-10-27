@@ -269,7 +269,7 @@ export class Adapter extends AdapterBase {
       }
       return await ApiPromise.create(apiOptions);
     } catch (e) {
-      console.error('[SubstrateRPCAdapter] Could not create apiPromise', e);
+      console.error('[SubstrateRPCAdapter] Could not create apiPromise');
       throw new Error(e);
     }
   }

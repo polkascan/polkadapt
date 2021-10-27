@@ -264,7 +264,9 @@ export class Adapter extends AdapterBase {
         resolve(true);
 
       } else {
+        let timeout: number;
         const readyCallback = (ready: boolean) => {
+          clearTimeout(timeout);
           if (ready) {
             removeListeners();
             resolve(true);
@@ -272,6 +274,7 @@ export class Adapter extends AdapterBase {
         };
 
         const closeCallback = () => {
+          clearTimeout(timeout);
           removeListeners();
           reject('Polkascan websocket connection closed.');
         };
@@ -287,6 +290,11 @@ export class Adapter extends AdapterBase {
         // Subscribe to the websockets readyChange or error.
         this.socket.on('readyChange', readyCallback);
         this.socket.on('close', closeCallback);
+
+        timeout = setTimeout(() => {
+          removeListeners();
+          reject('Polkascan connection timed out.');
+        }, 10000);
       }
     });
   }
