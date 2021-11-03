@@ -40,6 +40,7 @@ export class PolkascanWebSocket {
   webSocket: WebSocket | null = null;
   websocketReady = false;
   websocketReconnectTimeout: number | null = null;
+  websocketConnectionTimeout: number | null = null;
   adapterRegistered = false;
 
   addListener = this.on;
@@ -273,7 +274,16 @@ export class PolkascanWebSocket {
       return;
     }
 
+    this.websocketConnectionTimeout = setTimeout(() => {
+      // It took too long to connect the websocket. Close it.
+      webSocket.close(1000);
+    }, 1000);
+
     webSocket.onopen = () => {
+      if (this.websocketConnectionTimeout) {
+        clearTimeout(this.websocketConnectionTimeout);
+        this.websocketConnectionTimeout = null;
+      }
       if (this.webSocket === webSocket) {
         this.emit('open');
 
@@ -314,6 +324,10 @@ export class PolkascanWebSocket {
 
     webSocket.onerror = (error) => {
       if (this.webSocket === webSocket) {
+        if (this.websocketConnectionTimeout) {
+          clearTimeout(this.websocketConnectionTimeout);
+          this.websocketConnectionTimeout = null;
+        }
         if (!this.websocketReconnectTimeout) {
           this.websocketReconnectTimeout = window.setTimeout(() => {
             // WebSocket disconnected after error, retry connecting;
@@ -336,7 +350,13 @@ export class PolkascanWebSocket {
           this.websocketReady = false;
           this.emit('readyChange', false);
         }
-        this.emit('close', close);
+        if (this.websocketConnectionTimeout) {
+          clearTimeout(this.websocketConnectionTimeout);
+          this.websocketConnectionTimeout = null;
+          this.emit('socketError');
+        } else {
+          this.emit('close', close);
+        }
       }
     };
   }
