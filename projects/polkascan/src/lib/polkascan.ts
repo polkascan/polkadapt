@@ -47,7 +47,7 @@ import { getRuntimeEventAttributes } from './web-socket/runtime-event-attribute.
 import { getRuntimePallet, getRuntimePallets } from './web-socket/runtime-pallet.functions';
 import { getRuntimeStorage, getRuntimeStorages } from './web-socket/runtime-storage.functions';
 import { getRuntimeType, getRuntimeTypes } from './web-socket/runtime-type.functions';
-import { getTransfer, getTransfers, subscribeNewTransfer } from './web-socket/transfer.functions';
+import { getTransfer, getTransfers, subscribeNewTransfer, TransfersFilters } from './web-socket/transfer.functions';
 
 
 export type Api = {
@@ -69,13 +69,13 @@ export type Api = {
         Promise<pst.Event>;
       getEvents: (filters?: EventsFilters, pageSize?: number, pageKey?: string) =>
         Promise<pst.ListResponse<pst.Event>>;
-      subscribeNewEvent: (filtersOrCallback: (event: pst.Event) => void | EventsFilters, callback?: (event: pst.Event) => void) =>
+      subscribeNewEvent: (filtersOrCallback: ((event: pst.Event) => void) | EventsFilters, callback?: (event: pst.Event) => void) =>
         Promise<() => void>;
       getExtrinsic: (blockNumber: number, eventIdx: number) =>
         Promise<pst.Extrinsic>;
       getExtrinsics: (filters?: ExtrinsicsFilters, pageSize?: number, pageKey?: string) =>
         Promise<pst.ListResponse<pst.Extrinsic>>;
-      subscribeNewExtrinsic: (filtersOrCallback: (extrinsic: pst.Extrinsic) => void | ExtrinsicsFilters,
+      subscribeNewExtrinsic: (filtersOrCallback: ((extrinsic: pst.Extrinsic) => void) | ExtrinsicsFilters,
                               callback?: (extrinsic: pst.Extrinsic) => void) =>
         Promise<() => void>;
       getLog: (blockNumber: number, logIdx: number) =>
@@ -86,9 +86,10 @@ export type Api = {
         Promise<() => void>;
       getTransfer: (blockNumber: number, eventIdx: number) =>
         Promise<pst.Transfer>;
-      getTransfers: (pageSize?: number, pageKey?: string) =>
+      getTransfers: (filters?: TransfersFilters, pageSize?: number, pageKey?: string) =>
         Promise<pst.ListResponse<pst.Transfer>>;
-      subscribeNewTransfer: (callback: (log: pst.Transfer) => void) =>
+      subscribeNewTransfer: (filtersOrcallback?: ((log: pst.Transfer) => void) | TransfersFilters,
+                             callback?: (log: pst.Transfer) => void) =>
         Promise<() => void>;
     },
     state: {

@@ -83,17 +83,10 @@ export const getLog = (adapter: Adapter) => {
 
 export const getLogs = (adapter: Adapter) => {
   return async (pageSize?: number, pageKey?: string): Promise<pst.ListResponse<pst.Log>> => {
-
     const query = generateObjectsListQuery('getLogs', genericLogFields, undefined, pageSize, pageKey);
+    const result = adapter.socket ? await adapter.socket.query(query) : {};
+    const logs: pst.Log[] = result.getLogs.objects;
 
-    let result;
-    let logs: pst.Log[];
-    try {
-      result = adapter.socket ? await adapter.socket.query(query) : {};
-      logs = result.getLogs.objects;
-    } catch (e) {
-      throw new Error(e);
-    }
     if (isArray(logs)) {
       return result.getLogs;
     } else {

@@ -44,6 +44,7 @@ const extrinsicDetailFields = [
   'callHash',
   'signed',
   'signature',
+  'multiAddressAccountId',
   'extrinsicLength',
   'nonce',
   'blockDatetime',
@@ -55,6 +56,7 @@ export interface ExtrinsicsFilters {
   callModule?: string;
   callName?: string;
   signed?: number;
+  multiAddressAccountId?: string;
 }
 
 
@@ -103,6 +105,7 @@ const createExtrinsicsFilters = (extrinsicsFilters?: ExtrinsicsFilters): string[
     const callModule = extrinsicsFilters.callModule;
     const callName = extrinsicsFilters.callName;
     const signed = extrinsicsFilters.signed;
+    const multiAddressAccountId = extrinsicsFilters.multiAddressAccountId;
 
     if (isDefined(blockNumber)) {
       if (isPositiveNumber(blockNumber)) {
@@ -139,6 +142,14 @@ const createExtrinsicsFilters = (extrinsicsFilters?: ExtrinsicsFilters): string[
       }
     }
 
+    if (isDefined(multiAddressAccountId)) {
+      if (isString(multiAddressAccountId)) {
+        filters.push(`multiAddressAccountId: "${multiAddressAccountId}"`);
+      } else {
+        throw new Error('[PolkascanAdapter] Extrinsics: Provided call module must be a non-empty string.');
+      }
+    }
+
   } else if (isDefined(extrinsicsFilters)) {
     throw new Error('[PolkascanAdapter] Extrinsics: Provided filters have to be wrapped in an object.');
   }
@@ -149,17 +160,11 @@ const createExtrinsicsFilters = (extrinsicsFilters?: ExtrinsicsFilters): string[
 
 export const getExtrinsics = (adapter: Adapter) => {
   return async (extrinsicsFilters?: ExtrinsicsFilters, pageSize?: number, pageKey?: string): Promise<pst.ListResponse<pst.Extrinsic>> => {
-    let filters: string[];
-    try {
-      filters = createExtrinsicsFilters(extrinsicsFilters);
-    } catch (e) {
-      throw new Error(e);
-    }
-
+    const filters: string[] = createExtrinsicsFilters(extrinsicsFilters);
     const query = generateObjectsListQuery('getExtrinsics', genericExtrinsicFields, filters, pageSize, pageKey);
-
     const result = adapter.socket ? await adapter.socket.query(query) : {};
     const extrinsics = result.getExtrinsics.objects;
+
     if (isArray(extrinsics)) {
       return result.getExtrinsics;
     } else {

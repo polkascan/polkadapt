@@ -145,23 +145,11 @@ const createEventsFilters = (eventsFilters?: EventsFilters): string[] => {
 
 export const getEvents = (adapter: Adapter) => {
   return async (eventsFilters?: EventsFilters, pageSize?: number, pageKey?: string): Promise<pst.ListResponse<pst.Event>> => {
-    let filters: string[];
-    try {
-      filters = createEventsFilters(eventsFilters);
-    } catch (e) {
-      throw new Error(e);
-    }
-
+    const filters: string[] = createEventsFilters(eventsFilters);
     const query = generateObjectsListQuery('getEvents', genericEventFields, filters, pageSize, pageKey);
+    const result = adapter.socket ? await adapter.socket.query(query) : {};
+    const events: pst.Event[] = result.getEvents.objects;
 
-    let result;
-    let events: pst.Event[];
-    try {
-      result = adapter.socket ? await adapter.socket.query(query) : {};
-      events = result.getEvents.objects;
-    } catch (e) {
-      throw new Error(e);
-    }
     if (isArray(events)) {
       return result.getEvents;
     } else {
@@ -180,11 +168,7 @@ export const subscribeNewEvent = (adapter: Adapter) => {
 
     let filters: string[] = [];
     if (isObject(args[0])) {
-      try {
-        filters = createEventsFilters(args[0] as EventsFilters);
-      } catch (e) {
-        throw new Error(e);
-      }
+      filters = createEventsFilters(args[0] as EventsFilters);
     }
 
     const query = generateSubscription('subscribeNewEvent', genericEventFields, filters);

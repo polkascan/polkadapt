@@ -27,7 +27,7 @@ import {
   isDefined,
   isFunction,
   isObject,
-  isPositiveNumber
+  isPositiveNumber, isString
 } from './helpers';
 
 const genericTransferFields = [
@@ -51,6 +51,12 @@ const genericTransferFields = [
   'blockHash',
   'complete'
 ];
+
+
+export interface TransfersFilters {
+  fromMultiAddressAccountId?: string;
+  toMultiAddressAccountId?: string;
+}
 
 
 export const getTransfer = (adapter: Adapter) => {
@@ -90,19 +96,43 @@ export const getTransfer = (adapter: Adapter) => {
 };
 
 
-export const getTransfers = (adapter: Adapter) => {
-  return async (pageSize?: number, pageKey?: string): Promise<pst.ListResponse<pst.Transfer>> => {
+const createTransfersFilters = (transfersFilters?: TransfersFilters): string[] => {
+  const filters: string[] = [];
 
-    const query = generateObjectsListQuery('getTransfers', genericTransferFields, undefined, pageSize, pageKey);
+  if (transfersFilters && isObject(transfersFilters)) {
+    const fromMultiAddressAccountId = transfersFilters.fromMultiAddressAccountId;
+    const toMultiAddressAccountId = transfersFilters.toMultiAddressAccountId;
 
-    let result;
-    let transfers: pst.Transfer[];
-    try {
-      result = adapter.socket ? await adapter.socket.query(query) : {};
-      transfers = result.getTransfers.objects;
-    } catch (e) {
-      throw new Error(e);
+    if (isDefined(fromMultiAddressAccountId)) {
+      if (isString(fromMultiAddressAccountId)) {
+        filters.push(`fromMultiAddressAccountId: "${fromMultiAddressAccountId}"`);
+      } else {
+        throw new Error('[PolkascanAdapter] Transfers: Provided fromMultiAddressAccountId must be a non-empty string.');
+      }
     }
+
+    if (isDefined(toMultiAddressAccountId)) {
+      if (isString(toMultiAddressAccountId)) {
+        filters.push(`toMultiAddressAccountId: "${toMultiAddressAccountId}"`);
+      } else {
+        throw new Error('[PolkascanAdapter] Transfers: Provided toMultiAddressAccountId must be a non-empty string.');
+      }
+    }
+  } else if (isDefined(transfersFilters)) {
+    throw new Error('[PolkascanAdapter] Transfers: Provided filters have to be wrapped in an object.');
+  }
+
+  return filters;
+}
+
+
+export const getTransfers = (adapter: Adapter) => {
+  return async (transfersFilters?: TransfersFilters, pageSize?: number, pageKey?: string): Promise<pst.ListResponse<pst.Transfer>> => {
+    const filters: string[] = createTransfersFilters(transfersFilters);
+    const query = generateObjectsListQuery('getTransfers', genericTransferFields, filters, pageSize, pageKey);
+    const result = adapter.socket ? await adapter.socket.query(query) : {};
+    const transfers: pst.Transfer[] = adapter.socket ? await adapter.socket.query(query) : {};
+
     if (isArray(transfers)) {
       return result.getTransfers;
     } else {
@@ -113,13 +143,18 @@ export const getTransfers = (adapter: Adapter) => {
 
 
 export const subscribeNewTransfer = (adapter: Adapter) => {
-  return async (...args: ((transfer: pst.Transfer) => void)[]): Promise<() => void> => {
-    const callback = args.find((arg) => isFunction(arg));
+  return async (...args: (((transfer: pst.Transfer) => void) | TransfersFilters | undefined)[]): Promise<() => void> => {
+    const callback = args.find((arg) => isFunction(arg)) as (undefined | ((transfers: pst.Transfer) => void));
     if (!callback) {
       throw new Error(`[PolkascanAdapter] subscribeNewTransfer: No callback function is provided.`);
     }
 
-    const query = generateSubscription('subscribeNewTransfer', genericTransferFields);
+    let filters: string[] = [];
+    if (isObject(args[0])) {
+      filters = createTransfersFilters(args[0] as TransfersFilters);
+    }
+
+    const query = generateSubscription('subscribeNewTransfer', genericTransferFields, filters);
 
     // return the unsubscribe function.
     return !adapter.socket ? {} : await adapter.socket.createSubscription(query, (result) => {
