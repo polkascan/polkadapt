@@ -141,7 +141,7 @@ export type Api = {
                         pageSize?: number, pageKey?: string) =>
         Promise<pst.ListResponse<pst.RuntimeType>>;
     }
-  }
+  },
   rpc: {
     chain: {
       getBlock: (hash: string) => Promise<any>;
