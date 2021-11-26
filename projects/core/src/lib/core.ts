@@ -182,7 +182,8 @@ export class Polkadapt<T> {
             !a.instance.chain || (Object.prototype.toString.call(a.instance.chain) === '[object String]' && chain === a.instance.chain)
           );
 
-          if (adapters) {
+          if (adapters && adapters.length) {
+            candidates = candidates.filter((a) => adapters.includes(a));
             if (candidates.length === 0) {
               throw new Error('The requested adapters are not registered for the supplied chain.');
             }
