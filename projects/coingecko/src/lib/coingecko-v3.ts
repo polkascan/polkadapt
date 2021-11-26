@@ -31,23 +31,19 @@ export class Adapter extends AdapterBase {
       resolve({
         prices: {
           getPrice: async (currency: string) => {
-            try {
-              const price = await this.request(`simple/price?ids=${this.config.chain}&vs_currencies=${currency}`);
+            const price = await this.request(`simple/price?ids=${this.config.chain}&vs_currencies=${currency}`);
+            if (price && price[this.config.chain]) {
               return price[this.config.chain][currency.toLocaleLowerCase()];
-            } catch (e) {
-              console.error('CoinGecko v3 adapter', e);
-              return undefined;
             }
+            return undefined;
           },
           getHistoricalPrice: async (day, month, year, currency: string) => {
             // Date format is dd-mm-yyyy.
-            try {
-              const price = await this.request(`coins/${this.config.chain}/history?date=${day}-${month}-${year}&localization=false`);
-              return price.market_data.current_price[currency.toLocaleLowerCase()];
-            } catch (e) {
-              console.error('CoinGecko v3 adapter', e);
-              return undefined;
+            const price = await this.request(`coins/${this.config.chain}/history?date=${day}-${month}-${year}&localization=false`);
+            if (price && price.market_data && price.market_data.current_price) {
+              return price.market_data.current_price[currency.toLowerCase()];
             }
+            return undefined;
           }
         }
       });
