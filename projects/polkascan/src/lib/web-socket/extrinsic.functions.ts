@@ -31,7 +31,7 @@ import {
   isString
 } from './helpers';
 
-const genericExtrinsicFields = ['blockNumber', 'extrinsicIdx', 'hash', 'callModule', 'callName', 'signed', 'blockHash', 'blockDatetime'];
+const genericExtrinsicFields = ['blockNumber', 'extrinsicIdx', 'hash', 'callModule', 'callName', 'signed', 'blockHash', 'blockDatetime', 'multiAddressAccountId'];
 
 const extrinsicDetailFields = [
   'blockNumber',

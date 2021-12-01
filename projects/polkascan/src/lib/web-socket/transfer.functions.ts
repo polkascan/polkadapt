@@ -131,7 +131,7 @@ export const getTransfers = (adapter: Adapter) => {
     const filters: string[] = createTransfersFilters(transfersFilters);
     const query = generateObjectsListQuery('getTransfers', genericTransferFields, filters, pageSize, pageKey);
     const result = adapter.socket ? await adapter.socket.query(query) : {};
-    const transfers: pst.Transfer[] = adapter.socket ? await adapter.socket.query(query) : {};
+    const transfers: pst.Transfer[] = result.getTransfers.objects;
 
     if (isArray(transfers)) {
       return result.getTransfers;
