@@ -27,7 +27,6 @@ const runtimeStorageFields: (keyof pst.RuntimeStorage)[] = [
   'pallet',
   'storageName',
   'palletStorageIdx',
-  'default',
   'modifier',
   'keyPrefixPallet',
   'keyPrefixName',
@@ -69,8 +68,7 @@ export const getRuntimeStorage = (adapter: Adapter) => {
 
 
 export const getRuntimeStorages = (adapter: Adapter) => {
-  return async (specName: string, specVersion: number, pallet?: string,
-                pageSize?: number, pageKey?: string): Promise<pst.ListResponse<pst.RuntimeStorage>> => {
+  return async (specName: string, specVersion: number, pallet?: string): Promise<pst.ListResponse<pst.RuntimeStorage>> => {
     const filters: string[] = [];
 
     if (isString(specName) && isNumber(specVersion)) {
@@ -85,7 +83,7 @@ export const getRuntimeStorages = (adapter: Adapter) => {
       );
     }
 
-    const query = generateObjectsListQuery('getRuntimeStorages', runtimeStorageFields, filters, pageSize, pageKey);
+    const query = generateObjectsListQuery('getRuntimeStorages', runtimeStorageFields, filters);
 
     const result = adapter.socket ? await adapter.socket.query(query) : {};
     const RuntimeStorages = result.getRuntimeStorages.objects;

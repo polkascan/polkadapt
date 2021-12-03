@@ -62,8 +62,7 @@ export const getRuntimeConstant = (adapter: Adapter) => {
 
 export const getRuntimeConstants = (adapter: Adapter) => {
   return async (
-    specName: string, specVersion: number, pallet?: string, pageSize?: number, pageKey?: string
-  ): Promise<pst.ListResponse<pst.RuntimeConstant>> => {
+    specName: string, specVersion: number, pallet?: string): Promise<pst.ListResponse<pst.RuntimeConstant>> => {
     const filters: string[] = [];
 
     if (isString(specName) && isNumber(specVersion)) {
@@ -78,7 +77,7 @@ export const getRuntimeConstants = (adapter: Adapter) => {
       );
     }
 
-    const query = generateObjectsListQuery('getRuntimeConstants', runtimeConstantFields, filters, pageSize, pageKey);
+    const query = generateObjectsListQuery('getRuntimeConstants', runtimeConstantFields, filters);
 
     const result = adapter.socket ? await adapter.socket.query(query) : {};
     const RuntimeConstants = result.getRuntimeConstants.objects;

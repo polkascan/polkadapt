@@ -101,44 +101,35 @@ export type Api = {
         Promise<pst.Runtime>;
       getRuntimeCall: (specName: string, specVersion: number, pallet: string, callName: string) =>
         Promise<pst.RuntimeCall>;
-      getRuntimeCalls: (specName: string, specVersion: number, pallet?: string,
-                        pageSize?: number, pageKey?: string) =>
+      getRuntimeCalls: (specName: string, specVersion: number, pallet?: string) =>
         Promise<pst.ListResponse<pst.RuntimeCall>>;
-      getRuntimeCallArguments: (specName: string, specVersion: number, pallet: string, callName: string,
-                                pageSize?: number, pageKey?: string) =>
+      getRuntimeCallArguments: (specName: string, specVersion: number, pallet: string, callName: string) =>
         Promise<pst.ListResponse<pst.RuntimeCallArgument>>;
       getRuntimeConstant: (specName: string, specVersion: number, pallet: string, constantName: string) =>
         Promise<pst.RuntimeConstant>;
-      getRuntimeConstants: (specName: string, specVersion: number, pallet?: string,
-                            pageSize?: number, pageKey?: string) =>
+      getRuntimeConstants: (specName: string, specVersion: number, pallet?: string) =>
         Promise<pst.ListResponse<pst.RuntimeConstant>>;
       getRuntimeErrorMessage: (specName: string, specVersion: number, pallet: string, errorName: string) =>
         Promise<pst.RuntimeErrorMessage>;
-      getRuntimeErrorMessages: (specName: string, specVersion: number, pallet?: string,
-                                pageSize?: number, pageKey?: string) =>
+      getRuntimeErrorMessages: (specName: string, specVersion: number, pallet?: string) =>
         Promise<pst.ListResponse<pst.RuntimeErrorMessage>>;
       getRuntimeEvent: (specName: string, specVersion: number, pallet: string, eventName: string) =>
         Promise<pst.RuntimeEvent>;
-      getRuntimeEvents: (specName: string, specVersion: number, pallet?: string,
-                         pageSize?: number, pageKey?: string) =>
+      getRuntimeEvents: (specName: string, specVersion: number, pallet?: string) =>
         Promise<pst.ListResponse<pst.RuntimeEvent>>;
-      getRuntimeEventAttributes: (specName: string, specVersion: number, pallet: string, eventName: string,
-                                  pageSize?: number, pageKey?: string) =>
+      getRuntimeEventAttributes: (specName: string, specVersion: number, pallet: string, eventName: string) =>
         Promise<pst.ListResponse<pst.RuntimeEventAttribute>>;
       getRuntimePallet: (specName: string, specVersion: number, pallet: string) =>
         Promise<pst.RuntimePallet>;
-      getRuntimePallets: (specName: string, specVersion: number,
-                          pageSize?: number, pageKey?: string) =>
+      getRuntimePallets: (specName: string, specVersion: number) =>
         Promise<pst.ListResponse<pst.RuntimePallet>>;
       getRuntimeStorage: (specName: string, specVersion: number, pallet: string, storageName: string) =>
         Promise<pst.RuntimeStorage>;
-      getRuntimeStorages: (specName: string, specVersion: number, pallet?: string,
-                           pageSize?: number, pageKey?: string) =>
+      getRuntimeStorages: (specName: string, specVersion: number, pallet?: string) =>
         Promise<pst.ListResponse<pst.RuntimeStorage>>;
       getRuntimeType: (specName: string, specVersion: number, pallet: string, scaleType: string) =>
         Promise<pst.RuntimeType>;
-      getRuntimeTypes: (specName: string, specVersion: number, pallet?: string,
-                        pageSize?: number, pageKey?: string) =>
+      getRuntimeTypes: (specName: string, specVersion: number, pallet?: string) =>
         Promise<pst.ListResponse<pst.RuntimeType>>;
     }
   },

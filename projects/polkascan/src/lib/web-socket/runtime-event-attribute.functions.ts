@@ -33,8 +33,7 @@ const runtimeEventAttributeFields: (keyof pst.RuntimeEventAttribute)[] = [
 
 export const getRuntimeEventAttributes = (adapter: Adapter) => {
   return async (
-    specName: string, specVersion: number, pallet: string, eventName: string, pageSize?: number, pageKey?: string
-  ): Promise<pst.ListResponse<pst.RuntimeEventAttribute>> => {
+    specName: string, specVersion: number, pallet: string, eventName: string): Promise<pst.ListResponse<pst.RuntimeEventAttribute>> => {
     const filters: string[] = [];
 
     if (isString(specName) && isNumber(specVersion) && isString(pallet) && isString(eventName)) {
@@ -48,7 +47,7 @@ export const getRuntimeEventAttributes = (adapter: Adapter) => {
       );
     }
 
-    const query = generateObjectsListQuery('getRuntimeEventAttributes', runtimeEventAttributeFields, filters, pageSize, pageKey);
+    const query = generateObjectsListQuery('getRuntimeEventAttributes', runtimeEventAttributeFields, filters);
 
     const result = adapter.socket ? await adapter.socket.query(query) : {};
     const runtimeEventAttributes = result.getRuntimeEventAttributes.objects;

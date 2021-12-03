@@ -84,12 +84,15 @@ const generateQuery = (
   }
 
   if (isList === true) {
+    let pageInfo = '';
+    if (pageSize) {
+      pageInfo = ', pageInfo { pageSize, pageNext, pagePrev }';
+    }
     query = `${type} {
       ${name}${config.length > 0 ? `( ${config.join(', ')} )` : ''} {
         objects {
           ${Array.isArray(fields) && fields.length > 0 ? fields.join(', ') : ''}
-        },
-        pageInfo { pageSize, pageNext, pagePrev }
+        }${pageInfo}
       }
     }`;
 

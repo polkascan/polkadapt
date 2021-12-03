@@ -230,7 +230,6 @@ export type RuntimeStorage = {
 export type RuntimeType = {
   specName: string;  // PK
   specVersion: number;  // PK
-  pallet: string;  // PK
   scaleType: string;  // PK
   decoderClass: string | null;
   isCorePrimitive: boolean;

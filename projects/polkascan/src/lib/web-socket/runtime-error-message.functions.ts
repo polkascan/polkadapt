@@ -61,8 +61,7 @@ export const getRuntimeErrorMessage = (adapter: Adapter) => {
 
 export const getRuntimeErrorMessages = (adapter: Adapter) => {
   return async (
-    specName: string, specVersion: number, pallet?: string, pageSize?: number, pageKey?: string
-  ): Promise<pst.ListResponse<pst.RuntimeErrorMessage>> => {
+    specName: string, specVersion: number, pallet?: string): Promise<pst.ListResponse<pst.RuntimeErrorMessage>> => {
     const filters: string[] = [];
 
     if (isString(specName) && isNumber(specVersion)) {
@@ -77,7 +76,7 @@ export const getRuntimeErrorMessages = (adapter: Adapter) => {
       );
     }
 
-    const query = generateObjectsListQuery('getRuntimeErrorMessages', runtimeErrorMessageFields, filters, pageSize, pageKey);
+    const query = generateObjectsListQuery('getRuntimeErrorMessages', runtimeErrorMessageFields, filters);
 
     const result = adapter.socket ? await adapter.socket.query(query) : {};
     const RuntimeErrorMessages = result.getRuntimeErrorMessages.objects;

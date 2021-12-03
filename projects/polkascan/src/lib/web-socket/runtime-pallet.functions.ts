@@ -63,8 +63,7 @@ export const getRuntimePallet = (adapter: Adapter) => {
 
 export const getRuntimePallets = (adapter: Adapter) => {
   return async (
-    specName: string, specVersion: number, pageSize?: number, pageKey?: string
-  ): Promise<pst.ListResponse<pst.RuntimePallet>> => {
+    specName: string, specVersion: number): Promise<pst.ListResponse<pst.RuntimePallet>> => {
     const filters: string[] = [];
 
     if (isString(specName) && isNumber(specVersion)) {
@@ -76,7 +75,7 @@ export const getRuntimePallets = (adapter: Adapter) => {
       );
     }
 
-    const query = generateObjectsListQuery('getRuntimePallets', runtimePalletFields, filters, pageSize, pageKey);
+    const query = generateObjectsListQuery('getRuntimePallets', runtimePalletFields, filters);
 
     const result = adapter.socket ? await adapter.socket.query(query) : {};
     const runtimePallets = result.getRuntimePallets.objects;

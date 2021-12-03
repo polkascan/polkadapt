@@ -34,8 +34,7 @@ const runtimeCallArgumentFields: (keyof pst.RuntimeCallArgument)[] = [
 
 export const getRuntimeCallArguments = (adapter: Adapter) => {
   return async (
-    specName: string, specVersion: number, pallet: string, callName: string, pageSize?: number, pageKey?: string
-  ): Promise<pst.ListResponse<pst.RuntimeCallArgument>> => {
+    specName: string, specVersion: number, pallet: string, callName: string): Promise<pst.ListResponse<pst.RuntimeCallArgument>> => {
     const filters: string[] = [];
 
     if (isString(specName) && isNumber(specVersion) && isString(pallet) && isString(callName)) {
@@ -49,7 +48,7 @@ export const getRuntimeCallArguments = (adapter: Adapter) => {
       );
     }
 
-    const query = generateObjectsListQuery('getRuntimeCallArguments', runtimeCallArgumentFields, filters, pageSize, pageKey);
+    const query = generateObjectsListQuery('getRuntimeCallArguments', runtimeCallArgumentFields, filters);
 
     const result = adapter.socket ? await adapter.socket.query(query) : {};
     const runtimeCallArguments = result.getRuntimeCallArguments.objects;
