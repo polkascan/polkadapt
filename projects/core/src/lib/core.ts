@@ -199,10 +199,12 @@ export class Polkadapt<T> {
             let pathFailed = false;
 
             for (const prop of path) {
-              if (prop in item) {
-                item = item[prop];
-              } else {
-                pathFailed = true;
+              if (typeof item === 'object' || typeof item === 'function') {
+                if (prop in item) {
+                  item = item[prop];
+                } else {
+                  pathFailed = true;
+                }
               }
             }
 
