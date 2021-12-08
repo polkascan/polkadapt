@@ -78,30 +78,37 @@ export class Adapter extends AdapterBase {
 
   private createFollowUpProxy(target: any, apiPath: string[]): any {
     // We use a recursive Proxy to do some bookkeeping on active calls and subscriptions.
-    if (!target) {
-      return;
-    }
-    return new Proxy(target, {
-      get: (t, p: string) => {
-        if (p in t) {
-          apiPath.push(p);
-          return this.createFollowUpProxy(t[p], apiPath);
+    if (typeof target === 'object') {
+      // If the target is an object, extend the property path and proxy deeper.
+      return new Proxy(target, {
+        get: (t, p: string) => {
+          if (p in t) {
+            apiPath.push(p);
+            return this.createFollowUpProxy(t[p], apiPath);
+          }
+          return;
         }
-        return;
-      },
-      apply: (t: (...args: any[]) => unknown, thisArg, argArray) => {
-        // Because all Polkadot.js calls return a Promise, we can hijack it and return our own.
-        return new Promise(async resolve => {
-          // Register this call. If it's disconnected without result, we can re-submit the call to another endpoint.
-          this.lastNonce += 1;
-          const nonce = this.lastNonce.toString();
-          this.activeCalls[nonce] = {created: new Date(), apiPath, argArray, resolve};
-          // Now do the actual API call, await the result and resolve this result Promise.
-          let result: any = await t(...argArray);
-          this.resolveActiveCall(nonce, result);
-        });
-      }
-    });
+      });
+    } else if (typeof target === 'function') {
+      // If the target is a function, intercept the call to this function
+      return new Proxy(target, {
+        apply: (t: (...args: any[]) => unknown, thisArg, argArray) => {
+          // Because all Polkadot.js calls return a Promise, we can hijack it and return our own.
+          return new Promise(async resolve => {
+            // Register this call. If it's disconnected without result, we can re-submit the call to another endpoint.
+            this.lastNonce += 1;
+            const nonce = this.lastNonce.toString();
+            this.activeCalls[nonce] = {created: new Date(), apiPath, argArray, resolve};
+            // Now do the actual API call, await the result and resolve this result Promise.
+            let result: any = await t(...argArray);
+            this.resolveActiveCall(nonce, result);
+          });
+        }
+      });
+    } else {
+      // End of the line, not an object or function, so just return this value.
+      return target;
+    }
   }
 
   resolveActiveCall(nonce: string, result: any): void {
@@ -152,7 +159,7 @@ export class Adapter extends AdapterBase {
         resolve(false);
         throw e;
       }
-      // Set up a Proxy so we can hijack the API.
+      // Set up a Proxy, so we can hijack the API.
       this.api = new Proxy(this.unproxiedApi, {
         get: (target, p: string) => {
           return this.createFollowUpProxy((target as { [K: string]: any })[p], [p])
