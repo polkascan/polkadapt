@@ -78,7 +78,7 @@ export class Adapter extends AdapterBase {
 
   private createFollowUpProxy(target: any, apiPath: string[]): any {
     // We use a recursive Proxy to do some bookkeeping on active calls and subscriptions.
-    if (typeof target === 'object') {
+    if (typeof target === 'object' && !Array.isArray(target)) {
       // If the target is an object, extend the property path and proxy deeper.
       return new Proxy(target, {
         get: (t, p: string) => {

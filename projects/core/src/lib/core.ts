@@ -199,12 +199,10 @@ export class Polkadapt<T> {
             let pathFailed = false;
 
             for (const prop of path) {
-              if (typeof item === 'object' || typeof item === 'function') {
-                if (prop in item) {
-                  item = item[prop];
-                } else {
-                  pathFailed = true;
-                }
+              if (prop in item) {
+                item = item[prop];
+              } else {
+                pathFailed = true;
               }
             }
 
@@ -300,8 +298,13 @@ export class Polkadapt<T> {
             }
 
           } else {
-            // Last item of method chain has not been called, return candidate items. The application can do whatever with it.
-            resolve(candidateItems);
+            // Last item of method chain has not been called, so just return candidate item values.
+            if (candidateItems.size === 1) {
+              const returnValue = candidateItems.values().next().value;
+              resolve(returnValue);
+            } else {
+              resolve(converter(Array.from(candidateItems.values())));
+            }
           }
         },
         () => {
@@ -317,10 +320,23 @@ export class Polkadapt<T> {
       },
       {
         get: (obj, prop) => {
-          // Add current step of the method chain to the mirroring path.
-          path.push(prop.toString());
-          // Return same proxy to make the next step available.
-          return proxy;
+          if (prop === 'then') {
+            // Not very elegant, but we're probably at the end of the intended path that is not a callable, but a
+            // normal property. The async/await mechanics will detect whether this is a 'then-able' object, so the
+            // await statement will try to wait for the given resolve function to be called.
+            return async (resolve: (v: any) => {}, reject: (v: any) => {}) => {
+              try {
+                resolve(await resultPromise);
+              } catch (e) {
+                reject(e);
+              }
+            };
+          } else {
+            // Add current step of the method chain to the mirroring path.
+            path.push(prop.toString());
+            // Return same proxy to make the next step available.
+            return proxy;
+          }
         },
         apply: (target, thisArg, argArray) => {
           // Method is called.
@@ -366,7 +382,7 @@ export class Polkadapt<T> {
       if (typeof config.strategy === 'string') {
         strategy = config.strategy;
       }
-      if (typeof config.converter === 'string') {
+      if (typeof config.converter === 'function') {
         converter = config.converter;
       }
 
