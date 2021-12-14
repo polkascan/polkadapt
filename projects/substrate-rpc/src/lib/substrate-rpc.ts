@@ -90,16 +90,20 @@ export class Adapter extends AdapterBase {
           return;
         },
         apply: (t: (...args: any[]) => unknown, thisArg, argArray) => {
-          // Because all Polkadot.js calls return a Promise, we can hijack it and return our own.
-          return new Promise(async resolve => {
-            // Register this call. If it's disconnected without result, we can re-submit the call to another endpoint.
-            this.lastNonce += 1;
-            const nonce = this.lastNonce.toString();
-            this.activeCalls[nonce] = {created: new Date(), apiPath, argArray, resolve};
-            // Now do the actual API call, await the result and resolve this result Promise.
-            let result: any = await t.apply(parentObj, argArray);
-            this.resolveActiveCall(nonce, result);
-          });
+          const result: any = t.apply(parentObj, argArray);
+          if (result instanceof Promise) {
+            // Hijack it and return our own.
+            return new Promise(async resolve => {
+              // Register this call. If it's disconnected without result, we can re-submit the call to another endpoint.
+              this.lastNonce += 1;
+              const nonce = this.lastNonce.toString();
+              this.activeCalls[nonce] = {created: new Date(), apiPath, argArray, resolve};
+              // Now await the result and resolve this result Promise.
+              this.resolveActiveCall(nonce, await result);
+            });
+          } else {
+            return result;
+          }
         }
       });
     } else {

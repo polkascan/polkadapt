@@ -229,7 +229,7 @@ export class Polkadapt<T> {
                     return arg;
                   }
                 }));
-                candidateReturnValues.set(adapter, result);
+                candidateReturnValues.set(adapter, Promise.resolve(result));
               } catch (e) {
                 // This candidate is not a function.
               }
