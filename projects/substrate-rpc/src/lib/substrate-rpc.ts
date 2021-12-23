@@ -19,7 +19,6 @@
 import { ApiPromise, WsProvider } from '@polkadot/api';
 import { AdapterBase } from '@polkadapt/core';
 import { ApiOptions } from '@polkadot/api/types';
-import { bool } from '@polkadot/types';
 
 export type Api = ApiPromise;
 
