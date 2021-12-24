@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "license": "Apache-2.0",
   "peerDependencies": {
-    "@polkadapt/core": "latest",
+    "@polkadapt/core": "0.0.1",
     "@polkadot/api": "^7.0.2"
   },
   "dependencies": {
