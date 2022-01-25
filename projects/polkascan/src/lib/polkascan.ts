@@ -17,7 +17,6 @@
  */
 
 import { AdapterBase } from '@polkadapt/core';
-import { PolkascanApi } from './polkascan.api';
 import { PolkascanWebSocket } from './polkascan.web-socket';
 import * as pst from './polkascan.types';
 import {
@@ -142,7 +141,6 @@ export type Api = {
 
 export interface Config {
   chain: string;
-  apiEndpoint?: string;
   wsEndpoint?: string;
   connectionRetries?: number;
 }
@@ -152,16 +150,12 @@ export class Adapter extends AdapterBase {
   name = 'polkascan';
   promise: Promise<Api> | undefined;
   socket: PolkascanWebSocket | undefined;
-  api: PolkascanApi | undefined;
   config: Config;
 
   constructor(config: Config) {
     super(config.chain);
     this.config = config;
 
-    if (this.config.apiEndpoint) {
-      this.api = new PolkascanApi(this.config.apiEndpoint);
-    }
     if (this.config.wsEndpoint) {
       this.socket = new PolkascanWebSocket(this.config.wsEndpoint, config.chain);
     }
