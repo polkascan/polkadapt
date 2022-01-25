@@ -1,24 +1,3 @@
-# SubstrateRpc
+# Substrate RPC Adapter
 
-This library was generated with [Angular CLI](https://github.com/angular/angular-cli) version 10.2.0.
-
-## Code scaffolding
-
-Run `ng generate component component-name --project substrate-rpc` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module --project substrate-rpc`.
-> Note: Don't forget to add `--project substrate-rpc` or else it will be added to the default project in your `angular.json` file. 
-
-## Build
-
-Run `ng build substrate-rpc` to build the project. The build artifacts will be stored in the `dist/` directory.
-
-## Publishing
-
-After building your library with `ng build substrate-rpc`, go to the dist folder `cd dist/substrate-rpc` and run `npm publish`.
-
-## Running unit tests
-
-Run `ng test substrate-rpc` to execute the unit tests via [Karma](https://karma-runner.github.io).
-
-## Further help
-
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+For general information and installation instructions, see the README file of the `@polkadapt/core` package.

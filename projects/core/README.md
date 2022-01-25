@@ -1,24 +1,100 @@
-# Core
+# PolkADAPT Core Library
 
-This library was generated with [Angular CLI](https://github.com/angular/angular-cli) version 10.2.0.
+PolkADAPT is an Augmented Data Application Protocol Technology that aims to be a framework to serve as a data abstraction layer and piping mechanism for applications by providing one single function call namespace and smart data augmentation.
 
-## Code scaffolding
+> For example, you can get realtime data from a Kusama RPC node, augmented with indexed data from [Polkascan.io](https://polkascan.io/) and KSM-USD price information from a third party's API using the commands provided by the PolkADAPT system.
 
-Run `ng generate component component-name --project core` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module --project core`.
-> Note: Don't forget to add `--project core` or else it will be added to the default project in your `angular.json` file. 
+PolkADAPT is a stand-alone library with no dependencies at its core. Use it in your browser-based or NodeJS application. It works with any application framework, such as React, Angular, Vue, etc.
 
-## Build
+## Generic installation instructions
 
-Run `ng build core` to build the project. The build artifacts will be stored in the `dist/` directory.
+1. Add at least the following packages to your project's `package.json` "dependencies":
+    ```json
+    {
+      "@polkadapt/core": "^1.0.0",
+      "@polkadapt/substrate-rpc": "^1.0.0",
+      "@polkadot/api": "^7.3.1",
+      "buffer": "^6.0.3",
+      "crypto": "npm:crypto-browserify@^3.12.0",
+      "stream": "npm:stream-browserify@^3.0.0"
+    }
+    ```
+    If you wish, you can add more adapters to the list, e.g.:
+    ```json
+    {
+      "@polkadapt/polkascan": "^1.0.0",
+      "@polkadapt/coingecko": "^1.0.0"
+    }
+    ```
+   
+2. Add the following to the `package.json` "devDependencies":
+    ```json
+    {
+        "@polkadot/types": "^7.3.1"
+    }
+    ```
 
-## Publishing
+3. If you're using TypeScript in your project, add the following code to the "compilerOptions" in `tsconfig.json`:
+    ```json
+    {
+      "moduleResolution": "node",
+      "allowSyntheticDefaultImports": true,
+      "target": "es2017",
+      "module": "es2020",
+      "lib": [
+        "es2020",
+        "dom"
+      ]
+    }
+    ```
+   
+4. Add the following code somewhere early in your application bootstrapping process (in Angular projects: `src/polyfills.ts`):
+    ```ts
+    // Crypto browserify uses global in NodeJS, use window instead.
+    (window as any).global = window;
+    
+    // Add browserify version of buffer, installed as dependency.
+    (window as any).Buffer =  (window as any).buffer || require('buffer').Buffer;
+    
+    // Add browserify version of process, already installed as sub-dependency.
+    (window as any).process = require('process');
+    ```
 
-After building your library with `ng build core`, go to the dist folder `cd dist/core` and run `npm publish`.
+## Usage (example)
 
-## Running unit tests
+```ts
+import { Polkadapt } from '@polkadapt/core';
+import * as polkascan from '@polkadapt/polkascan';
+import * as substrate from '@polkadapt/substrate-rpc';
 
-Run `ng test core` to execute the unit tests via [Karma](https://karma-runner.github.io).
+// Merge the Api types from the adapters we want to use.
+type AugmentedApi = substrate.Api & polkascan.Api & currency.Api;
 
-## Further help
+// Instantiate the adapters:
+const adapters = [
+  new substrate.Adapter({
+    chain: 'kusama',
+    providerURL: 'wss://kusama-rpc.polkadot.io'
+  }),
+  new polkascan.Adapter({
+    chain: 'kusama',
+    wsEndpoint: 'ws://host-xx.polkascan.io:8009/graphql-ws'
+  })
+];
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+// Instantiate PolkADAPT:
+const api: Polkadapt<AugmentedApi> = new Polkadapt();
+
+api.register(...adapters);
+
+// Wait for any initialization to finish, 
+// e.g. Polkadot.js connecting to a Substrate node using a websocket:
+await api.ready();
+
+// Now we can run commands on PolkADAPT. These are basically Polkadot.js 
+// (ApiPromise) calls, augmented by the other adapters.
+
+// For example, the following call could return an augmented result,
+// containing data from both the Substrate node and Polkascan API:
+const account = await api.run('kusama').query.system.account('some input data');
+```
