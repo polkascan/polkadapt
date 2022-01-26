@@ -48,7 +48,9 @@ const extrinsicDetailFields = [
   'extrinsicLength',
   'nonce',
   'blockDatetime',
-  'blockHash'
+  'blockHash',
+  'specName',
+  'specVersion'
 ];
 
 export interface ExtrinsicsFilters {

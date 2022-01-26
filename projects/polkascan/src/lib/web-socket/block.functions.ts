@@ -39,6 +39,7 @@ const genericBlockFields = [
   'countExtrinsics',
   'countEvents',
   'datetime',
+  'specName',
   'specVersion',
   'complete'
 ];
