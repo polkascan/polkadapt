@@ -243,7 +243,7 @@ export type Log = {
   typeId: number | null;
   typeName: string | null;
   data: string;
-  blockDateTime: string | null;
+  blockDatetime: string | null;
   blockHash: string;
   specName: string | null;
   specVersion: string | null;
