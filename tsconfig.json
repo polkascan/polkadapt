@@ -5,9 +5,10 @@
     "outDir": "./dist/out-tsc",
     "forceConsistentCasingInFileNames": true,
     "strict": true,
+    "noImplicitOverride": false,
+    "noPropertyAccessFromIndexSignature": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "noPropertyAccessFromIndexSignature": true,
     "sourceMap": true,
     "declaration": false,
     "downlevelIteration": true,
@@ -20,6 +21,7 @@
       "es2020",
       "dom"
     ],
+    "strictPropertyInitialization": false,
     "paths": {
       "coingecko": [
         "dist/coingecko/coingecko",

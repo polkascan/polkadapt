@@ -2,16 +2,23 @@
   "name": "@polkadapt/substrate-rpc",
   "version": "1.0.0",
   "license": "Apache-2.0",
+  "author": "Polkascan Foundation <info@polkascan.org>",
+  "description": "PolkADAPT plug-in to communicate with a Substrate node through the Polkadot.js library.",
+  "bugs": "https://github.com/polkascan/polkadapt/issues",
+  "homepage": "https://github.com/polkascan/polkadapt/tree/main/projects/substrate-rpc#readme",
+  "repository": {
+    "directory": "projects/substrate-rpc",
+    "type": "git",
+    "url": "https://github.com/polkascan/polkadapt.git"
+  },
   "peerDependencies": {
     "@polkadapt/core": "1.0.0",
-    "@polkadot/api": "*"
+    "@polkadot/api": "^7.4.2-15"
   },
-  "dependencies": {
-    "tslib": "^2.3.1"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@polkadapt/core": "file:../../dist/core",
-    "@polkadot/api": "*",
-    "@polkadot/types": "*"
+    "@polkadot/api": "^7.4.2-15",
+    "@polkadot/types": "^7.4.2-15"
   }
 }

@@ -2,13 +2,21 @@
   "name": "polkadapt",
   "version": "0.0.0",
   "license": "Apache-2.0",
+  "author": "Polkascan Foundation <info@polkascan.org>",
+  "description": "A pluggable framework for heterogeneous data retrieval and augmentation.",
+  "bugs": "https://github.com/polkascan/polkadapt/issues",
+  "homepage": "https://github.com/polkascan/polkadapt",
+  "engines": {
+    "node": ">=14.0.0"
+  },
   "scripts": {
+    "postinstall": "npm update",
     "ng": "ng",
     "prestart": "npm run build && npm run symlink",
-    "build-core": "cd projects/core && npm install && cd .. && ng build --configuration production core",
-    "build-substrate-rpc": "cd projects/substrate-rpc && npm install && cd .. && ng build --configuration production substrate-rpc",
-    "build-polkascan": "cd projects/polkascan && npm install && cd .. && ng build --configuration production polkascan",
-    "build-coingecko": "cd projects/coingecko && npm install && cd .. && ng build --configuration production coingecko",
+    "build-core": "cd projects/core && npm install && npm update && cd .. && ng build --configuration production core",
+    "build-substrate-rpc": "cd projects/substrate-rpc && npm install && npm update && cd .. && ng build --configuration production substrate-rpc",
+    "build-polkascan": "cd projects/polkascan && npm install && npm update && cd .. && ng build --configuration production polkascan",
+    "build-coingecko": "cd projects/coingecko && npm install && npm update && cd .. && ng build --configuration production coingecko",
     "symlink": "concurrently \"npm run link-substrate-rpc\" \"npm run link-polkascan\"",
     "link-substrate-rpc": "cd projects/substrate-rpc/node_modules/@polkadapt && rm -rf core && ln -s ../../../../dist/core",
     "link-polkascan": "cd projects/polkascan/node_modules/@polkadapt && rm -rf core && ln -s ../../../../dist/core",
@@ -20,31 +28,28 @@
   },
   "private": true,
   "dependencies": {
-    "@angular/compiler": "~13.1.2",
-    "@angular/core": "~13.1.2",
-    "@angular/platform-browser": "~13.1.2",
-    "@angular/platform-browser-dynamic": "~13.1.2",
+    "@angular/compiler": "~13.1.3",
+    "@angular/core": "~13.1.3",
+    "@angular/platform-browser": "~13.1.3",
+    "@angular/platform-browser-dynamic": "~13.1.3",
     "rxjs": "~7.5.2",
     "tslib": "^2.3.1",
     "yarn": "^1.22.17",
-    "zone.js": "~0.11.4"
+    "zone.js": "^0.11.4"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "^13.1.3",
-    "@angular/cli": "^13.1.3",
-    "@angular/compiler-cli": "~13.1.2",
+    "@angular-devkit/build-angular": "^13.1.4",
+    "@angular/cli": "^13.1.4",
+    "@angular/compiler-cli": "~13.1.3",
     "@types/jasmine": "~3.10.3",
-    "@types/node": "^16.11.19",
-    "concurrently": "^6.5.1",
+    "@types/node": "^17.0.13",
+    "concurrently": "^7.0.0",
     "jasmine-core": "~3.10.1",
-    "karma": "~6.3.11",
+    "karma": "~6.3.12",
     "karma-chrome-launcher": "~3.1.0",
     "karma-jasmine": "~4.0.1",
     "karma-jasmine-html-reporter": "^1.7.0",
-    "ng-packagr": "^13.1.3",
-    "typescript": "~4.5.4"
-  },
-  "resolutions": {
-    "chokidar": "^3.5.1"
+    "ng-packagr": "^13.2.0",
+    "typescript": "~4.5.5"
   }
 }

@@ -2,12 +2,19 @@
   "name": "@polkadapt/polkascan",
   "version": "1.0.0",
   "license": "Apache-2.0",
+  "author": "Polkascan Foundation <info@polkascan.org>",
+  "description": "PolkADAPT plug-in to fetch data from the Polkascan block explorer API.",
+  "bugs": "https://github.com/polkascan/polkadapt/issues",
+  "homepage": "https://github.com/polkascan/polkadapt/tree/main/projects/polkascan#readme",
+  "repository": {
+    "directory": "projects/polkascan",
+    "type": "git",
+    "url": "https://github.com/polkascan/polkadapt.git"
+  },
   "peerDependencies": {
     "@polkadapt/core": "1.0.0"
   },
-  "dependencies": {
-    "tslib": "^2.3.1"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@polkadapt/core": "file:../../dist/core"
   }
