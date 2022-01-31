@@ -90,6 +90,9 @@ export class PolkascanWebSocket {
           this.websocketReconnectTimeout = null;
         }, reconnectTimeout);
       }
+    } else {
+      // This can happen when internet connection went down.
+      this.connect();
     }
   }
 
