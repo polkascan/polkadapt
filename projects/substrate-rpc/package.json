@@ -13,12 +13,12 @@
   },
   "peerDependencies": {
     "@polkadapt/core": "1.0.0",
-    "@polkadot/api": "^7.6.1"
+    "@polkadot/api": "^7.7.1"
   },
   "dependencies": {},
   "devDependencies": {
     "@polkadapt/core": "file:../../dist/core",
-    "@polkadot/api": "^7.6.1",
-    "@polkadot/types": "^7.6.1"
+    "@polkadot/api": "^7.7.1",
+    "@polkadot/types": "^7.7.1"
   }
 }
