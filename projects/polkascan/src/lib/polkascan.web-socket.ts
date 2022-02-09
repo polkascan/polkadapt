@@ -40,8 +40,8 @@ export class PolkascanWebSocket {
   chain: string;
   webSocket: WebSocket | null = null;
   websocketReady = false;
-  reconnectTimeout: number | null = null;
-  websocketConnectionTimeout: number | null = null;
+  runningReconnectTimeout: number | null = null;
+  connectingWebsockets = new Map<WebSocket, number>();
   adapterRegistered = false;
 
   addListener = this.on;
@@ -82,16 +82,24 @@ export class PolkascanWebSocket {
 
 
   reconnect(): void {
+    const isReconnecting = !!this.runningReconnectTimeout;
+
     if (this.webSocket) {
-      if (!this.websocketConnectionTimeout) {
-        this.webSocket.close(1000); // Normal closure.
-      }
-      if (!this.reconnectTimeout) {
-        // WebSocket disconnected after error, retry connecting;
+      this.connectingWebsockets.forEach((t, w) => {
+        clearTimeout(t);
+        if (w !== this.webSocket) {
+          w.close(1000);
+        }
+      });
+      this.connectingWebsockets.clear();
+      this.webSocket.close(1000); // Normal closure.
+
+      if (!isReconnecting) {
+        // WebSocket disconnected after error, it is already retrying to connect;
         this.createWebSocket(true);
       }
     } else {
-      if (!this.reconnectTimeout) {
+      if (!isReconnecting) {
         // This can happen when internet connection went down.
         this.connect();
       }
@@ -260,17 +268,24 @@ export class PolkascanWebSocket {
       return;
     }
 
+    const runningTimeout = this.runningReconnectTimeout;
+    // Cancel out a scheduled websocket creation, create it now!
+    if (runningTimeout) {
+      clearTimeout(runningTimeout);
+      this.runningReconnectTimeout = null;
+    }
+
     let webSocket: WebSocket;
 
     try {
       webSocket = new WebSocket(this.wsEndpoint, PolkascanChannelName);
       this.webSocket = webSocket;
     } catch (e) {
-      if (!this.reconnectTimeout) {
-        this.reconnectTimeout = window.setTimeout(() => {
+      if (!runningTimeout) {
+        this.runningReconnectTimeout = window.setTimeout(() => {
           // WebSocket could not be created, retry;
           this.createWebSocket(isReconnect);
-          this.reconnectTimeout = null;
+          this.runningReconnectTimeout = null;
         }, reconnectTimeout);
       }
       console.error('[PolkascanAdapter] Websocket creation failed.');
@@ -279,16 +294,24 @@ export class PolkascanWebSocket {
       return;
     }
 
-    this.websocketConnectionTimeout = setTimeout(() => {
+    const timeout = setTimeout(() => {
       // It took too long to connect the websocket. Close it.
       webSocket.close(1000);
     }, connectionTimeout);
 
+    this.connectingWebsockets.set(this.webSocket, timeout)
+
     webSocket.onopen = () => {
-      if (this.websocketConnectionTimeout) {
-        clearTimeout(this.websocketConnectionTimeout);
-        this.websocketConnectionTimeout = null;
-      }
+      const timeout = this.connectingWebsockets.get(webSocket);
+
+      this.connectingWebsockets.forEach((t, w) => {
+        clearTimeout(t);
+        if (w !== this.webSocket) {
+          w.close(1000);
+        }
+      })
+      this.connectingWebsockets.clear();
+
       if (this.webSocket === webSocket) {
         this.emit('open');
 
@@ -328,16 +351,18 @@ export class PolkascanWebSocket {
     };
 
     webSocket.onerror = (error) => {
+      const runningTimeout = this.connectingWebsockets.get(webSocket);
+      if (runningTimeout) {
+        clearTimeout(runningTimeout);
+        this.connectingWebsockets.delete(webSocket);
+      }
+
       if (this.webSocket === webSocket) {
-        if (this.websocketConnectionTimeout) {
-          clearTimeout(this.websocketConnectionTimeout);
-          this.websocketConnectionTimeout = null;
-        }
-        if (!this.reconnectTimeout) {
-          this.reconnectTimeout = window.setTimeout(() => {
+        if (!this.runningReconnectTimeout) {
+          this.runningReconnectTimeout = window.setTimeout(() => {
             // WebSocket disconnected after error, retry connecting;
             this.createWebSocket(true);
-            this.reconnectTimeout = null;
+            this.runningReconnectTimeout = null;
           }, reconnectTimeout);
         }
 
@@ -349,15 +374,20 @@ export class PolkascanWebSocket {
     };
 
     webSocket.onclose = (close) => {
+      const runningTimeout = this.connectingWebsockets.get(webSocket);
+      if (runningTimeout) {
+        clearTimeout(runningTimeout);
+        this.connectingWebsockets.delete(webSocket);
+      }
+
       if (this.webSocket === webSocket) {
         this.webSocket = null;
         if (this.websocketReady) {
           this.websocketReady = false;
           this.emit('readyChange', false);
         }
-        if (this.websocketConnectionTimeout) {
-          clearTimeout(this.websocketConnectionTimeout);
-          this.websocketConnectionTimeout = null;
+        if (runningTimeout) {
+          // The socket is closed while it was still trying to create a connection.
           this.emit('socketError');
         } else {
           this.emit('close', close);
@@ -431,9 +461,9 @@ export class PolkascanWebSocket {
 
 
   private cancelReconnectAttempt(): void {
-    if (this.reconnectTimeout) {
-      clearTimeout(this.reconnectTimeout);
-      this.reconnectTimeout = null;
+    if (this.runningReconnectTimeout) {
+      clearTimeout(this.runningReconnectTimeout);
+      this.runningReconnectTimeout = null;
     }
   }
 }
