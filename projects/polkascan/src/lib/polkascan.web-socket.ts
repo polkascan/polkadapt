@@ -299,7 +299,7 @@ export class PolkascanWebSocket {
       webSocket.close(1000);
     }, connectionTimeout);
 
-    this.connectingWebsockets.set(this.webSocket, timeout)
+    this.connectingWebsockets.set(webSocket, timeout)
 
     webSocket.onopen = () => {
       const timeout = this.connectingWebsockets.get(webSocket);
