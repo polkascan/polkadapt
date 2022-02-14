@@ -17,44 +17,28 @@
  */
 
 
-export const isBlockHash = (hash: any): boolean => {
-  return isString(hash) && hash.startsWith('0x');
-};
+export const isBlockHash = (hash: unknown): boolean => isString(hash) && (hash as string).startsWith('0x');
 
 
-export const isPositiveNumber = (nr: any): boolean => {
-  return Number.isInteger(nr) && nr >= 0;
-};
+export const isPositiveNumber = (nr: unknown): boolean => Number.isInteger(nr) && (nr as number) >= 0;
 
 
-export const isString = (val: any): boolean => {
-  return typeof val === 'string' || (val as any) instanceof String;
-};
+export const isString = (val: unknown): boolean => typeof val === 'string' || val instanceof String;
 
 
-export const isNumber = (val: any): boolean => {
-  return typeof val === 'number' && !isNaN(val);
-};
+export const isNumber = (val: unknown): boolean => typeof val === 'number' && !isNaN(val);
 
 
-export const isDefined = (val: any): boolean => {
-  return val !== null && val !== undefined;
-};
+export const isDefined = (val: unknown): boolean => val !== null && val !== undefined;
 
 
-export const isObject = (val: any): boolean => {
-  return Object.prototype.toString.call(val) === '[object Object]';
-};
+export const isObject = (val: unknown): boolean => Object.prototype.toString.call(val) === '[object Object]';
 
 
-export const isFunction = (val: any): boolean => {
-  return typeof val === 'function';
-};
+export const isFunction = (val: unknown): boolean => typeof val === 'function';
 
 
-export const isArray = (val: any): boolean => {
-  return Array.isArray(val);
-};
+export const isArray = (val: unknown): boolean => Array.isArray(val);
 
 
 const generateQuery = (
@@ -107,22 +91,19 @@ const generateQuery = (
   return query;
 };
 
+
 export const generateObjectQuery = (name: string,
                                     fields?: string[],
-                                    filters?: string[]) => {
-  return generateQuery(name, fields, filters);
-};
+                                    filters?: string[]) => generateQuery(name, fields, filters);
+
 
 export const generateObjectsListQuery = (name: string,
                                          fields?: string[],
                                          filters?: string[],
                                          pageSize?: number,
-                                         pageKey?: string) => {
-  return generateQuery(name, fields, filters, false, true, pageSize, pageKey);
-};
+                                         pageKey?: string) => generateQuery(name, fields, filters, false, true, pageSize, pageKey);
+
 
 export const generateSubscription = (name: string,
                                      fields?: string[],
-                                     filters?: string[]) => {
-  return generateQuery(name, fields, filters, true);
-};
+                                     filters?: string[]) => generateQuery(name, fields, filters, true);

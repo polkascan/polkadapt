@@ -34,8 +34,12 @@ const runtimePalletFields: (keyof pst.RuntimePallet)[] = [
   'countErrors'
 ];
 
-export const getRuntimePallet = (adapter: Adapter) => {
-  return async (specName: string, specVersion: number, pallet: string): Promise<pst.RuntimePallet> => {
+export const getRuntimePallet = (adapter: Adapter) =>
+  async (specName: string, specVersion: number, pallet: string): Promise<pst.RuntimePallet> => {
+    if (!adapter.socket) {
+      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+    }
+
     const filters: string[] = [];
 
     if (isString(specName) && isNumber(specVersion) && isString(pallet)) {
@@ -50,20 +54,23 @@ export const getRuntimePallet = (adapter: Adapter) => {
 
     const query = generateObjectQuery('getRuntimePallet', runtimePalletFields, filters);
 
-    const result = adapter.socket ? await adapter.socket.query(query) : {};
-    const runtimePallet: pst.RuntimePallet = result.getRuntimePallet;
+    const result = await adapter.socket.query(query) as { getRuntimePallet: pst.RuntimePallet };
+    const runtimePallet = result.getRuntimePallet;
     if (isObject(runtimePallet)) {
       return runtimePallet;
     } else {
       throw new Error(`[PolkascanAdapter] getRuntimePallet: Returned response is invalid.`);
     }
   };
-};
 
 
-export const getRuntimePallets = (adapter: Adapter) => {
-  return async (
+export const getRuntimePallets = (adapter: Adapter) =>
+  async (
     specName: string, specVersion: number): Promise<pst.ListResponse<pst.RuntimePallet>> => {
+    if (!adapter.socket) {
+      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+    }
+
     const filters: string[] = [];
 
     if (isString(specName) && isNumber(specVersion)) {
@@ -77,7 +84,7 @@ export const getRuntimePallets = (adapter: Adapter) => {
 
     const query = generateObjectsListQuery('getRuntimePallets', runtimePalletFields, filters);
 
-    const result = adapter.socket ? await adapter.socket.query(query) : {};
+    const result = await adapter.socket.query(query) as { getRuntimePallets: pst.ListResponse<pst.RuntimePallet> };
     const runtimePallets = result.getRuntimePallets.objects;
     if (isArray(runtimePallets)) {
       return result.getRuntimePallets;
@@ -85,4 +92,3 @@ export const getRuntimePallets = (adapter: Adapter) => {
       throw new Error(`[PolkascanAdapter] getRuntimePallets: Returned response is invalid.`);
     }
   };
-};

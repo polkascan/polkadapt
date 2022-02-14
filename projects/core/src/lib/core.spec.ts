@@ -18,56 +18,83 @@
 
 import { AdapterBase, Polkadapt } from './core';
 
+type Subscription = (callback: (...args: unknown[]) => void) => Promise<UnsubscribeFn>;
+type UnsubscribeFn = () => void;
+type MergedResultPromise = Promise<{
+  [p: string]: any;
+  nested: {
+    [p: string]: any;
+    conflicted: string | string[];
+  };
+}>;
+type PromiseCall = () => Promise<any>;
+
+type TestApi = {
+  values: {
+    successFromBoth: () => MergedResultPromise;
+    successFromA?: PromiseCall;
+    successFromB?: PromiseCall;
+    failureFromB?: PromiseCall;
+    partialFailure?: PromiseCall;
+  };
+  subscriptions: {
+    successFromBoth: Subscription;
+    successFromA?: Subscription;
+    failureFromB?: Subscription;
+    partialFailure?: Subscription;
+  };
+};
+
 const chainName = 'test chain';
 
 class TestAdapterBase extends AdapterBase {
   name = 'test adapter';
   promise: Promise<any>;
-  letter: string | undefined;
-  timeout: number | undefined;
-  api: any;
-
-  get isReady(): Promise<boolean> {
-    return Promise.resolve(true);
-  }
+  letter: string;
+  timeout: number;
+  api: TestApi;
 
   constructor() {
     super(chainName);
     this.api = {
       values: {
         successFromBoth: async () => {
-          const obj: any = {
+          const obj = {
             nested: {
               conflicted: this.letter,
             }
           };
-          obj.nested[this.letter as string] = true;
+          (obj.nested as { [p: string]: any })[this.letter] = true;
           return Promise.resolve(obj);
         }
       },
       subscriptions: {
-        successFromBoth: async (callback: any) => {
+        successFromBoth: async (callback: (...args: unknown[]) => unknown) => {
           // Start subscription.
           let i = 0;
           const interval = setInterval(() => {
             // Pass every subscription event/message to the callback function.
-            const obj: any = {
+            const obj = {
               nested: {
-                conflicted: (this.letter as string) + i,
+                conflicted: this.letter + i.toString(),
               }
             };
-            obj.nested[this.letter as string] = i;
+            (obj.nested as { [p: string]: any })[this.letter] = i;
             callback(obj);
             i += 1;
           }, this.timeout);
           // Return unsubscribe function.
-          return () => {
+          return Promise.resolve(() => {
             clearInterval(interval);
-          };
+          });
         }
       }
     };
     this.promise = Promise.resolve(this.api);
+  }
+
+  get isReady(): Promise<boolean> {
+    return Promise.resolve(true);
   }
 
   connect(): void {
@@ -82,15 +109,11 @@ class TestAdapterA extends TestAdapterBase {
   letter = 'a';
   timeout = 100;
 
-  get isReady(): Promise<boolean> {
-    return Promise.resolve(true);
-  }
-
   constructor() {
     super();
     this.api.values.successFromA = async () => Promise.resolve('a');
     this.api.values.partialFailure = this.api.values.successFromA;
-    this.api.subscriptions.successFromA = async (callback: any) => {
+    this.api.subscriptions.successFromA = async (callback: (...args: unknown[]) => void) => {
       // Start subscription.
       let i = 0;
       const interval = setInterval(() => {
@@ -99,11 +122,15 @@ class TestAdapterA extends TestAdapterBase {
         i += 1;
       }, 100);
       // Return unsubscribe function.
-      return () => {
+      return Promise.resolve(() => {
         clearInterval(interval);
-      };
+      });
     };
     this.api.subscriptions.partialFailure = this.api.subscriptions.successFromA;
+  }
+
+  get isReady(): Promise<boolean> {
+    return Promise.resolve(true);
   }
 }
 
@@ -112,16 +139,12 @@ class TestAdapterB extends TestAdapterBase {
   letter = 'b';
   timeout = 150;
 
-  get isReady(): Promise<boolean> {
-    return Promise.resolve(true);
-  }
-
   constructor() {
     super();
     this.api.values.successFromB = async () => Promise.resolve('b');
     this.api.values.failureFromB = async () => Promise.reject('whatever');
     this.api.values.partialFailure = this.api.values.failureFromB;
-    this.api.subscriptions.failureFromB = async (callback: any) => {
+    this.api.subscriptions.failureFromB = async (callback: (...args: unknown[]) => void) => {
       // Start subscription.
       let i = 0;
       const interval = setInterval(() => {
@@ -133,12 +156,17 @@ class TestAdapterB extends TestAdapterBase {
         i += 1;
       }, 150);
       // Return unsubscribe function.
-      return () => {
+      return Promise.resolve(() => {
         clearInterval(interval);
-      };
+      });
     };
     this.api.subscriptions.partialFailure = this.api.subscriptions.failureFromB;
   }
+
+  get isReady(): Promise<boolean> {
+    return Promise.resolve(true);
+  }
+
 }
 
 class TestAdapterC extends TestAdapterBase {
@@ -150,14 +178,16 @@ class TestAdapterC extends TestAdapterBase {
 }
 
 describe('Polkadapt', () => {
-  let pa: Polkadapt<any>;
+  let pa: Polkadapt<TestApi>;
+  let connect1Spy: jasmine.Spy<() => void>;
+  let connect2Spy: jasmine.Spy<() => void>;
 
   beforeEach(() => {
     pa = new Polkadapt();
     const adapter1 = new TestAdapterA();
     const adapter2 = new TestAdapterB();
-    spyOn(adapter1, 'connect');
-    spyOn(adapter2, 'connect');
+    connect1Spy = spyOn(adapter1, 'connect');
+    connect2Spy = spyOn(adapter2, 'connect');
     pa.register(adapter1, adapter2);
   });
 
@@ -166,46 +196,46 @@ describe('Polkadapt', () => {
     pa.removeAllListeners('readyChange');
   });
 
-  it('should register adapters.', async () => {
+  it('should register adapters.', () => {
     expect(pa.adapters.length).toBe(2);
-    expect(pa.adapters[0].instance.connect).toHaveBeenCalled();
-    expect(pa.adapters[1].instance.connect).toHaveBeenCalled();
+    expect(connect1Spy).toHaveBeenCalled();
+    expect(connect2Spy).toHaveBeenCalled();
   });
 
-  it('should register an adapter at a later moment', async () => {
+  it('should register an adapter at a later moment', () => {
     const adapter3 = new TestAdapterC();
-    spyOn(adapter3, 'connect');
+    const connect3Spy = spyOn(adapter3, 'connect');
     pa.register(adapter3);
     expect(pa.adapters.length).toBe(3);
-    expect(pa.adapters[2].instance.connect).toHaveBeenCalled();
+    expect(connect3Spy).toHaveBeenCalled();
   });
 
-  it('should not be able to register the same adapter instance multiple times', async () => {
+  it('should not be able to register the same adapter instance multiple times', () => {
     const adapter3 = new TestAdapterC();
-    spyOn(adapter3, 'connect');
+    const connect3Spy = spyOn(adapter3, 'connect');
     pa.register(adapter3, adapter3);
     pa.register(adapter3);
     expect(pa.adapters.length).toBe(3);
     expect(pa.adapters[2].instance).toBe(adapter3);
     expect(pa.adapters[1].instance).not.toBe(adapter3);
-    expect(adapter3.connect).toHaveBeenCalledTimes(1);
+    expect(connect3Spy).toHaveBeenCalledTimes(1);
   });
 
-  it('should unregister one adapter', async () => {
+  it('should unregister one adapter', () => {
     const adapter1 = pa.adapters[0].instance;
-    spyOn(adapter1, 'disconnect');
+    const disconnect1Spy = spyOn(adapter1, 'disconnect');
     pa.unregister(adapter1);
-    expect(adapter1.disconnect).toHaveBeenCalled();
+    expect(disconnect1Spy).toHaveBeenCalled();
     expect(pa.adapters.length).toBe(1);
   });
 
-  it('should unregister all adapters', async () => {
+  it('should unregister all adapters', () => {
     const [adapter1, adapter2] = pa.adapters.map(a => a.instance);
-    spyOn(adapter1, 'disconnect');
-    spyOn(adapter2, 'disconnect');
+    const disconnect1Spy = spyOn(adapter1, 'disconnect');
+    const disconnect2Spy = spyOn(adapter2, 'disconnect');
     pa.unregister();
-    expect(adapter1.disconnect).toHaveBeenCalled();
-    expect(adapter2.disconnect).toHaveBeenCalled();
+    expect(disconnect1Spy).toHaveBeenCalled();
+    expect(disconnect2Spy).toHaveBeenCalled();
     expect(pa.adapters.length).toBe(0);
   });
 
@@ -232,8 +262,8 @@ describe('Polkadapt', () => {
   xit('should reject ready when an adapter encounters a connection error');
 
   it('should return a Promise when an adapter API is called.', async () => {
-    const valuePromise = pa.run({chain: chainName}).values.successFromA();
-    const functionPromise = pa.run({chain: chainName}).subscriptions.successFromA(() => {
+    const valuePromise = (pa.run({chain: chainName}).values.successFromA as PromiseCall)();
+    const functionPromise = (pa.run({chain: chainName}).subscriptions.successFromA as Subscription)(() => {
     });
     expect(valuePromise).toBeInstanceOf(Promise);
     expect(functionPromise).toBeInstanceOf(Promise);
@@ -252,7 +282,7 @@ describe('Polkadapt', () => {
   });
 
   it('should return the Promise result of one adapter.', async () => {
-    expect(await pa.run({chain: chainName}).values.successFromA()).toEqual('a');
+    expect(await (pa.run({chain: chainName}).values.successFromA as PromiseCall)()).toEqual('a');
   });
 
   it('should deep merge the Promise result of multiple adapters.', async () => {
@@ -269,7 +299,7 @@ describe('Polkadapt', () => {
   it('should reject when one adapter rejects.', async () => {
     let status;
     try {
-      await pa.run({chain: chainName}).values.failureFromB();
+      await (pa.run({chain: chainName}).values.failureFromB as PromiseCall)();
       status = true;
     } catch (error) {
       status = false;
@@ -282,7 +312,7 @@ describe('Polkadapt', () => {
   it('should reject when one of multiple adapters rejects.', async () => {
     let status;
     try {
-      await pa.run({chain: chainName}).values.partialFailure();
+      await (pa.run({chain: chainName}).values.partialFailure as PromiseCall)();
       status = true;
     } catch (error) {
       status = false;
@@ -305,12 +335,12 @@ describe('Polkadapt', () => {
   xit('should be clear which adapter threw an error.');
 
   it('should be able to run with a specific adapter', async () => {
-    expect(await pa.run({chain: chainName, adapters: 'test adapter A'}).values.successFromA()).toEqual('a');
-    expect(await pa.run({chain: chainName, adapters: ['test adapter A']}).values.successFromA()).toEqual('a');
-    expect(await pa.run({chain: chainName, adapters: pa.adapters[0].instance}).values.successFromA()).toEqual('a');
-    expect(await pa.run({chain: chainName, adapters: [pa.adapters[0].instance]}).values.successFromA()).toEqual('a');
-    expect(await pa.run({chain: chainName, adapters: 'test adapter B'}).values.successFromB()).toEqual('b');
-    expect(await pa.run({chain: chainName, adapters: pa.adapters[1].instance}).values.successFromB()).toEqual('b');
+    expect(await (pa.run({chain: chainName, adapters: 'test adapter A'}).values.successFromA as PromiseCall)()).toEqual('a');
+    expect(await (pa.run({chain: chainName, adapters: ['test adapter A']}).values.successFromA as PromiseCall)()).toEqual('a');
+    expect(await (pa.run({chain: chainName, adapters: pa.adapters[0].instance}).values.successFromA as PromiseCall)()).toEqual('a');
+    expect(await (pa.run({chain: chainName, adapters: [pa.adapters[0].instance]}).values.successFromA as PromiseCall)()).toEqual('a');
+    expect(await (pa.run({chain: chainName, adapters: 'test adapter B'}).values.successFromB as PromiseCall)()).toEqual('b');
+    expect(await (pa.run({chain: chainName, adapters: pa.adapters[1].instance}).values.successFromB as PromiseCall)()).toEqual('b');
   });
 
   it('should be able to run with multiple specified adapters', async () => {
@@ -329,15 +359,15 @@ describe('Polkadapt', () => {
     pa.unregister(adapterA);
 
     try {
-      await pa.run({chain: chainName, adapters: 'test adapter A'}).values.successFromA();
+      await (pa.run({chain: chainName, adapters: 'test adapter A'}).values.successFromA as PromiseCall)();
     } catch (e) {
-      expect(e.message).toEqual('The requested adapters have not been registered.');
+      expect((e as Error).message).toEqual('The requested adapters have not been registered.');
     }
 
     try {
-      await pa.run({chain: chainName, adapters: adapterA}).values.successFromA();
+      await (pa.run({chain: chainName, adapters: adapterA}).values.successFromA as PromiseCall)();
     } catch (e) {
-      expect(e.message).toEqual('The requested adapters have not been registered.');
+      expect((e as Error).message).toEqual('The requested adapters have not been registered.');
     }
 
     // todo include not for a specified chain
@@ -349,7 +379,7 @@ describe('Polkadapt', () => {
   xit('should have a "promise" property containing the Promise to the adapter API.');
 
   // Event listeners tests.
-  it('should add a listener', async () => {
+  it('should add a listener', () => {
     const listener = jasmine.createSpy('listener', () => {
     });
     pa.on('readyChange', listener);
@@ -358,14 +388,14 @@ describe('Polkadapt', () => {
     expect(listeners[0]).toBe(listener);
   });
 
-  it('should emit an event', async () => {
+  it('should emit an event', () => {
     const listener = jasmine.createSpy('listener');
     pa.on('readyChange', listener);
     pa.emit('readyChange');
     expect(listener).toHaveBeenCalled();
   });
 
-  it('should execute listeners when event emit', async () => {
+  it('should execute listeners when event emit', () => {
     const listenerA = jasmine.createSpy('listenerA');
     const listenerB = jasmine.createSpy('listenerB');
     pa.on('readyChange', listenerA);
@@ -384,7 +414,7 @@ describe('Polkadapt', () => {
     expect(listenerB).toHaveBeenCalledWith('test4');
   });
 
-  it('should add a listener that removes itself after event emits', async () => {
+  it('should add a listener that removes itself after event emits', () => {
     const listener = jasmine.createSpy('listener');
     pa.once('readyChange', listener);
     pa.emit('readyChange');
@@ -392,7 +422,7 @@ describe('Polkadapt', () => {
     expect(listener).toHaveBeenCalledTimes(1);
   });
 
-  it('should remove a listener', async () => {
+  it('should remove a listener', () => {
     const listener = jasmine.createSpy('listener');
     pa.on('readyChange', listener);
     pa.emit('readyChange');
@@ -402,7 +432,7 @@ describe('Polkadapt', () => {
     expect(listener).toHaveBeenCalledTimes(1);
   });
 
-  it('should remove all listener (per event name)', async () => {
+  it('should remove all listener (per event name)', () => {
     const listener = jasmine.createSpy('listener');
     pa.on('readyChange', listener);
     pa.emit('readyChange');
@@ -412,9 +442,11 @@ describe('Polkadapt', () => {
     expect(listener).toHaveBeenCalledTimes(1);
   });
 
-  it('should return all listeners registered for an event name', async () => {
-    const listenerA = () => {};
-    const listenerB = () => {};
+  it('should return all listeners registered for an event name', () => {
+    const listenerA = () => {
+    };
+    const listenerB = () => {
+    };
     pa.on('readyChange', listenerA);
     pa.on('readyChange', listenerB);
     const listeners = pa.listeners('readyChange');
@@ -422,8 +454,9 @@ describe('Polkadapt', () => {
     expect(listeners).toContain(listenerB);
   });
 
-  it('should return all event names with registered listeners', async () => {
-    const listener = () => {};
+  it('should return all event names with registered listeners', () => {
+    const listener = () => {
+    };
     pa.on('readyChange', listener);
     const eventNames = pa.eventNames();
     expect(eventNames).toContain('readyChange');

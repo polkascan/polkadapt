@@ -35,8 +35,13 @@ const runtimeFields: (keyof pst.Runtime)[] = [
   'countErrors'
 ];
 
-export const getRuntime = (adapter: Adapter) => {
-  return async (specName: string, specVersion: number): Promise<pst.Runtime> => {
+
+export const getRuntime = (adapter: Adapter) =>
+  async (specName: string, specVersion: number): Promise<pst.Runtime> => {
+    if (!adapter.socket) {
+      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+    }
+
     const filters: string[] = [];
 
     if (isString(specName) && isNumber(specVersion)) {
@@ -48,8 +53,8 @@ export const getRuntime = (adapter: Adapter) => {
 
     const query = generateObjectQuery('getRuntime', runtimeFields, filters);
 
-    const result = adapter.socket ? await adapter.socket.query(query) : {};
-    const runtime: pst.Runtime = result.getRuntime;
+    const result = await adapter.socket.query(query) as { getRuntime: pst.Runtime };
+    const runtime = result.getRuntime;
     if (isObject(runtime)) {
       runtime.specVersion = parseInt(runtime.specVersion as unknown as string, 10);  // TODO hack
       return runtime;
@@ -57,14 +62,17 @@ export const getRuntime = (adapter: Adapter) => {
       throw new Error(`[PolkascanAdapter] getRuntime: Returned response is invalid.`);
     }
   };
-};
 
 
-export const getLatestRuntime = (adapter: Adapter) => {
-  return async (): Promise<pst.Runtime> => {
+export const getLatestRuntime = (adapter: Adapter) =>
+  async (): Promise<pst.Runtime> => {
+    if (!adapter.socket) {
+      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+    }
+
     const query = generateObjectQuery('getLatestRuntime', runtimeFields, []);
-    const result = adapter.socket ? await adapter.socket.query(query) : {};
-    const runtime: pst.Runtime = result.getLatestRuntime;
+    const result = await adapter.socket.query(query) as { getLatestRuntime: pst.Runtime };
+    const runtime = result.getLatestRuntime;
     if (isObject(runtime)) {
       runtime.specVersion = parseInt(runtime.specVersion as unknown as string, 10);  // TODO hack
       return runtime;
@@ -72,14 +80,16 @@ export const getLatestRuntime = (adapter: Adapter) => {
       throw new Error(`[PolkascanAdapter] getRuntime: Returned response is invalid.`);
     }
   };
-};
 
 
-export const getRuntimes = (adapter: Adapter) => {
-  return async (pageSize?: number, pageKey?: string): Promise<pst.ListResponse<pst.Runtime>> => {
+export const getRuntimes = (adapter: Adapter) =>
+  async (pageSize?: number, pageKey?: string): Promise<pst.ListResponse<pst.Runtime>> => {
+    if (!adapter.socket) {
+      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+    }
+
     const query = generateObjectsListQuery('getRuntimes', runtimeFields, [], pageSize, pageKey);
-
-    const result = adapter.socket ? await adapter.socket.query(query) : {};
+    const result = await adapter.socket.query(query) as { getRuntimes: pst.ListResponse<pst.Runtime> };
     const runtimes = result.getRuntimes.objects;
     if (isArray(runtimes)) {
       return result.getRuntimes;
@@ -87,4 +97,3 @@ export const getRuntimes = (adapter: Adapter) => {
       throw new Error(`[PolkascanAdapter] getRuntimes: Returned response is invalid.`);
     }
   };
-};

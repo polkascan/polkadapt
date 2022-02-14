@@ -30,8 +30,12 @@ const runtimeTypeFields: (keyof pst.RuntimeType)[] = [
   'isRuntimePrimitive',
 ];
 
-export const getRuntimeType = (adapter: Adapter) => {
-  return async (specName: string, specVersion: number, scaleType: string): Promise<pst.RuntimeType> => {
+export const getRuntimeType = (adapter: Adapter) =>
+  async (specName: string, specVersion: number, scaleType: string): Promise<pst.RuntimeType> => {
+    if (!adapter.socket) {
+      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+    }
+
     const filters: string[] = [];
 
     if (isString(specName) && isNumber(specVersion) && isString(scaleType)) {
@@ -46,19 +50,22 @@ export const getRuntimeType = (adapter: Adapter) => {
 
     const query = generateObjectQuery('getRuntimeType', runtimeTypeFields, filters);
 
-    const result = adapter.socket ? await adapter.socket.query(query) : {};
-    const runtimeType: pst.RuntimeType = result.getRuntimeTypes;
+    const result = await adapter.socket.query(query) as { getRuntimeType: pst.RuntimeType };
+    const runtimeType = result.getRuntimeType;
     if (isObject(runtimeType)) {
       return runtimeType;
     } else {
       throw new Error(`[PolkascanAdapter] getRuntimeType: Returned response is invalid.`);
     }
   };
-};
 
 
-export const getRuntimeTypes = (adapter: Adapter) => {
-  return async (specName: string, specVersion: number): Promise<pst.ListResponse<pst.RuntimeType>> => {
+export const getRuntimeTypes = (adapter: Adapter) =>
+  async (specName: string, specVersion: number): Promise<pst.ListResponse<pst.RuntimeType>> => {
+    if (!adapter.socket) {
+      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+    }
+
     const filters: string[] = [];
 
     if (isString(specName) && isNumber(specVersion)) {
@@ -72,7 +79,7 @@ export const getRuntimeTypes = (adapter: Adapter) => {
 
     const query = generateObjectsListQuery('getRuntimeTypes', runtimeTypeFields, filters);
 
-    const result = adapter.socket ? await adapter.socket.query(query) : {};
+    const result = await adapter.socket.query(query) as { getRuntimeTypes: pst.ListResponse<pst.RuntimeType> };
     const runtimeTypes = result.getRuntimeTypes.objects;
     if (isArray(runtimeTypes)) {
       return result.getRuntimeTypes;
@@ -80,4 +87,3 @@ export const getRuntimeTypes = (adapter: Adapter) => {
       throw new Error(`[PolkascanAdapter] getRuntimeTypes: Returned response is invalid.`);
     }
   };
-};

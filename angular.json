@@ -38,6 +38,15 @@
             "tsConfig": "projects/core/tsconfig.spec.json",
             "karmaConfig": "projects/core/karma.conf.js"
           }
+        },
+        "lint": {
+          "builder": "@angular-eslint/builder:lint",
+          "options": {
+            "lintFilePatterns": [
+              "projects/core/src/**/*.ts",
+              "projects/core/src/**/*.html"
+            ]
+          }
         }
       }
     },
@@ -68,6 +77,15 @@
             "main": "projects/substrate-rpc/src/test.ts",
             "tsConfig": "projects/substrate-rpc/tsconfig.spec.json",
             "karmaConfig": "projects/substrate-rpc/karma.conf.js"
+          }
+        },
+        "lint": {
+          "builder": "@angular-eslint/builder:lint",
+          "options": {
+            "lintFilePatterns": [
+              "projects/substrate-rpc/src/**/*.ts",
+              "projects/substrate-rpc/src/**/*.html"
+            ]
           }
         }
       }
@@ -100,6 +118,15 @@
             "tsConfig": "projects/polkascan/tsconfig.spec.json",
             "karmaConfig": "projects/polkascan/karma.conf.js"
           }
+        },
+        "lint": {
+          "builder": "@angular-eslint/builder:lint",
+          "options": {
+            "lintFilePatterns": [
+              "projects/polkascan/src/**/*.ts",
+              "projects/polkascan/src/**/*.html"
+            ]
+          }
         }
       }
     },
@@ -130,6 +157,15 @@
             "main": "projects/coingecko/src/test.ts",
             "tsConfig": "projects/coingecko/tsconfig.spec.json",
             "karmaConfig": "projects/coingecko/karma.conf.js"
+          }
+        },
+        "lint": {
+          "builder": "@angular-eslint/builder:lint",
+          "options": {
+            "lintFilePatterns": [
+              "projects/coingecko/src/**/*.ts",
+              "projects/coingecko/src/**/*.html"
+            ]
           }
         }
       }

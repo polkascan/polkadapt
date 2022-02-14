@@ -39,8 +39,12 @@ const runtimeStorageFields: (keyof pst.RuntimeStorage)[] = [
   'documentation'
 ];
 
-export const getRuntimeStorage = (adapter: Adapter) => {
-  return async (specName: string, specVersion: number, pallet: string, storageName: string): Promise<pst.RuntimeStorage> => {
+export const getRuntimeStorage = (adapter: Adapter) =>
+  async (specName: string, specVersion: number, pallet: string, storageName: string): Promise<pst.RuntimeStorage> => {
+    if (!adapter.socket) {
+      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+    }
+
     const filters: string[] = [];
 
     if (isString(specName) && isNumber(specVersion) && isString(pallet) && isString(storageName)) {
@@ -50,32 +54,37 @@ export const getRuntimeStorage = (adapter: Adapter) => {
       filters.push(`storageName: "${storageName}"`);
     } else {
       throw new Error(
-        '[PolkascanAdapter] getRuntimeStorage: Provide the specName (string), specVersion (number), pallet (string) and storageName (string).'
+        '[PolkascanAdapter] getRuntimeStorage: Provide the specName (string), specVersion (number), pallet (string) ' +
+        'and storageName (string).'
       );
     }
 
     const query = generateObjectQuery('getRuntimeStorage', runtimeStorageFields, filters);
 
-    const result = adapter.socket ? await adapter.socket.query(query) : {};
-    const RuntimeStorage: pst.RuntimeStorage = result.getRuntimeStorages;
+    const result = await adapter.socket.query(query) as { getRuntimeStorage: pst.RuntimeStorage };
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    const RuntimeStorage = result.getRuntimeStorage;
     if (isObject(RuntimeStorage)) {
       return RuntimeStorage;
     } else {
       throw new Error(`[PolkascanAdapter] getRuntimeStorage: Returned response is invalid.`);
     }
   };
-};
 
 
-export const getRuntimeStorages = (adapter: Adapter) => {
-  return async (specName: string, specVersion: number, pallet?: string): Promise<pst.ListResponse<pst.RuntimeStorage>> => {
+export const getRuntimeStorages = (adapter: Adapter) =>
+  async (specName: string, specVersion: number, pallet?: string): Promise<pst.ListResponse<pst.RuntimeStorage>> => {
+    if (!adapter.socket) {
+      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+    }
+
     const filters: string[] = [];
 
     if (isString(specName) && isNumber(specVersion)) {
       filters.push(`specName: "${specName}"`);
       filters.push(`specVersion: ${specVersion}`);
       if (isString(pallet)) {
-        filters.push(`pallet: "${pallet}"`);
+        filters.push(`pallet: "${pallet as string}"`);
       }
     } else {
       throw new Error(
@@ -85,7 +94,8 @@ export const getRuntimeStorages = (adapter: Adapter) => {
 
     const query = generateObjectsListQuery('getRuntimeStorages', runtimeStorageFields, filters);
 
-    const result = adapter.socket ? await adapter.socket.query(query) : {};
+    const result = await adapter.socket.query(query) as { getRuntimeStorages: pst.ListResponse<pst.RuntimeStorage> };
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     const RuntimeStorages = result.getRuntimeStorages.objects;
     if (isArray(RuntimeStorages)) {
       return result.getRuntimeStorages;
@@ -93,4 +103,3 @@ export const getRuntimeStorages = (adapter: Adapter) => {
       throw new Error(`[PolkascanAdapter] getRuntimeStorages: Returned response is invalid.`);
     }
   };
-};

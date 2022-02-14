@@ -20,14 +20,7 @@
 import { Adapter } from '../polkascan';
 import * as pst from '../polkascan.types';
 import {
-  generateObjectQuery,
-  generateObjectsListQuery,
-  generateSubscription,
-  isArray,
-  isDefined,
-  isFunction,
-  isObject,
-  isPositiveNumber
+  generateObjectQuery, generateObjectsListQuery, generateSubscription, isArray, isDefined, isFunction, isObject, isPositiveNumber
 } from './helpers';
 
 const genericLogFields = [
@@ -44,8 +37,12 @@ const genericLogFields = [
 ];
 
 
-export const getLog = (adapter: Adapter) => {
-  return async (blockNumber: number, logIdx: number): Promise<pst.Log> => {
+export const getLog = (adapter: Adapter) =>
+  async (blockNumber: number, logIdx: number): Promise<pst.Log> => {
+    if (!adapter.socket) {
+      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+    }
+
     const filters: string[] = [];
 
     if (!isDefined(blockNumber)) {
@@ -70,21 +67,24 @@ export const getLog = (adapter: Adapter) => {
 
     const query = generateObjectQuery('getLog', genericLogFields, filters);
 
-    const result = adapter.socket ? await adapter.socket.query(query) : {};
-    const log: pst.Log = result.getLog;
+    const result = await adapter.socket.query(query) as { getLog: pst.Log };
+    const log = result.getLog;
     if (isObject(log)) {
       return log;
     } else {
       throw new Error(`[PolkascanAdapter] getLog: Returned response is invalid.`);
     }
   };
-};
 
 
-export const getLogs = (adapter: Adapter) => {
-  return async (pageSize?: number, pageKey?: string): Promise<pst.ListResponse<pst.Log>> => {
+export const getLogs = (adapter: Adapter) =>
+  async (pageSize?: number, pageKey?: string): Promise<pst.ListResponse<pst.Log>> => {
+    if (!adapter.socket) {
+      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+    }
+
     const query = generateObjectsListQuery('getLogs', genericLogFields, undefined, pageSize, pageKey);
-    const result = adapter.socket ? await adapter.socket.query(query) : {};
+    const result = await adapter.socket.query(query) as { getLogs: pst.ListResponse<pst.Log> };
     const logs: pst.Log[] = result.getLogs.objects;
 
     if (isArray(logs)) {
@@ -93,11 +93,14 @@ export const getLogs = (adapter: Adapter) => {
       throw new Error(`[PolkascanAdapter] getLogs: Returned response is invalid.`);
     }
   };
-};
 
 
-export const subscribeNewLog = (adapter: Adapter) => {
-  return async (...args: ((log: pst.Log) => void)[]): Promise<() => void> => {
+export const subscribeNewLog = (adapter: Adapter) =>
+  async (...args: ((log: pst.Log) => void)[]): Promise<() => void> => {
+    if (!adapter.socket) {
+      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+    }
+
     const callback = args.find((arg) => isFunction(arg));
     if (!callback) {
       throw new Error(`[PolkascanAdapter] subscribeNewLog: No callback function is provided.`);
@@ -106,9 +109,9 @@ export const subscribeNewLog = (adapter: Adapter) => {
     const query = generateSubscription('subscribeNewLog', genericLogFields);
 
     // return the unsubscribe function.
-    return !adapter.socket ? {} : await adapter.socket.createSubscription(query, (result) => {
+    return await adapter.socket.createSubscription(query, (result: { subscribeNewLog: pst.Log }) => {
       try {
-        const log: pst.Log = result.subscribeNewLog;
+        const log = result.subscribeNewLog;
         if (isObject(log)) {
           callback(log);
         }
@@ -117,4 +120,3 @@ export const subscribeNewLog = (adapter: Adapter) => {
       }
     });
   };
-};

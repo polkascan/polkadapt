@@ -27,6 +27,7 @@ export type ListResponse<T> = {
 
 
 export type Block = {
+  // eslint-disable-next-line id-blacklist
   number: number;  // PK
   parentNumber: number | null;
   hash: string;

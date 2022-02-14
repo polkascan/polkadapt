@@ -32,8 +32,13 @@ const runtimeConstantFields: (keyof pst.RuntimeConstant)[] = [
   'documentation'
 ];
 
-export const getRuntimeConstant = (adapter: Adapter) => {
-  return async (specName: string, specVersion: number, pallet: string, constantName: string): Promise<pst.RuntimeConstant> => {
+
+export const getRuntimeConstant = (adapter: Adapter) =>
+  async (specName: string, specVersion: number, pallet: string, constantName: string): Promise<pst.RuntimeConstant> => {
+    if (!adapter.socket) {
+      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+    }
+
     const filters: string[] = [];
 
     if (isString(specName) && isNumber(specVersion) && isString(pallet) && isString(constantName)) {
@@ -43,33 +48,37 @@ export const getRuntimeConstant = (adapter: Adapter) => {
       filters.push(`constantName: "${constantName}"`);
     } else {
       throw new Error(
-        '[PolkascanAdapter] getRuntimeConstant: Provide the specName (string), specVersion (number), pallet (string) and constantName (string).'
+        '[PolkascanAdapter] getRuntimeConstant: ' +
+        'Provide the specName (string), specVersion (number), pallet (string) and constantName (string).'
       );
     }
 
     const query = generateObjectQuery('getRuntimeConstant', runtimeConstantFields, filters);
 
-    const result = adapter.socket ? await adapter.socket.query(query) : {};
-    const runtimeConstant: pst.RuntimeConstant = result.getRuntimeConstant;
+    const result = await adapter.socket.query(query) as { getRuntimeConstant: pst.RuntimeConstant };
+    const runtimeConstant = result.getRuntimeConstant;
     if (isObject(runtimeConstant)) {
       return runtimeConstant;
     } else {
       throw new Error(`[PolkascanAdapter] getRuntimeConstant: Returned response is invalid.`);
     }
   };
-};
 
 
-export const getRuntimeConstants = (adapter: Adapter) => {
-  return async (
+export const getRuntimeConstants = (adapter: Adapter) =>
+  async (
     specName: string, specVersion: number, pallet?: string): Promise<pst.ListResponse<pst.RuntimeConstant>> => {
+    if (!adapter.socket) {
+      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+    }
+
     const filters: string[] = [];
 
     if (isString(specName) && isNumber(specVersion)) {
       filters.push(`specName: "${specName}"`);
       filters.push(`specVersion: ${specVersion}`);
       if (isString(pallet)) {
-        filters.push(`pallet: "${pallet}"`);
+        filters.push(`pallet: "${pallet as string}"`);
       }
     } else {
       throw new Error(
@@ -79,7 +88,8 @@ export const getRuntimeConstants = (adapter: Adapter) => {
 
     const query = generateObjectsListQuery('getRuntimeConstants', runtimeConstantFields, filters);
 
-    const result = adapter.socket ? await adapter.socket.query(query) : {};
+    const result = await adapter.socket.query(query) as {getRuntimeConstants: pst.ListResponse<pst.RuntimeConstant>};
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     const RuntimeConstants = result.getRuntimeConstants.objects;
     if (isArray(RuntimeConstants)) {
       return result.getRuntimeConstants;
@@ -87,4 +97,3 @@ export const getRuntimeConstants = (adapter: Adapter) => {
       throw new Error(`[PolkascanAdapter] getRuntimeConstants: Returned response is invalid.`);
     }
   };
-};

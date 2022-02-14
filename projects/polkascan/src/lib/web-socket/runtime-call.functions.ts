@@ -32,8 +32,13 @@ const runtimeCallFields: (keyof pst.RuntimeCall)[] = [
   'countArguments'
 ];
 
-export const getRuntimeCall = (adapter: Adapter) => {
-  return async (specName: string, specVersion: number, pallet: string, callName: string): Promise<pst.RuntimeCall> => {
+
+export const getRuntimeCall = (adapter: Adapter) =>
+  async (specName: string, specVersion: number, pallet: string, callName: string): Promise<pst.RuntimeCall> => {
+    if (!adapter.socket) {
+      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+    }
+
     const filters: string[] = [];
 
     if (isString(specName) && isNumber(specVersion) && isString(pallet) && isString(callName)) {
@@ -49,26 +54,29 @@ export const getRuntimeCall = (adapter: Adapter) => {
 
     const query = generateObjectQuery('getRuntimeCall', runtimeCallFields, filters);
 
-    const result = adapter.socket ? await adapter.socket.query(query) : {};
-    const runtimeCall: pst.RuntimeCall = result.getRuntimeCall;
+    const result = await adapter.socket.query(query) as { getRuntimeCall: pst.RuntimeCall };
+    const runtimeCall = result.getRuntimeCall;
     if (isObject(runtimeCall)) {
       return runtimeCall;
     } else {
       throw new Error(`[PolkascanAdapter] getRuntimeCall: Returned response is invalid.`);
     }
   };
-};
 
 
-export const getRuntimeCalls = (adapter: Adapter) => {
-  return async (specName: string, specVersion: number, pallet?: string): Promise<pst.ListResponse<pst.RuntimeCall>> => {
+export const getRuntimeCalls = (adapter: Adapter) =>
+  async (specName: string, specVersion: number, pallet?: string): Promise<pst.ListResponse<pst.RuntimeCall>> => {
+    if (!adapter.socket) {
+      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+    }
+
     const filters: string[] = [];
 
     if (isString(specName) && isNumber(specVersion)) {
       filters.push(`specName: "${specName}"`);
       filters.push(`specVersion: ${specVersion}`);
       if (isString(pallet)) {
-        filters.push(`pallet: "${pallet}"`);
+        filters.push(`pallet: "${pallet as string}"`);
       }
     } else {
       throw new Error(
@@ -78,7 +86,7 @@ export const getRuntimeCalls = (adapter: Adapter) => {
 
     const query = generateObjectsListQuery('getRuntimeCalls', runtimeCallFields, filters);
 
-    const result = adapter.socket ? await adapter.socket.query(query) : {};
+    const result = await adapter.socket.query(query) as { getRuntimeCalls: pst.ListResponse<pst.RuntimeCall> };
     const runtimeCalls = result.getRuntimeCalls.objects;
     if (isArray(runtimeCalls)) {
       return result.getRuntimeCalls;
@@ -86,4 +94,3 @@ export const getRuntimeCalls = (adapter: Adapter) => {
       throw new Error(`[PolkascanAdapter] getRuntimeCalls: Returned response is invalid.`);
     }
   };
-};

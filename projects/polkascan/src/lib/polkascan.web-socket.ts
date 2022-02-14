@@ -17,6 +17,7 @@
  */
 
 
+/* eslint-disable @typescript-eslint/naming-convention */
 export const GQLMSG = {
   CONNECTION_ACK: 'connection_ack',
   CONNECTION_ERROR: 'connection_error',
@@ -28,10 +29,11 @@ export const GQLMSG = {
   START: 'start',
   STOP: 'stop'
 };
+/* eslint-enable @typescript-eslint/naming-convention */
 
 export type PolkascanWebsocketEventNames = 'open' | 'socketError' | 'dataError' | 'readyChange' | 'data' | 'close';
 
-const PolkascanChannelName = 'graphql-ws';
+const polkascanChannelName = 'graphql-ws';
 const reconnectTimeout = 3000;
 const connectionTimeout = 5000;
 
@@ -40,12 +42,9 @@ export class PolkascanWebSocket {
   chain: string;
   webSocket: WebSocket | null = null;
   websocketReady = false;
-  runningReconnectTimeout: number | null = null;
+  activeReconnectTimeout: number | null = null;
   connectingWebsockets = new Map<WebSocket, number>();
   adapterRegistered = false;
-
-  addListener = this.on;
-  off = this.removeListener;
 
   private nonce = 0;
 
@@ -82,7 +81,7 @@ export class PolkascanWebSocket {
 
 
   reconnect(): void {
-    const isReconnecting = !!this.runningReconnectTimeout;
+    const isReconnecting = !!this.activeReconnectTimeout;
 
     if (this.webSocket) {
       this.connectingWebsockets.forEach((t, w) => {
@@ -113,7 +112,7 @@ export class PolkascanWebSocket {
   }
 
 
-  query(query: string, timeoutAmount = 5000, id?: number): Promise<any> {
+  query(query: string, timeoutAmount = 5000, id?: number): Promise<unknown> {
     return new Promise((resolve, reject) => {
       if (!query.startsWith('query')) {
         throw new Error(`Invalid query string, should start with 'query'.`);
@@ -136,7 +135,7 @@ export class PolkascanWebSocket {
         }
       };
 
-      const listenerFn = (data: any): void => {
+      const listenerFn = (data: { id: number; payload: { data: any } }): void => {
         if (data.id === id) {
           if (timeout) {
             clearTimeout(timeout);
@@ -144,7 +143,7 @@ export class PolkascanWebSocket {
 
           this.off('data', listenerFn);
           this.off('dataError', errorListenerFn);
-          this.connectedSubscriptions.delete(id as number);
+          this.connectedSubscriptions.delete(id);
 
           if (data.payload && data.payload.data) {
             resolve(data.payload.data);
@@ -154,7 +153,7 @@ export class PolkascanWebSocket {
         }
       };
 
-      const errorListenerFn = (errorData: any): void => {
+      const errorListenerFn = (errorData: { id: number; query: any; payload: { message: string } }): void => {
         if (errorData.id === id) {
           if (timeout) {
             clearTimeout(timeout);
@@ -162,7 +161,7 @@ export class PolkascanWebSocket {
           errorData.query = query;
           this.off('data', listenerFn);
           this.off('dataError', errorListenerFn);
-          this.connectedSubscriptions.delete(id as number);
+          this.connectedSubscriptions.delete(id);
 
           reject(errorData.payload && errorData.payload.message);
         }
@@ -186,8 +185,8 @@ export class PolkascanWebSocket {
   }
 
 
-  createSubscription(query: string, callback: (...attr: any[]) => any, id?: number): Promise<any> {
-    return new Promise((resolve, reject) => {
+  createSubscription(query: string, callback: (...attr: any[]) => any, id?: number): Promise<() => void> {
+    return new Promise((resolve) => {
       if (!query.startsWith('subscription')) {
         throw new Error(`Invalid query string, should start with 'subscription'.`);
       }
@@ -207,7 +206,7 @@ export class PolkascanWebSocket {
         }
       };
 
-      const listenerFn = (response: any): void => {
+      const listenerFn = (response: { id: number; payload: { message: string; data: any }; type: string; query: string }): void => {
         if (response.id === id) {
           if (response.type === GQLMSG.ERROR) {
             response.query = query;
@@ -220,7 +219,7 @@ export class PolkascanWebSocket {
         }
       };
 
-      const clearListenerFn = async () => {
+      const clearListenerFn = () => {
         this.off('data', listenerFn);
         this.off('dataError', listenerFn);
         this.connectedSubscriptions.delete(id as number);
@@ -230,7 +229,7 @@ export class PolkascanWebSocket {
             id
           }));
         } catch (e) {
-          console.error('[PolkascanAdapter] Stop subscription encountered an error.');
+          console.error('[PolkascanAdapter] Stop subscription encountered an error.', e);
           // Ignore.
         }
       };
@@ -258,7 +257,7 @@ export class PolkascanWebSocket {
       message = JSON.stringify(message);
     }
 
-    this.webSocket.send(message);
+    this.webSocket.send(message as string);
   }
 
 
@@ -268,24 +267,24 @@ export class PolkascanWebSocket {
       return;
     }
 
-    const runningTimeout = this.runningReconnectTimeout;
+    const art = this.activeReconnectTimeout;
     // Cancel out a scheduled websocket creation, create it now!
-    if (runningTimeout) {
-      clearTimeout(runningTimeout);
-      this.runningReconnectTimeout = null;
+    if (art) {
+      clearTimeout(art);
+      this.activeReconnectTimeout = null;
     }
 
     let webSocket: WebSocket;
 
     try {
-      webSocket = new WebSocket(this.wsEndpoint, PolkascanChannelName);
+      webSocket = new WebSocket(this.wsEndpoint, polkascanChannelName);
       this.webSocket = webSocket;
     } catch (e) {
-      if (!runningTimeout) {
-        this.runningReconnectTimeout = window.setTimeout(() => {
+      if (!this.activeReconnectTimeout) {
+        this.activeReconnectTimeout = window.setTimeout(() => {
           // WebSocket could not be created, retry;
           this.createWebSocket(isReconnect);
-          this.runningReconnectTimeout = null;
+          this.activeReconnectTimeout = null;
         }, reconnectTimeout);
       }
       console.error('[PolkascanAdapter] Websocket creation failed.');
@@ -294,22 +293,20 @@ export class PolkascanWebSocket {
       return;
     }
 
+    // Create a websocket connection timeout and store it.
     const timeout = setTimeout(() => {
       // It took too long to connect the websocket. Close it.
       webSocket.close(1000);
     }, connectionTimeout);
-
-    this.connectingWebsockets.set(webSocket, timeout)
+    this.connectingWebsockets.set(webSocket, timeout);
 
     webSocket.onopen = () => {
-      const timeout = this.connectingWebsockets.get(webSocket);
-
       this.connectingWebsockets.forEach((t, w) => {
         clearTimeout(t);
         if (w !== this.webSocket) {
           w.close(1000);
         }
-      })
+      });
       this.connectingWebsockets.clear();
 
       if (this.webSocket === webSocket) {
@@ -322,9 +319,9 @@ export class PolkascanWebSocket {
       }
     };
 
-    webSocket.onmessage = (message: MessageEvent) => {
+    webSocket.onmessage = (message: MessageEvent<string>) => {
       if (this.webSocket === webSocket) {
-        const data = JSON.parse(message.data);
+        const data = JSON.parse(message.data) as { id: number; payload: { message: string; data: any }; type: string };
 
         switch (data.type) {
           case GQLMSG.DATA:
@@ -358,11 +355,11 @@ export class PolkascanWebSocket {
       }
 
       if (this.webSocket === webSocket) {
-        if (!this.runningReconnectTimeout) {
-          this.runningReconnectTimeout = window.setTimeout(() => {
+        if (!this.activeReconnectTimeout) {
+          this.activeReconnectTimeout = window.setTimeout(() => {
             // WebSocket disconnected after error, retry connecting;
             this.createWebSocket(true);
-            this.runningReconnectTimeout = null;
+            this.activeReconnectTimeout = null;
           }, reconnectTimeout);
         }
 
@@ -397,12 +394,17 @@ export class PolkascanWebSocket {
   }
 
 
-  // Add listener function.
-  on(messageType: PolkascanWebsocketEventNames, listener: (...args: any[]) => any): void {
-    if (!this.eventListeners.hasOwnProperty(messageType)) {
+  addListener(messageType: PolkascanWebsocketEventNames, listener: (...args: any[]) => any): void {
+    if (!Array.isArray(this.eventListeners[messageType])) {
       this.eventListeners[messageType] = [];
     }
     this.eventListeners[messageType].push(listener);
+  }
+
+
+  // Add listener function.
+  on(messageType: PolkascanWebsocketEventNames, listener: (...args: any[]) => any): void {
+    this.addListener(messageType, listener);
   }
 
 
@@ -422,6 +424,12 @@ export class PolkascanWebSocket {
   }
 
 
+  // Remove listener for a specific event.
+  off(eventName: string, listener: (...args: any[]) => any): void {
+    this.removeListener(eventName, listener);
+  }
+
+
   // Remove all listeners for a specific event.
   removeAllListeners(eventName: string): void {
     delete this.eventListeners[eventName];
@@ -429,9 +437,9 @@ export class PolkascanWebSocket {
 
 
   // Trigger handler function on event.
-  emit(eventName: string, ...args: any[]): boolean {
+  emit(eventName: string, ...args: unknown[]): boolean {
     if (this.eventListeners[eventName] && this.eventListeners[eventName].length) {
-      this.eventListeners[eventName].forEach((listener) => listener(...args));
+      this.eventListeners[eventName].forEach((listener) => void listener(...args));
       return true;
     }
     return false;
@@ -461,9 +469,9 @@ export class PolkascanWebSocket {
 
 
   private cancelReconnectAttempt(): void {
-    if (this.runningReconnectTimeout) {
-      clearTimeout(this.runningReconnectTimeout);
-      this.runningReconnectTimeout = null;
+    if (this.activeReconnectTimeout) {
+      clearTimeout(this.activeReconnectTimeout);
+      this.activeReconnectTimeout = null;
     }
   }
 }

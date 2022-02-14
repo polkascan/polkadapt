@@ -3,16 +3,20 @@ import { AdapterBase } from '@polkadapt/core';
 export type Api = {
   prices: {
     getPrice: (currency: string) =>
-      Promise<number>;
+      Promise<number | undefined>;
     getHistoricalPrice: (day: number, month: number, year: number, currency: string) =>
-      Promise<number>;
-  }
+      Promise<number | undefined>;
+  };
 };
 
 export type Config = {
   chain: string;
   apiEndpoint: string;
-}
+};
+
+type CoinGeckoSimpleResponse = { [chain: string]: { [currency: string]: number } };
+// eslint-disable-next-line @typescript-eslint/naming-convention
+type CoinGeckoHistoryResponse = { market_data: { current_price: { [currency: string]: number } } };
 
 export class Adapter extends AdapterBase {
   name = 'coingecko';
@@ -31,23 +35,45 @@ export class Adapter extends AdapterBase {
       resolve({
         prices: {
           getPrice: async (currency: string) => {
-            const price = await this.request(`simple/price?ids=${this.config.chain}&vs_currencies=${currency}`);
-            if (price && price[this.config.chain]) {
-              return price[this.config.chain][currency.toLocaleLowerCase()];
+            let response: CoinGeckoSimpleResponse;
+            try {
+              response = await this.request(
+                `simple/price?ids=${this.config.chain}&vs_currencies=${currency}`
+              ) as CoinGeckoSimpleResponse;
+            } catch (e) {
+              console.error('[CoinGecko v3 adapter] Could not fetch price information.', e);
+              return undefined;
+            }
+
+            if (response && response[this.config.chain]) {
+              return response[this.config.chain][currency.toLocaleLowerCase()];
             }
             return undefined;
           },
           getHistoricalPrice: async (day, month, year, currency: string) => {
             // Date format is dd-mm-yyyy.
-            const price = await this.request(`coins/${this.config.chain}/history?date=${day}-${month}-${year}&localization=false`);
-            if (price && price.market_data && price.market_data.current_price) {
-              return price.market_data.current_price[currency.toLowerCase()];
+            let response: CoinGeckoHistoryResponse;
+            try {
+              response = await this.request(
+                `coins/${this.config.chain}/history?date=${day}-${month}-${year}&localization=false`
+              ) as CoinGeckoHistoryResponse;
+            } catch (e) {
+              console.error('[CoinGecko v3 adapter] Could not fetch historic price information.', e);
+              return undefined;
+            }
+            if (response && response.market_data && response.market_data.current_price) {
+              return response.market_data.current_price[currency.toLowerCase()];
             }
             return undefined;
           }
         }
       });
     });
+  }
+
+
+  get isReady(): Promise<boolean> {
+    return this.readyPromise || Promise.reject();
   }
 
 
@@ -69,10 +95,10 @@ export class Adapter extends AdapterBase {
               reject('[CoinGecko v3 adapter] Could not connect.');
             }
           });
-      }
+      };
 
       ping(0);
-    })
+    });
   }
 
 
@@ -91,11 +117,6 @@ export class Adapter extends AdapterBase {
   }
 
 
-  get isReady(): Promise<boolean> {
-    return this.readyPromise || Promise.reject();
-  }
-
-
   request(path: string): Promise<any> {
     const request = new XMLHttpRequest();
     const url = `${this.config.apiEndpoint}${this.config.apiEndpoint.endsWith('/') ? '' : '/'}${path}`;
@@ -106,20 +127,21 @@ export class Adapter extends AdapterBase {
       request.open('GET', url);
       request.send();
 
-      request.onreadystatechange = (e) => {
+      request.onreadystatechange = () => {
         if (request.readyState === XMLHttpRequest.DONE) {
           if (request.status === 200) {
             try {
               resolve(JSON.parse(request.responseText));
-            } catch (e) {
-              reject(e);
+            } catch (err) {
+              console.error('[CoinGecko v3 adapter] Could not parse response.', err);
+              reject(err);
             }
           } else {
             console.error('[CoinGecko v3 adapter] A request error occurred.', request.response);
             reject('[CoinGecko v3 adapter] A request error occurred.');
           }
         }
-      }
+      };
     });
 
     promise.finally(() => {

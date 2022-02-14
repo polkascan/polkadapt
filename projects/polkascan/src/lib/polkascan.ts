@@ -90,7 +90,7 @@ export type Api = {
       subscribeNewTransfer: (filtersOrcallback?: ((log: pst.Transfer) => void) | TransfersFilters,
                              callback?: (log: pst.Transfer) => void) =>
         Promise<() => void>;
-    },
+    };
     state: {
       getRuntime: (specName: string, specVersion: number) =>
         Promise<pst.Runtime>;
@@ -130,13 +130,13 @@ export type Api = {
         Promise<pst.RuntimeType>;
       getRuntimeTypes: (specName: string, specVersion: number, pallet?: string) =>
         Promise<pst.ListResponse<pst.RuntimeType>>;
-    }
-  },
+    };
+  };
   rpc: {
     chain: {
       getBlock: (hash: string) => Promise<any>;
-    }
-  }
+    };
+  };
 };
 
 export interface Config {
@@ -215,34 +215,10 @@ export class Adapter extends AdapterBase {
   }
 
 
-  connect(): void {
-    if (this.config.wsEndpoint) {
-      if (this.socket) {
-        this.socket.wsEndpoint = this.config.wsEndpoint;
-        if (this.socket.adapterRegistered) {
-          this.socket.reconnect();
-        } else {
-          this.socket.connect();
-        }
-      } else {
-        this.socket = new PolkascanWebSocket(this.config.wsEndpoint, this.config.chain);
-        this.socket.connect();
-      }
-    }
-  }
-
-
-  disconnect(): void {
-    if (this.socket) {
-      this.socket.disconnect();
-    } else {
-      throw new Error("[PolkascanAdapter] Can't disconnect! Socket not intialized.");
-    }
-  }
-
-
   get isReady(): Promise<boolean> {
     return new Promise<boolean>((resolve, reject) => {
+      let timeout: number;
+
       if (!this.socket) {
         resolve(true);
 
@@ -250,7 +226,6 @@ export class Adapter extends AdapterBase {
         resolve(true);
 
       } else {
-        let timeout: number;
         const readyCallback = (ready: boolean) => {
           clearTimeout(timeout);
           if (ready) {
@@ -284,6 +259,33 @@ export class Adapter extends AdapterBase {
       }
     });
   }
+
+
+  connect(): void {
+    if (this.config.wsEndpoint) {
+      if (this.socket) {
+        this.socket.wsEndpoint = this.config.wsEndpoint;
+        if (this.socket.adapterRegistered) {
+          this.socket.reconnect();
+        } else {
+          this.socket.connect();
+        }
+      } else {
+        this.socket = new PolkascanWebSocket(this.config.wsEndpoint, this.config.chain);
+        this.socket.connect();
+      }
+    }
+  }
+
+
+  disconnect(): void {
+    if (this.socket) {
+      this.socket.disconnect();
+    } else {
+      throw new Error(`[PolkascanAdapter] Can't disconnect! Socket not intialized.`);
+    }
+  }
+
 
   setWsUrl(url: string): void {
     if (url !== this.config.wsEndpoint) {
