@@ -22,7 +22,8 @@
     "link-polkascan": "cd projects/polkascan/node_modules/@polkadapt && rm -rf core && ln -s ../../../../dist/core",
     "link-coingecko": "cd projects/coingecko/node_modules/@polkadapt && rm -rf core && ln -s ../../../../dist/core",
     "start": "npm run watch",
-    "build": "npm run build-core && concurrently \"npm run build-substrate-rpc\" \"npm run build-polkascan\" \"npm run build-coingecko\"",
+    "copy-license": "find dist -mindepth 1 -maxdepth 1 -type d -exec cp LICENSE ./{} \\;",
+    "build": "npm run build-core && concurrently \"npm run build-substrate-rpc\" \"npm run build-polkascan\" \"npm run build-coingecko\" && npm run copy-license",
     "watch": "ng build core --configuration development && concurrently \"ng build substrate-rpc --watch --configuration development\" \"ng build polkascan --watch --configuration development\" \"ng build coingecko --watch --configuration development\" \"sleep 20 && ng build core --watch --configuration development\"",
     "test": "ng test",
     "test:prod": "ng test --browsers=ChromeHeadless --watch=false",
@@ -31,7 +32,7 @@
     "lint:polkascan": "cd projects/polkascan && eslint src/** --ext .ts",
     "lint:substrate-rpc": "cd projects/substrate-rpc && eslint src/** --ext .ts",
     "lint": "npm run lint:coingecko && npm run lint:core && npm run lint:polkascan && npm run lint:substrate-rpc",
-    "publish:all": "find dist -mindepth 1 -maxdepth 1 -type d -exec npm publish --dry-run --access public ./{} \\;"
+    "publish:all": "find dist -mindepth 1 -maxdepth 1 -type d -exec npm publish --access public ./{} \\;"
   },
   "private": true,
   "dependencies": {
