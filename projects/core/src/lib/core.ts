@@ -553,7 +553,7 @@ export abstract class AdapterBase {
   abstract name: string;
   abstract promise: AdapterPromise | undefined;
 
-  constructor(chain: string) {
+  protected constructor(chain: string) {
     this.chain = chain;
   }
 
