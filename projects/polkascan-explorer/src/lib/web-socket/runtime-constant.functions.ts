@@ -17,8 +17,8 @@
  */
 
 
-import { Adapter } from '../polkascan';
-import * as pst from '../polkascan.types';
+import { Adapter } from '../polkascan-explorer';
+import * as pst from '../polkascan-explorer.types';
 import { generateObjectQuery, generateObjectsListQuery, isArray, isNumber, isObject, isString } from './helpers';
 
 const runtimeConstantFields: (keyof pst.RuntimeConstant)[] = [
@@ -36,7 +36,7 @@ const runtimeConstantFields: (keyof pst.RuntimeConstant)[] = [
 export const getRuntimeConstant = (adapter: Adapter) =>
   async (specName: string, specVersion: number, pallet: string, constantName: string): Promise<pst.RuntimeConstant> => {
     if (!adapter.socket) {
-      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+      throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
     const filters: string[] = [];
@@ -48,7 +48,7 @@ export const getRuntimeConstant = (adapter: Adapter) =>
       filters.push(`constantName: "${constantName}"`);
     } else {
       throw new Error(
-        '[PolkascanAdapter] getRuntimeConstant: ' +
+        '[PolkascanExplorerAdapter] getRuntimeConstant: ' +
         'Provide the specName (string), specVersion (number), pallet (string) and constantName (string).'
       );
     }
@@ -60,7 +60,7 @@ export const getRuntimeConstant = (adapter: Adapter) =>
     if (isObject(runtimeConstant)) {
       return runtimeConstant;
     } else {
-      throw new Error(`[PolkascanAdapter] getRuntimeConstant: Returned response is invalid.`);
+      throw new Error(`[PolkascanExplorerAdapter] getRuntimeConstant: Returned response is invalid.`);
     }
   };
 
@@ -69,7 +69,7 @@ export const getRuntimeConstants = (adapter: Adapter) =>
   async (
     specName: string, specVersion: number, pallet?: string): Promise<pst.ListResponse<pst.RuntimeConstant>> => {
     if (!adapter.socket) {
-      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+      throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
     const filters: string[] = [];
@@ -82,7 +82,7 @@ export const getRuntimeConstants = (adapter: Adapter) =>
       }
     } else {
       throw new Error(
-        '[PolkascanAdapter] getRuntimeConstants: Provide the specName (string), specVersion (number) and optionally pallet (string).'
+        '[PolkascanExplorerAdapter] getRuntimeConstants: Provide the specName (string), specVersion (number) and optionally pallet (string).'
       );
     }
 
@@ -94,6 +94,6 @@ export const getRuntimeConstants = (adapter: Adapter) =>
     if (isArray(RuntimeConstants)) {
       return result.getRuntimeConstants;
     } else {
-      throw new Error(`[PolkascanAdapter] getRuntimeConstants: Returned response is invalid.`);
+      throw new Error(`[PolkascanExplorerAdapter] getRuntimeConstants: Returned response is invalid.`);
     }
   };

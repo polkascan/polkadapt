@@ -17,8 +17,8 @@
  */
 
 
-import { Adapter } from '../polkascan';
-import * as pst from '../polkascan.types';
+import { Adapter } from '../polkascan-explorer';
+import * as pst from '../polkascan-explorer.types';
 import { generateObjectQuery, generateObjectsListQuery, isArray, isNumber, isObject, isString } from './helpers';
 
 const runtimePalletFields: (keyof pst.RuntimePallet)[] = [
@@ -37,7 +37,7 @@ const runtimePalletFields: (keyof pst.RuntimePallet)[] = [
 export const getRuntimePallet = (adapter: Adapter) =>
   async (specName: string, specVersion: number, pallet: string): Promise<pst.RuntimePallet> => {
     if (!adapter.socket) {
-      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+      throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
     const filters: string[] = [];
@@ -48,7 +48,7 @@ export const getRuntimePallet = (adapter: Adapter) =>
       filters.push(`pallet: "${pallet}"`);
     } else {
       throw new Error(
-        '[PolkascanAdapter] getRuntimePallet: Provide the specName (string), specVersion (number) and pallet (string).'
+        '[PolkascanExplorerAdapter] getRuntimePallet: Provide the specName (string), specVersion (number) and pallet (string).'
       );
     }
 
@@ -59,7 +59,7 @@ export const getRuntimePallet = (adapter: Adapter) =>
     if (isObject(runtimePallet)) {
       return runtimePallet;
     } else {
-      throw new Error(`[PolkascanAdapter] getRuntimePallet: Returned response is invalid.`);
+      throw new Error(`[PolkascanExplorerAdapter] getRuntimePallet: Returned response is invalid.`);
     }
   };
 
@@ -68,7 +68,7 @@ export const getRuntimePallets = (adapter: Adapter) =>
   async (
     specName: string, specVersion: number): Promise<pst.ListResponse<pst.RuntimePallet>> => {
     if (!adapter.socket) {
-      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+      throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
     const filters: string[] = [];
@@ -78,7 +78,7 @@ export const getRuntimePallets = (adapter: Adapter) =>
       filters.push(`specVersion: ${specVersion}`);
     } else {
       throw new Error(
-        '[PolkascanAdapter] getRuntimePallets: Provide the specName (string) and specVersion (number).'
+        '[PolkascanExplorerAdapter] getRuntimePallets: Provide the specName (string) and specVersion (number).'
       );
     }
 
@@ -89,6 +89,6 @@ export const getRuntimePallets = (adapter: Adapter) =>
     if (isArray(runtimePallets)) {
       return result.getRuntimePallets;
     } else {
-      throw new Error(`[PolkascanAdapter] getRuntimePallets: Returned response is invalid.`);
+      throw new Error(`[PolkascanExplorerAdapter] getRuntimePallets: Returned response is invalid.`);
     }
   };

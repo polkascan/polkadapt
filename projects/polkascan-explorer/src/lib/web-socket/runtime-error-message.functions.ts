@@ -17,8 +17,8 @@
  */
 
 
-import { Adapter } from '../polkascan';
-import * as pst from '../polkascan.types';
+import { Adapter } from '../polkascan-explorer';
+import * as pst from '../polkascan-explorer.types';
 import { generateObjectQuery, generateObjectsListQuery, isArray, isNumber, isObject, isString } from './helpers';
 
 const runtimeErrorMessageFields: (keyof pst.RuntimeErrorMessage)[] = [
@@ -34,7 +34,7 @@ const runtimeErrorMessageFields: (keyof pst.RuntimeErrorMessage)[] = [
 export const getRuntimeErrorMessage = (adapter: Adapter) =>
   async (specName: string, specVersion: number, pallet: string, errorName: string): Promise<pst.RuntimeErrorMessage> => {
     if (!adapter.socket) {
-      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+      throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
     const filters: string[] = [];
@@ -46,7 +46,7 @@ export const getRuntimeErrorMessage = (adapter: Adapter) =>
       filters.push(`errorName: "${errorName}"`);
     } else {
       throw new Error(
-        '[PolkascanAdapter] getRuntimeErrorMessage: Provide the specName (string), specVersion (number), pallet (string) ' +
+        '[PolkascanExplorerAdapter] getRuntimeErrorMessage: Provide the specName (string), specVersion (number), pallet (string) ' +
         'and errorName (string).'
       );
     }
@@ -58,7 +58,7 @@ export const getRuntimeErrorMessage = (adapter: Adapter) =>
     if (isObject(runtimeErrorMessage)) {
       return runtimeErrorMessage;
     } else {
-      throw new Error(`[PolkascanAdapter] getRuntimeErrorMessage: Returned response is invalid.`);
+      throw new Error(`[PolkascanExplorerAdapter] getRuntimeErrorMessage: Returned response is invalid.`);
     }
   };
 
@@ -67,7 +67,7 @@ export const getRuntimeErrorMessages = (adapter: Adapter) =>
   async (
     specName: string, specVersion: number, pallet?: string): Promise<pst.ListResponse<pst.RuntimeErrorMessage>> => {
     if (!adapter.socket) {
-      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+      throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
     const filters: string[] = [];
@@ -80,7 +80,7 @@ export const getRuntimeErrorMessages = (adapter: Adapter) =>
       }
     } else {
       throw new Error(
-        '[PolkascanAdapter] getRuntimeErrorMessages: Provide the specName (string), specVersion (number) and optionally pallet (string).'
+        '[PolkascanExplorerAdapter] getRuntimeErrorMessages: Provide the specName (string), specVersion (number) and optionally pallet (string).'
       );
     }
 
@@ -92,6 +92,6 @@ export const getRuntimeErrorMessages = (adapter: Adapter) =>
     if (isArray(RuntimeErrorMessages)) {
       return result.getRuntimeErrorMessages;
     } else {
-      throw new Error(`[PolkascanAdapter] getRuntimeErrorMessages: Returned response is invalid.`);
+      throw new Error(`[PolkascanExplorerAdapter] getRuntimeErrorMessages: Returned response is invalid.`);
     }
   };

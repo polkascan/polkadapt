@@ -17,8 +17,8 @@
  */
 
 
-import { Adapter } from '../polkascan';
-import * as pst from '../polkascan.types';
+import { Adapter } from '../polkascan-explorer';
+import * as pst from '../polkascan-explorer.types';
 import {
   generateObjectQuery, generateObjectsListQuery, generateSubscription, isArray, isDefined, isFunction, isObject, isPositiveNumber
 } from './helpers';
@@ -40,29 +40,29 @@ const genericLogFields = [
 export const getLog = (adapter: Adapter) =>
   async (blockNumber: number, logIdx: number): Promise<pst.Log> => {
     if (!adapter.socket) {
-      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+      throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
     const filters: string[] = [];
 
     if (!isDefined(blockNumber)) {
-      throw new Error(`[PolkascanAdapter] getLog: Provide a block number (number).`);
+      throw new Error(`[PolkascanExplorerAdapter] getLog: Provide a block number (number).`);
     }
 
     if (!isDefined(logIdx)) {
-      throw new Error(`[PolkascanAdapter] getLog: Provide an logIdx (number).`);
+      throw new Error(`[PolkascanExplorerAdapter] getLog: Provide an logIdx (number).`);
     }
 
     if (isPositiveNumber(blockNumber)) {
       filters.push(`blockNumber: ${blockNumber}`);
     } else {
-      throw new Error(`[PolkascanAdapter] getLog: Provided block number must be a positive number.`);
+      throw new Error(`[PolkascanExplorerAdapter] getLog: Provided block number must be a positive number.`);
     }
 
     if (isPositiveNumber(logIdx)) {
       filters.push(`logIdx: ${logIdx}`);
     } else {
-      throw new Error(`[PolkascanAdapter] getLog: Provided logIdx must be a positive number.`);
+      throw new Error(`[PolkascanExplorerAdapter] getLog: Provided logIdx must be a positive number.`);
     }
 
     const query = generateObjectQuery('getLog', genericLogFields, filters);
@@ -72,7 +72,7 @@ export const getLog = (adapter: Adapter) =>
     if (isObject(log)) {
       return log;
     } else {
-      throw new Error(`[PolkascanAdapter] getLog: Returned response is invalid.`);
+      throw new Error(`[PolkascanExplorerAdapter] getLog: Returned response is invalid.`);
     }
   };
 
@@ -80,7 +80,7 @@ export const getLog = (adapter: Adapter) =>
 export const getLogs = (adapter: Adapter) =>
   async (pageSize?: number, pageKey?: string): Promise<pst.ListResponse<pst.Log>> => {
     if (!adapter.socket) {
-      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+      throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
     const query = generateObjectsListQuery('getLogs', genericLogFields, undefined, pageSize, pageKey);
@@ -90,7 +90,7 @@ export const getLogs = (adapter: Adapter) =>
     if (isArray(logs)) {
       return result.getLogs;
     } else {
-      throw new Error(`[PolkascanAdapter] getLogs: Returned response is invalid.`);
+      throw new Error(`[PolkascanExplorerAdapter] getLogs: Returned response is invalid.`);
     }
   };
 
@@ -98,12 +98,12 @@ export const getLogs = (adapter: Adapter) =>
 export const subscribeNewLog = (adapter: Adapter) =>
   async (...args: ((log: pst.Log) => void)[]): Promise<() => void> => {
     if (!adapter.socket) {
-      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+      throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
     const callback = args.find((arg) => isFunction(arg));
     if (!callback) {
-      throw new Error(`[PolkascanAdapter] subscribeNewLog: No callback function is provided.`);
+      throw new Error(`[PolkascanExplorerAdapter] subscribeNewLog: No callback function is provided.`);
     }
 
     const query = generateSubscription('subscribeNewLog', genericLogFields);

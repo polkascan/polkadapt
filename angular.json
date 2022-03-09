@@ -90,23 +90,23 @@
         }
       }
     },
-    "polkascan": {
+    "polkascan-explorer": {
       "projectType": "library",
-      "root": "projects/polkascan",
-      "sourceRoot": "projects/polkascan/src",
+      "root": "projects/polkascan-explorer",
+      "sourceRoot": "projects/polkascan-explorer/src",
       "prefix": "lib",
       "architect": {
         "build": {
           "builder": "@angular-devkit/build-angular:ng-packagr",
           "options": {
-            "project": "projects/polkascan/ng-package.json"
+            "project": "projects/polkascan-explorer/ng-package.json"
           },
           "configurations": {
             "production": {
-              "tsConfig": "projects/polkascan/tsconfig.lib.prod.json"
+              "tsConfig": "projects/polkascan-explorer/tsconfig.lib.prod.json"
             },
             "development": {
-              "tsConfig": "projects/polkascan/tsconfig.lib.json"
+              "tsConfig": "projects/polkascan-explorer/tsconfig.lib.json"
             }
           },
           "defaultConfiguration": "production"
@@ -114,17 +114,17 @@
         "test": {
           "builder": "@angular-devkit/build-angular:karma",
           "options": {
-            "main": "projects/polkascan/src/test.ts",
-            "tsConfig": "projects/polkascan/tsconfig.spec.json",
-            "karmaConfig": "projects/polkascan/karma.conf.js"
+            "main": "projects/polkascan-explorer/src/test.ts",
+            "tsConfig": "projects/polkascan-explorer/tsconfig.spec.json",
+            "karmaConfig": "projects/polkascan-explorer/karma.conf.js"
           }
         },
         "lint": {
           "builder": "@angular-eslint/builder:lint",
           "options": {
             "lintFilePatterns": [
-              "projects/polkascan/src/**/*.ts",
-              "projects/polkascan/src/**/*.html"
+              "projects/polkascan-explorer/src/**/*.ts",
+              "projects/polkascan-explorer/src/**/*.html"
             ]
           }
         }

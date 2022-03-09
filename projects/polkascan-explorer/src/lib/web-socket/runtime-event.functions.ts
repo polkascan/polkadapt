@@ -17,8 +17,8 @@
  */
 
 
-import { Adapter } from '../polkascan';
-import * as pst from '../polkascan.types';
+import { Adapter } from '../polkascan-explorer';
+import * as pst from '../polkascan-explorer.types';
 import { generateObjectQuery, generateObjectsListQuery, isArray, isNumber, isObject, isString } from './helpers';
 
 const runtimeEventFields: (keyof pst.RuntimeEvent)[] = [
@@ -35,7 +35,7 @@ const runtimeEventFields: (keyof pst.RuntimeEvent)[] = [
 export const getRuntimeEvent = (adapter: Adapter) =>
   async (specName: string, specVersion: number, pallet: string, eventName: string): Promise<pst.RuntimeEvent> => {
     if (!adapter.socket) {
-      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+      throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
     const filters: string[] = [];
@@ -47,7 +47,7 @@ export const getRuntimeEvent = (adapter: Adapter) =>
       filters.push(`eventName: "${eventName}"`);
     } else {
       throw new Error(
-        '[PolkascanAdapter] getRuntimeEvent: Provide the specName (string), specVersion (number), pallet (string) and eventName (string).'
+        '[PolkascanExplorerAdapter] getRuntimeEvent: Provide the specName (string), specVersion (number), pallet (string) and eventName (string).'
       );
     }
 
@@ -58,7 +58,7 @@ export const getRuntimeEvent = (adapter: Adapter) =>
     if (isObject(runtimeEvent)) {
       return runtimeEvent;
     } else {
-      throw new Error(`[PolkascanAdapter] getRuntimeEvent: Returned response is invalid.`);
+      throw new Error(`[PolkascanExplorerAdapter] getRuntimeEvent: Returned response is invalid.`);
     }
   };
 
@@ -67,7 +67,7 @@ export const getRuntimeEvents = (adapter: Adapter) =>
   async (
     specName: string, specVersion: number, pallet?: string): Promise<pst.ListResponse<pst.RuntimeEvent>> => {
     if (!adapter.socket) {
-      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+      throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
     const filters: string[] = [];
@@ -80,7 +80,7 @@ export const getRuntimeEvents = (adapter: Adapter) =>
       }
     } else {
       throw new Error(
-        '[PolkascanAdapter] getRuntimeEvents: Provide the specName (string), specVersion (number) and optionally pallet (string).'
+        '[PolkascanExplorerAdapter] getRuntimeEvents: Provide the specName (string), specVersion (number) and optionally pallet (string).'
       );
     }
 
@@ -92,6 +92,6 @@ export const getRuntimeEvents = (adapter: Adapter) =>
     if (isArray(RuntimeEvents)) {
       return result.getRuntimeEvents;
     } else {
-      throw new Error(`[PolkascanAdapter] getRuntimeEvents: Returned response is invalid.`);
+      throw new Error(`[PolkascanExplorerAdapter] getRuntimeEvents: Returned response is invalid.`);
     }
   };

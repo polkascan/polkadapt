@@ -17,8 +17,8 @@
  */
 
 
-import { Adapter } from '../polkascan';
-import * as pst from '../polkascan.types';
+import { Adapter } from '../polkascan-explorer';
+import * as pst from '../polkascan-explorer.types';
 import { generateObjectQuery, generateObjectsListQuery, isArray, isNumber, isObject, isString } from './helpers';
 
 const runtimeStorageFields: (keyof pst.RuntimeStorage)[] = [
@@ -42,7 +42,7 @@ const runtimeStorageFields: (keyof pst.RuntimeStorage)[] = [
 export const getRuntimeStorage = (adapter: Adapter) =>
   async (specName: string, specVersion: number, pallet: string, storageName: string): Promise<pst.RuntimeStorage> => {
     if (!adapter.socket) {
-      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+      throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
     const filters: string[] = [];
@@ -54,7 +54,7 @@ export const getRuntimeStorage = (adapter: Adapter) =>
       filters.push(`storageName: "${storageName}"`);
     } else {
       throw new Error(
-        '[PolkascanAdapter] getRuntimeStorage: Provide the specName (string), specVersion (number), pallet (string) ' +
+        '[PolkascanExplorerAdapter] getRuntimeStorage: Provide the specName (string), specVersion (number), pallet (string) ' +
         'and storageName (string).'
       );
     }
@@ -67,7 +67,7 @@ export const getRuntimeStorage = (adapter: Adapter) =>
     if (isObject(RuntimeStorage)) {
       return RuntimeStorage;
     } else {
-      throw new Error(`[PolkascanAdapter] getRuntimeStorage: Returned response is invalid.`);
+      throw new Error(`[PolkascanExplorerAdapter] getRuntimeStorage: Returned response is invalid.`);
     }
   };
 
@@ -75,7 +75,7 @@ export const getRuntimeStorage = (adapter: Adapter) =>
 export const getRuntimeStorages = (adapter: Adapter) =>
   async (specName: string, specVersion: number, pallet?: string): Promise<pst.ListResponse<pst.RuntimeStorage>> => {
     if (!adapter.socket) {
-      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+      throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
     const filters: string[] = [];
@@ -88,7 +88,7 @@ export const getRuntimeStorages = (adapter: Adapter) =>
       }
     } else {
       throw new Error(
-        '[PolkascanAdapter] getRuntimeStorages: Provide the specName (string), specVersion (number) and pallet (string).'
+        '[PolkascanExplorerAdapter] getRuntimeStorages: Provide the specName (string), specVersion (number) and pallet (string).'
       );
     }
 
@@ -100,6 +100,6 @@ export const getRuntimeStorages = (adapter: Adapter) =>
     if (isArray(RuntimeStorages)) {
       return result.getRuntimeStorages;
     } else {
-      throw new Error(`[PolkascanAdapter] getRuntimeStorages: Returned response is invalid.`);
+      throw new Error(`[PolkascanExplorerAdapter] getRuntimeStorages: Returned response is invalid.`);
     }
   };

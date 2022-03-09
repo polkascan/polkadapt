@@ -17,8 +17,8 @@
  */
 
 import { AdapterBase } from '@polkadapt/core';
-import { PolkascanWebSocket } from './polkascan.web-socket';
-import * as pst from './polkascan.types';
+import { PolkascanExplorerWebSocket } from './polkascan-explorer.web-socket';
+import * as pst from './polkascan-explorer.types';
 import {
   getBlock,
   getBlockAugmentation,
@@ -147,9 +147,9 @@ export interface Config {
 
 
 export class Adapter extends AdapterBase {
-  name = 'polkascan';
+  name = 'polkascan-explorer';
   promise: Promise<Api> | undefined;
-  socket: PolkascanWebSocket | undefined;
+  socket: PolkascanExplorerWebSocket | undefined;
   config: Config;
 
   constructor(config: Config) {
@@ -157,7 +157,7 @@ export class Adapter extends AdapterBase {
     this.config = config;
 
     if (this.config.wsEndpoint) {
-      this.socket = new PolkascanWebSocket(this.config.wsEndpoint, config.chain);
+      this.socket = new PolkascanExplorerWebSocket(this.config.wsEndpoint, config.chain);
     }
 
     this.promise = new Promise((resolve) => {
@@ -237,7 +237,7 @@ export class Adapter extends AdapterBase {
         const closeCallback = () => {
           clearTimeout(timeout);
           removeListeners();
-          reject('Polkascan websocket connection closed.');
+          reject('PolkascanExplorer websocket connection closed.');
         };
 
         const removeListeners = () => {
@@ -254,7 +254,7 @@ export class Adapter extends AdapterBase {
 
         timeout = setTimeout(() => {
           removeListeners();
-          reject('Polkascan connection timed out.');
+          reject('PolkascanExplorer websocket connection timed out.');
         }, 10000);
       }
     });
@@ -271,7 +271,7 @@ export class Adapter extends AdapterBase {
           this.socket.connect();
         }
       } else {
-        this.socket = new PolkascanWebSocket(this.config.wsEndpoint, this.config.chain);
+        this.socket = new PolkascanExplorerWebSocket(this.config.wsEndpoint, this.config.chain);
         this.socket.connect();
       }
     }
@@ -282,7 +282,7 @@ export class Adapter extends AdapterBase {
     if (this.socket) {
       this.socket.disconnect();
     } else {
-      throw new Error(`[PolkascanAdapter] Can't disconnect! Socket not intialized.`);
+      throw new Error(`[PolkascanExplorerAdapter] Can't disconnect! Socket not intialized.`);
     }
   }
 

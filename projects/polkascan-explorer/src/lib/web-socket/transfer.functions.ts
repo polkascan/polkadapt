@@ -17,8 +17,8 @@
  */
 
 
-import { Adapter } from '../polkascan';
-import * as pst from '../polkascan.types';
+import { Adapter } from '../polkascan-explorer';
+import * as pst from '../polkascan-explorer.types';
 import {
   generateObjectQuery,
   generateObjectsListQuery,
@@ -62,29 +62,29 @@ export interface TransfersFilters {
 export const getTransfer = (adapter: Adapter) =>
   async (blockNumber: number, eventIdx: number): Promise<pst.Transfer> => {
     if (!adapter.socket) {
-      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+      throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
     const filters: string[] = [];
 
     if (!isDefined(blockNumber)) {
-      throw new Error(`[PolkascanAdapter] getTransfer: Provide a block number (number).`);
+      throw new Error(`[PolkascanExplorerAdapter] getTransfer: Provide a block number (number).`);
     }
 
     if (!isDefined(eventIdx)) {
-      throw new Error(`[PolkascanAdapter] getTransfer: Provide an eventIdx (number).`);
+      throw new Error(`[PolkascanExplorerAdapter] getTransfer: Provide an eventIdx (number).`);
     }
 
     if (isPositiveNumber(blockNumber)) {
       filters.push(`blockNumber: ${blockNumber}`);
     } else {
-      throw new Error(`[PolkascanAdapter] getTransfer: Provided block number must be a positive number.`);
+      throw new Error(`[PolkascanExplorerAdapter] getTransfer: Provided block number must be a positive number.`);
     }
 
     if (isPositiveNumber(eventIdx)) {
       filters.push(`eventIdx: ${eventIdx}`);
     } else {
-      throw new Error(`[PolkascanAdapter] getTransfer: Provided eventIdx must be a positive number.`);
+      throw new Error(`[PolkascanExplorerAdapter] getTransfer: Provided eventIdx must be a positive number.`);
     }
 
     const query = generateObjectQuery('getTransfer', genericTransferFields, filters);
@@ -93,7 +93,7 @@ export const getTransfer = (adapter: Adapter) =>
     if (isObject(transfer)) {
       return transfer;
     } else {
-      throw new Error(`[PolkascanAdapter] getTransfer: Returned response is invalid.`);
+      throw new Error(`[PolkascanExplorerAdapter] getTransfer: Returned response is invalid.`);
     }
   };
 
@@ -109,7 +109,7 @@ const createTransfersFilters = (transfersFilters?: TransfersFilters): string[] =
       if (isString(fromMultiAddressAccountId)) {
         filters.push(`fromMultiAddressAccountId: "${fromMultiAddressAccountId as string}"`);
       } else {
-        throw new Error('[PolkascanAdapter] Transfers: Provided fromMultiAddressAccountId must be a non-empty string.');
+        throw new Error('[PolkascanExplorerAdapter] Transfers: Provided fromMultiAddressAccountId must be a non-empty string.');
       }
     }
 
@@ -117,11 +117,11 @@ const createTransfersFilters = (transfersFilters?: TransfersFilters): string[] =
       if (isString(toMultiAddressAccountId)) {
         filters.push(`toMultiAddressAccountId: "${toMultiAddressAccountId as string}"`);
       } else {
-        throw new Error('[PolkascanAdapter] Transfers: Provided toMultiAddressAccountId must be a non-empty string.');
+        throw new Error('[PolkascanExplorerAdapter] Transfers: Provided toMultiAddressAccountId must be a non-empty string.');
       }
     }
   } else if (isDefined(transfersFilters)) {
-    throw new Error('[PolkascanAdapter] Transfers: Provided filters have to be wrapped in an object.');
+    throw new Error('[PolkascanExplorerAdapter] Transfers: Provided filters have to be wrapped in an object.');
   }
 
   return filters;
@@ -131,7 +131,7 @@ const createTransfersFilters = (transfersFilters?: TransfersFilters): string[] =
 export const getTransfers = (adapter: Adapter) =>
   async (transfersFilters?: TransfersFilters, pageSize?: number, pageKey?: string): Promise<pst.ListResponse<pst.Transfer>> => {
     if (!adapter.socket) {
-      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+      throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
     const filters: string[] = createTransfersFilters(transfersFilters);
@@ -142,7 +142,7 @@ export const getTransfers = (adapter: Adapter) =>
     if (isArray(transfers)) {
       return result.getTransfers;
     } else {
-      throw new Error(`[PolkascanAdapter] getTransfers: Returned response is invalid.`);
+      throw new Error(`[PolkascanExplorerAdapter] getTransfers: Returned response is invalid.`);
     }
   };
 
@@ -150,12 +150,12 @@ export const getTransfers = (adapter: Adapter) =>
 export const subscribeNewTransfer = (adapter: Adapter) =>
   async (...args: (((transfer: pst.Transfer) => void) | TransfersFilters | undefined)[]): Promise<() => void> => {
     if (!adapter.socket) {
-      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+      throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
     const callback = args.find((arg) => isFunction(arg)) as (undefined | ((transfers: pst.Transfer) => void));
     if (!callback) {
-      throw new Error(`[PolkascanAdapter] subscribeNewTransfer: No callback function is provided.`);
+      throw new Error(`[PolkascanExplorerAdapter] subscribeNewTransfer: No callback function is provided.`);
     }
 
     let filters: string[] = [];

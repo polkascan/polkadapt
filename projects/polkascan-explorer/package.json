@@ -1,13 +1,13 @@
 {
-  "name": "@polkadapt/polkascan",
+  "name": "@polkadapt/polkascan-explorer",
   "version": "1.0.0",
   "license": "Apache-2.0",
   "author": "Polkascan Foundation <info@polkascan.org>",
-  "description": "PolkADAPT plug-in to fetch data from the Polkascan block explorer API.",
+  "description": "PolkADAPT plug-in to fetch data from the Polkascan Explorer API.",
   "bugs": "https://github.com/polkascan/polkadapt/issues",
-  "homepage": "https://github.com/polkascan/polkadapt/tree/main/projects/polkascan#readme",
+  "homepage": "https://github.com/polkascan/polkadapt/tree/main/projects/polkascan-explorer#readme",
   "repository": {
-    "directory": "projects/polkascan",
+    "directory": "projects/polkascan-explorer",
     "type": "git",
     "url": "https://github.com/polkascan/polkadapt.git"
   },

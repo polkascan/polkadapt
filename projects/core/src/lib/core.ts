@@ -45,7 +45,7 @@ export interface PolkadaptRunConfig {
 // Typescript typings will be available by using the adapters exposed Api type.
 // Typescript example:
 //             const pa: Polkadapt<substrate.Api> = new Polkadapt()                    // Single adapter
-//             const pa: Polkadapt<substrate.Api & polkascan.Api> = new Polkadapt()    // Multiple adapters
+//             const pa: Polkadapt<substrate.Api & polkascanExplorer.Api> = new Polkadapt()    // Multiple adapters
 //
 // Registering adapter instances in Polkadapt.
 //             pa.register(adapter1, adapter2)

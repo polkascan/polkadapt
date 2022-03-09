@@ -17,8 +17,8 @@
  */
 
 
-import { Adapter } from '../polkascan';
-import * as pst from '../polkascan.types';
+import { Adapter } from '../polkascan-explorer';
+import * as pst from '../polkascan-explorer.types';
 import {
   generateObjectQuery,
   generateObjectsListQuery,
@@ -76,29 +76,29 @@ export interface ExtrinsicsFilters {
 export const getExtrinsic = (adapter: Adapter) =>
   async (blockNumber: number, extrinsicIdx: number): Promise<pst.Extrinsic> => {
     if (!adapter.socket) {
-      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+      throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
     const filters: string[] = [];
 
     if (!isDefined(blockNumber)) {
-      throw new Error('[PolkascanAdapter] getExtrinsic: Provide a block number (number).');
+      throw new Error('[PolkascanExplorerAdapter] getExtrinsic: Provide a block number (number).');
     }
 
     if (!isDefined(extrinsicIdx)) {
-      throw new Error('[PolkascanAdapter] getExtrinsic: Provide an extrinsicIdx (number).');
+      throw new Error('[PolkascanExplorerAdapter] getExtrinsic: Provide an extrinsicIdx (number).');
     }
 
     if (isPositiveNumber(blockNumber)) {
       filters.push(`blockNumber: ${blockNumber}`);
     } else {
-      throw new Error('[PolkascanAdapter] getExtrinsic: Provided block number must be a positive number.');
+      throw new Error('[PolkascanExplorerAdapter] getExtrinsic: Provided block number must be a positive number.');
     }
 
     if (isPositiveNumber(extrinsicIdx)) {
       filters.push(`extrinsicIdx: ${extrinsicIdx}`);
     } else {
-      throw new Error('[PolkascanAdapter] getExtrinsic: Provided extrinsicIdx must be a positive number.');
+      throw new Error('[PolkascanExplorerAdapter] getExtrinsic: Provided extrinsicIdx must be a positive number.');
     }
 
     const query = generateObjectQuery('getExtrinsic', extrinsicDetailFields, filters);
@@ -108,7 +108,7 @@ export const getExtrinsic = (adapter: Adapter) =>
     if (isObject(extrinsic)) {
       return extrinsic;
     } else {
-      throw new Error(`[PolkascanAdapter] getExtrinsic: Returned response is invalid.`);
+      throw new Error(`[PolkascanExplorerAdapter] getExtrinsic: Returned response is invalid.`);
     }
   };
 
@@ -127,7 +127,7 @@ const createExtrinsicsFilters = (extrinsicsFilters?: ExtrinsicsFilters): string[
       if (isPositiveNumber(blockNumber)) {
         filters.push(`blockNumber: ${blockNumber as number}`);
       } else {
-        throw new Error('[PolkascanAdapter] Extrinsics: Provided block number must be a positive number.');
+        throw new Error('[PolkascanExplorerAdapter] Extrinsics: Provided block number must be a positive number.');
       }
     }
 
@@ -135,18 +135,18 @@ const createExtrinsicsFilters = (extrinsicsFilters?: ExtrinsicsFilters): string[
       if (isString(callModule)) {
         filters.push(`callModule: "${callModule as string}"`);
       } else {
-        throw new Error('[PolkascanAdapter] Extrinsics: Provided call module must be a non-empty string.');
+        throw new Error('[PolkascanExplorerAdapter] Extrinsics: Provided call module must be a non-empty string.');
       }
     }
 
     if (isDefined(callName)) {
       if (isString(callName)) {
         if (!isDefined(callModule)) {
-          throw new Error('[PolkascanAdapter] Extrinsics: Missing call module (string), only call name is provided.');
+          throw new Error('[PolkascanExplorerAdapter] Extrinsics: Missing call module (string), only call name is provided.');
         }
         filters.push(`callName: "${callName as string}"`);
       } else {
-        throw new Error('[PolkascanAdapter] Extrinsics: Provided call name must be a non-empty string.');
+        throw new Error('[PolkascanExplorerAdapter] Extrinsics: Provided call name must be a non-empty string.');
       }
     }
 
@@ -154,7 +154,7 @@ const createExtrinsicsFilters = (extrinsicsFilters?: ExtrinsicsFilters): string[
       if (Number.isInteger(signed) && (signed === 0 || signed === 1)) {
         filters.push(`signed: ${signed}`);
       } else {
-        throw new Error('[PolkascanAdapter] Extrinsics: Provided signed must be an number with value 0 or 1.');
+        throw new Error('[PolkascanExplorerAdapter] Extrinsics: Provided signed must be an number with value 0 or 1.');
       }
     }
 
@@ -162,12 +162,12 @@ const createExtrinsicsFilters = (extrinsicsFilters?: ExtrinsicsFilters): string[
       if (isString(multiAddressAccountId)) {
         filters.push(`multiAddressAccountId: "${multiAddressAccountId as string}"`);
       } else {
-        throw new Error('[PolkascanAdapter] Extrinsics: Provided call module must be a non-empty string.');
+        throw new Error('[PolkascanExplorerAdapter] Extrinsics: Provided call module must be a non-empty string.');
       }
     }
 
   } else if (isDefined(extrinsicsFilters)) {
-    throw new Error('[PolkascanAdapter] Extrinsics: Provided filters have to be wrapped in an object.');
+    throw new Error('[PolkascanExplorerAdapter] Extrinsics: Provided filters have to be wrapped in an object.');
   }
 
   return filters;
@@ -177,7 +177,7 @@ const createExtrinsicsFilters = (extrinsicsFilters?: ExtrinsicsFilters): string[
 export const getExtrinsics = (adapter: Adapter) =>
   async (extrinsicsFilters?: ExtrinsicsFilters, pageSize?: number, pageKey?: string): Promise<pst.ListResponse<pst.Extrinsic>> => {
     if (!adapter.socket) {
-      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+      throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
     const filters: string[] = createExtrinsicsFilters(extrinsicsFilters);
@@ -188,7 +188,7 @@ export const getExtrinsics = (adapter: Adapter) =>
     if (isArray(extrinsics)) {
       return result.getExtrinsics;
     } else {
-      throw new Error(`[PolkascanAdapter] getExtrinsics: Returned response is invalid.`);
+      throw new Error(`[PolkascanExplorerAdapter] getExtrinsics: Returned response is invalid.`);
     }
   };
 
@@ -196,12 +196,12 @@ export const getExtrinsics = (adapter: Adapter) =>
 export const subscribeNewExtrinsic = (adapter: Adapter) =>
   async (...args: (((extrinsic: pst.Extrinsic) => void) | ExtrinsicsFilters | undefined)[]): Promise<() => void> => {
     if (!adapter.socket) {
-      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+      throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
     const callback = args.find((arg) => isFunction(arg)) as (undefined | ((extrinsic: pst.Extrinsic) => void));
     if (!callback) {
-      throw new Error(`[PolkascanAdapter] subscribeNewExtrinsic: No callback function is provided.`);
+      throw new Error(`[PolkascanExplorerAdapter] subscribeNewExtrinsic: No callback function is provided.`);
     }
 
     let filters: string[] = [];

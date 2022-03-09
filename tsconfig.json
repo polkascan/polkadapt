@@ -39,9 +39,9 @@
         "dist/substrate-rpc/substrate-rpc",
         "dist/substrate-rpc"
       ],
-      "polkascan": [
-        "dist/polkascan/polkascan",
-        "dist/polkascan"
+      "polkascan-explorer": [
+        "dist/polkascan-explorer/polkascan-explorer",
+        "dist/polkascan-explorer"
       ]
     }
   },

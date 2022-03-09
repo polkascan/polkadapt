@@ -22,7 +22,7 @@ PolkADAPT is a stand-alone library with no dependencies at its core. Use it in y
     If you wish, you can add more adapters to the list, e.g.:
     ```json
     {
-      "@polkadapt/polkascan": "^1.0.0",
+      "@polkadapt/polkascan-explorer": "^1.0.0",
       "@polkadapt/coingecko": "^1.0.0"
     }
     ```
@@ -64,11 +64,11 @@ PolkADAPT is a stand-alone library with no dependencies at its core. Use it in y
 
 ```ts
 import { Polkadapt } from '@polkadapt/core';
-import * as polkascan from '@polkadapt/polkascan';
+import * as polkascanExplorer from '@polkadapt/polkascan-explorer';
 import * as substrate from '@polkadapt/substrate-rpc';
 
 // Merge the Api types from the adapters we want to use.
-type AugmentedApi = substrate.Api & polkascan.Api & currency.Api;
+type AugmentedApi = substrate.Api & polkascanExplorer.Api & currency.Api;
 
 // Instantiate the adapters:
 const adapters = [
@@ -76,7 +76,7 @@ const adapters = [
     chain: 'kusama',
     providerURL: 'wss://kusama-rpc.polkadot.io'
   }),
-  new polkascan.Adapter({
+  new polkascanExplorer.Adapter({
     chain: 'kusama',
     wsEndpoint: 'ws://host-xx.polkascan.io:8009/graphql-ws'
   })

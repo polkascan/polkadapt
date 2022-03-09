@@ -17,8 +17,8 @@
  */
 
 
-import { Adapter } from '../polkascan';
-import * as pst from '../polkascan.types';
+import { Adapter } from '../polkascan-explorer';
+import * as pst from '../polkascan-explorer.types';
 import { generateObjectQuery, generateObjectsListQuery, isArray, isNumber, isObject, isString } from './helpers';
 
 const runtimeTypeFields: (keyof pst.RuntimeType)[] = [
@@ -33,7 +33,7 @@ const runtimeTypeFields: (keyof pst.RuntimeType)[] = [
 export const getRuntimeType = (adapter: Adapter) =>
   async (specName: string, specVersion: number, scaleType: string): Promise<pst.RuntimeType> => {
     if (!adapter.socket) {
-      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+      throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
     const filters: string[] = [];
@@ -44,7 +44,7 @@ export const getRuntimeType = (adapter: Adapter) =>
       filters.push(`scaleType: "${scaleType}"`);
     } else {
       throw new Error(
-        '[PolkascanAdapter] getRuntimeType: Provide the specName (string), specVersion (number) and scaleType (string).'
+        '[PolkascanExplorerAdapter] getRuntimeType: Provide the specName (string), specVersion (number) and scaleType (string).'
       );
     }
 
@@ -55,7 +55,7 @@ export const getRuntimeType = (adapter: Adapter) =>
     if (isObject(runtimeType)) {
       return runtimeType;
     } else {
-      throw new Error(`[PolkascanAdapter] getRuntimeType: Returned response is invalid.`);
+      throw new Error(`[PolkascanExplorerAdapter] getRuntimeType: Returned response is invalid.`);
     }
   };
 
@@ -63,7 +63,7 @@ export const getRuntimeType = (adapter: Adapter) =>
 export const getRuntimeTypes = (adapter: Adapter) =>
   async (specName: string, specVersion: number): Promise<pst.ListResponse<pst.RuntimeType>> => {
     if (!adapter.socket) {
-      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+      throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
     const filters: string[] = [];
@@ -73,7 +73,7 @@ export const getRuntimeTypes = (adapter: Adapter) =>
       filters.push(`specVersion: ${specVersion}`);
     } else {
       throw new Error(
-        '[PolkascanAdapter] getRuntimeTypes: Provide the specName (string) and specVersion (number).'
+        '[PolkascanExplorerAdapter] getRuntimeTypes: Provide the specName (string) and specVersion (number).'
       );
     }
 
@@ -84,6 +84,6 @@ export const getRuntimeTypes = (adapter: Adapter) =>
     if (isArray(runtimeTypes)) {
       return result.getRuntimeTypes;
     } else {
-      throw new Error(`[PolkascanAdapter] getRuntimeTypes: Returned response is invalid.`);
+      throw new Error(`[PolkascanExplorerAdapter] getRuntimeTypes: Returned response is invalid.`);
     }
   };

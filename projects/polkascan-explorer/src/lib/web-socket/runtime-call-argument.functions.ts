@@ -17,8 +17,8 @@
  */
 
 
-import { Adapter } from '../polkascan';
-import * as pst from '../polkascan.types';
+import { Adapter } from '../polkascan-explorer';
+import * as pst from '../polkascan-explorer.types';
 import { generateObjectsListQuery, isArray, isNumber, isString } from './helpers';
 
 const runtimeCallArgumentFields: (keyof pst.RuntimeCallArgument)[] = [
@@ -35,7 +35,7 @@ const runtimeCallArgumentFields: (keyof pst.RuntimeCallArgument)[] = [
 export const getRuntimeCallArguments = (adapter: Adapter) =>
   async (specName: string, specVersion: number, pallet: string, callName: string): Promise<pst.ListResponse<pst.RuntimeCallArgument>> => {
     if (!adapter.socket) {
-      throw new Error('[PolkascanAdapter] Socket is not initialized!');
+      throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
     const filters: string[] = [];
@@ -47,7 +47,7 @@ export const getRuntimeCallArguments = (adapter: Adapter) =>
       filters.push(`callName: "${callName}"`);
     } else {
       throw new Error(
-        '[PolkascanAdapter] getRuntimeCallArguments: ' +
+        '[PolkascanExplorerAdapter] getRuntimeCallArguments: ' +
         'Provide the specName (string), specVersion (number), pallet (string) and callName (string).'
       );
     }
@@ -58,6 +58,6 @@ export const getRuntimeCallArguments = (adapter: Adapter) =>
     if (isArray(runtimeCallArguments)) {
       return result.getRuntimeCallArguments;
     } else {
-      throw new Error(`[PolkascanAdapter] getRuntimeCallArguments: Returned response is invalid.`);
+      throw new Error(`[PolkascanExplorerAdapter] getRuntimeCallArguments: Returned response is invalid.`);
     }
   };

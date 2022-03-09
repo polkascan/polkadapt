@@ -20,4 +20,5 @@
  * Public API Surface of polkascan
  */
 
-export * from './lib/polkascan';
+export * from './lib/polkascan-explorer';
+export * as types from './lib/polkascan-explorer.types';
