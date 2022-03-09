@@ -18,8 +18,8 @@ jobs:
     steps:
       - name: Install Headless Chromium Dependencies
         run: |
-          apt update -y
-          apt install -y libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon-x11-0 libxcomposite-dev libxdamage1 libxrandr2 libgbm-dev libasound2
+          sudo apt update -y
+          sudo apt install -y libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon-x11-0 libxcomposite-dev libxdamage1 libxrandr2 libgbm-dev libasound2
 
       - name: Checkout Code Repository
         uses: actions/checkout@v2
