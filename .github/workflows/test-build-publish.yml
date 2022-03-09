@@ -34,7 +34,9 @@ jobs:
           scope: polkadapt
 
       - name: Install NPM Dependencies
-        run: npm ci
+        run: |
+          echo ".npmrc file location: $NPM_CONFIG_USERCONFIG"
+          npm ci
 
       - name: Unit Tests
         run: CHROME_BIN=$(find "$(pwd -P)/node_modules" -type f -name chrome) npm run test:prod
