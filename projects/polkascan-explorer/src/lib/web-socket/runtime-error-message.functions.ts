@@ -80,7 +80,8 @@ export const getRuntimeErrorMessages = (adapter: Adapter) =>
       }
     } else {
       throw new Error(
-        '[PolkascanExplorerAdapter] getRuntimeErrorMessages: Provide the specName (string), specVersion (number) and optionally pallet (string).'
+        '[PolkascanExplorerAdapter] getRuntimeErrorMessages: ' +
+        'Provide the specName (string), specVersion (number) and optionally pallet (string).'
       );
     }
 

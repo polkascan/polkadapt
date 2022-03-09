@@ -82,7 +82,8 @@ export const getRuntimeConstants = (adapter: Adapter) =>
       }
     } else {
       throw new Error(
-        '[PolkascanExplorerAdapter] getRuntimeConstants: Provide the specName (string), specVersion (number) and optionally pallet (string).'
+        '[PolkascanExplorerAdapter] getRuntimeConstants: ' +
+        'Provide the specName (string), specVersion (number) and optionally pallet (string).'
       );
     }
 

@@ -48,7 +48,8 @@ export const getRuntimeCall = (adapter: Adapter) =>
       filters.push(`callName: "${callName}"`);
     } else {
       throw new Error(
-        '[PolkascanExplorerAdapter] getRuntimeCall: Provide the specName (string), specVersion (number), pallet (string) and callName (string).'
+        '[PolkascanExplorerAdapter] getRuntimeCall: ' +
+        'Provide the specName (string), specVersion (number), pallet (string) and callName (string).'
       );
     }
 

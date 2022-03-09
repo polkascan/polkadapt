@@ -47,7 +47,8 @@ export const getRuntimeEvent = (adapter: Adapter) =>
       filters.push(`eventName: "${eventName}"`);
     } else {
       throw new Error(
-        '[PolkascanExplorerAdapter] getRuntimeEvent: Provide the specName (string), specVersion (number), pallet (string) and eventName (string).'
+        '[PolkascanExplorerAdapter] getRuntimeEvent: ' +
+        'Provide the specName (string), specVersion (number), pallet (string) and eventName (string).'
       );
     }
 
