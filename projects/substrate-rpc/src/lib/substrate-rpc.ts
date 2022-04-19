@@ -20,7 +20,12 @@ import { ApiPromise, WsProvider } from '@polkadot/api';
 import { AdapterBase } from '@polkadapt/core';
 import { ApiOptions } from '@polkadot/api/types';
 
-export type Api = ApiPromise;
+type Polkadapted<T> = {
+  [K in keyof T]:
+    T[K] extends ((...args: any[]) => any) ? T[K] : (Polkadapted<T[K]> & Promise<T[K]>);
+};
+
+export type Api = Polkadapted<ApiPromise>;
 
 export interface Config {
   chain: string;
@@ -283,7 +288,7 @@ export class Adapter extends AdapterBase {
           const result: unknown = t.apply(parentObj, argArray);
           if (result instanceof Promise) {
             // Hijack it and return our own.
-            return new Promise(resolve => {
+            return new Promise((resolve, reject) => {
               // Register this call. If it's disconnected without result, we can re-submit the call to another endpoint.
               this.lastNonce += 1;
               const nonce = this.lastNonce.toString();
@@ -292,7 +297,7 @@ export class Adapter extends AdapterBase {
               result.then(value => {
                 this.resolveActiveCall(nonce, value);
               }, e => {
-                throw e;
+                reject(e);
               });
             });
           } else {
