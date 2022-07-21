@@ -47,6 +47,7 @@ import { getRuntimePallet, getRuntimePallets } from './web-socket/runtime-pallet
 import { getRuntimeStorage, getRuntimeStorages } from './web-socket/runtime-storage.functions';
 import { getRuntimeType, getRuntimeTypes } from './web-socket/runtime-type.functions';
 import { getTransfer, getTransfers, subscribeNewTransfer, TransfersFilters } from './web-socket/transfer.functions';
+import { getTaggedAccount, getTaggedAccounts } from './web-socket/tagged-account.functions';
 
 
 export type Api = {
@@ -92,6 +93,10 @@ export type Api = {
         Promise<() => void>;
     };
     state: {
+      getTaggedAccount: (accountId: string) =>
+        Promise<pst.TaggedAccount>;
+      getTaggedAccounts: (tagType?: string) =>
+        Promise<pst.ListResponse<pst.TaggedAccount>>;
       getRuntime: (specName: string, specVersion: number) =>
         Promise<pst.Runtime>;
       getRuntimes: (pageSize?: number, pageKey?: string) =>
@@ -184,6 +189,8 @@ export class Adapter extends AdapterBase {
             subscribeNewTransfer: subscribeNewTransfer(this),
           },
           state: {
+            getTaggedAccount: getTaggedAccount(this),
+            getTaggedAccounts: getTaggedAccounts(this),
             getRuntime: getRuntime(this),
             getRuntimes: getRuntimes(this),
             getLatestRuntime: getLatestRuntime(this),
