@@ -20,8 +20,8 @@
 import { Adapter } from '../polkascan-explorer';
 import * as pst from '../polkascan-explorer.types';
 import { generateObjectQuery, generateObjectsListQuery, isArray, isNumber, isObject, isString } from './helpers';
-import {u8aToHex} from "@polkadot/util";
-import {decodeAddress} from "@polkadot/util-crypto";
+import {u8aToHex} from '@polkadot/util';
+import {decodeAddress} from '@polkadot/util-crypto';
 
 const taggedAccountFields: (keyof pst.TaggedAccount)[] = [
   'accountId',
