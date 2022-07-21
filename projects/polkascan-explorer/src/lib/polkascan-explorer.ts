@@ -48,6 +48,7 @@ import { getRuntimeStorage, getRuntimeStorages } from './web-socket/runtime-stor
 import { getRuntimeType, getRuntimeTypes } from './web-socket/runtime-type.functions';
 import { getTransfer, getTransfers, subscribeNewTransfer, TransfersFilters } from './web-socket/transfer.functions';
 import { getTaggedAccount, getTaggedAccounts } from './web-socket/tagged-account.functions';
+import Timeout = NodeJS.Timeout;
 
 
 export type Api = {
@@ -224,7 +225,7 @@ export class Adapter extends AdapterBase {
 
   get isReady(): Promise<boolean> {
     return new Promise<boolean>((resolve, reject) => {
-      let timeout: number;
+      let timeout: Timeout;
 
       if (!this.socket) {
         resolve(true);
