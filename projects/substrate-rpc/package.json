@@ -18,7 +18,7 @@
   "dependencies": {},
   "devDependencies": {
     "@polkadapt/core": "file:../../dist/core",
-    "@polkadot/api": "^8.1.1",
-    "@polkadot/types": "^8.1.1"
+    "@polkadot/api": "^9.2.2",
+    "@polkadot/types": "^9.2.2"
   }
 }
