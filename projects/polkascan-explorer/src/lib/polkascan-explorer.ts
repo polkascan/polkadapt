@@ -258,7 +258,7 @@ export class Adapter extends AdapterBase {
         this.socket.on('readyChange', readyCallback);
         this.socket.on('close', closeCallback);
 
-        setTimeout(() => {
+        timeout = setTimeout(() => {
           removeListeners();
           reject('PolkascanExplorer websocket connection timed out.');
         }, 10000);

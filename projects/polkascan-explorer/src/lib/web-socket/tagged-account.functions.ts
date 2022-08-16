@@ -19,9 +19,7 @@
 
 import { Adapter } from '../polkascan-explorer';
 import * as pst from '../polkascan-explorer.types';
-import { generateObjectQuery, generateObjectsListQuery, isArray, isNumber, isObject, isString } from './helpers';
-import {u8aToHex} from '@polkadot/util';
-import {decodeAddress} from '@polkadot/util-crypto';
+import { generateObjectQuery, generateObjectsListQuery, isArray, isObject, isString } from './helpers';
 
 const taggedAccountFields: (keyof pst.TaggedAccount)[] = [
   'accountId',
@@ -42,14 +40,13 @@ export const getTaggedAccount = (adapter: Adapter) =>
     }
 
     const filters: string[] = [];
-    const accountIdHex = u8aToHex(decodeAddress(accountId));
 
     if (isString(accountId)) {
-      filters.push(`accountId: "${accountIdHex}"`);
+      filters.push(`accountId: "${accountId}"`);
     } else {
       throw new Error(
         '[PolkascanExplorerAdapter] getTaggedAccount: ' +
-        'Provide the accountId (string).'
+        'Provide the accountId hex (string).'
       );
     }
 

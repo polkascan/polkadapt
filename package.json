@@ -41,8 +41,6 @@
     "@angular/core": "~14.1.2",
     "@angular/platform-browser": "~14.1.2",
     "@angular/platform-browser-dynamic": "~14.1.2",
-    "@polkadot/util": "^10.1.1",
-    "@polkadot/util-crypto": "^10.1.1",
     "rxjs": "~7.5.5",
     "tslib": "^2.3.1",
     "zone.js": "^0.11.5"

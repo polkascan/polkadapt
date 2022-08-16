@@ -294,11 +294,11 @@ export class PolkascanExplorerWebSocket {
     }
 
     // Create a websocket connection timeout and store it.
-    // const timeout = setTimeout(() => {
-    //   // It took too long to connect the websocket. Close it.
-    //   webSocket.close(1000);
-    // }, connectionTimeout);
-    this.connectingWebsockets.set(webSocket, 1000);
+    const timeout = setTimeout(() => {
+      // It took too long to connect the websocket. Close it.
+      webSocket.close(1000);
+    }, connectionTimeout);
+    this.connectingWebsockets.set(webSocket, timeout);
 
     webSocket.onopen = () => {
       this.connectingWebsockets.forEach((t, w) => {
