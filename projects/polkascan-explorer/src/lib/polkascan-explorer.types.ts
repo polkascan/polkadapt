@@ -273,3 +273,14 @@ export type Transfer = {
   blockHash: string;
   complete: boolean;
 };
+
+export type TaggedAccount = {
+  accountId: string;
+  tagName: string;
+  tagType: string;
+  tagSubType: string;
+  riskLevel: number;
+  riskLevelVerbose: string | null;
+  originatorInfo: object | null;
+  beneficiaryInfo: object | null;
+};
