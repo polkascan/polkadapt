@@ -1,6 +1,6 @@
 {
   "name": "@polkadapt/polkascan-explorer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "license": "Apache-2.0",
   "author": "Polkascan Foundation <info@polkascan.org>",
   "description": "PolkADAPT plug-in to fetch data from the Polkascan Explorer API.",
