@@ -78,12 +78,12 @@ export const getLog = (adapter: Adapter) =>
 
 
 export const getLogs = (adapter: Adapter) =>
-  async (pageSize?: number, pageKey?: string): Promise<pst.ListResponse<pst.Log>> => {
+  async (pageSize?: number, pageKey?: string, blockLimitOffset?: number, blockLimitCount?: number): Promise<pst.ListResponse<pst.Log>> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
-    const query = generateObjectsListQuery('getLogs', genericLogFields, undefined, pageSize, pageKey);
+    const query = generateObjectsListQuery('getLogs', genericLogFields, undefined, pageSize, pageKey, blockLimitOffset, blockLimitCount);
     const result = await adapter.socket.query(query) as { getLogs: pst.ListResponse<pst.Log> };
     const logs: pst.Log[] = result.getLogs.objects;
 

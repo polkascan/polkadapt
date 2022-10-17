@@ -48,7 +48,9 @@ const generateQuery = (
   isSubscription?: boolean,
   isList?: boolean,
   pageSize?: number,
-  pageKey?: string
+  pageKey?: string,
+  blockLimitOffset?: number,
+  blockLimitCount?: number
 ) => {
   const type = isSubscription === true ? 'subscription' : 'query';
   let query: string;
@@ -67,10 +69,18 @@ const generateQuery = (
     config.push(`pageKey: "${pageKey}"`);
   }
 
+  if (blockLimitOffset && Number.isInteger(blockLimitOffset) && blockLimitOffset >= 1) {
+    config.push(`blockLimitOffset: ${blockLimitOffset}`);
+  }
+
+  if (blockLimitCount && Number.isInteger(blockLimitCount) && blockLimitCount >= 1) {
+    config.push(`blockLimitCount: ${blockLimitCount}`);
+  }
+
   if (isList === true) {
     let pageInfo = '';
     if (pageSize) {
-      pageInfo = ', pageInfo { pageSize, pageNext, pagePrev }';
+      pageInfo = ', pageInfo { pageSize, pageNext, pagePrev, blockLimitOffset, blockLimitCount }';
     }
     query = `${type} {
       ${name}${config.length > 0 ? `( ${config.join(', ')} )` : ''} {
@@ -101,7 +111,10 @@ export const generateObjectsListQuery = (name: string,
                                          fields?: string[],
                                          filters?: string[],
                                          pageSize?: number,
-                                         pageKey?: string) => generateQuery(name, fields, filters, false, true, pageSize, pageKey);
+                                         pageKey?: string,
+                                         blockLimitOffset?: number,
+                                         blockLimitCount?: number) =>
+  generateQuery(name, fields, filters, false, true, pageSize, pageKey, blockLimitOffset, blockLimitCount);
 
 
 export const generateSubscription = (name: string,
