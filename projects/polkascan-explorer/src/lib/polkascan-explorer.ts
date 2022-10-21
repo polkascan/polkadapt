@@ -56,15 +56,19 @@ export type Api = {
         Promise<pst.Block>;
       getLatestBlock: () =>
         Promise<pst.Block>;
-      getBlocks: (pageSize?: number, pageKey?: string) =>
+      getBlocks: (pageSize?: number, pageKey?: string, blockLimitOffset?: number, blockLimitCount?: number) =>
         Promise<pst.ListResponse<pst.Block>>;
       getBlocksFrom: (hashOrNumber: string | number,
                       pageSize?: number,
-                      pageKey?: string) =>
+                      pageKey?: string,
+                      blockLimitOffset?: number,
+                      blockLimitCount?: number) =>
         Promise<pst.ListResponse<pst.Block>>;
       getBlocksUntil: (hashOrNumber: string | number,
                        pageSize?: number,
-                       pageKey?: string) =>
+                       pageKey?: string,
+                       blockLimitOffset?: number,
+                       blockLimitCount?: number) =>
         Promise<pst.ListResponse<pst.Block>>;
       subscribeNewBlock: (callback: (block: pst.Block) => void) =>
         Promise<() => void>;
