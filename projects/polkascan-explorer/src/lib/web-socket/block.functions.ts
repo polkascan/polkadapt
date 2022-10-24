@@ -85,17 +85,17 @@ const getBlocksFn = (adapter: Adapter, direction?: 'from' | 'until') =>
 
     if (direction === 'from') {
       if (isBlockHash(hashOrNumber)) {
-        filters.push(`hashFrom: "${hashOrNumber as string}"`);
+        filters.push(`hashFrom: "${hashOrNumber}"`);
       } else if (isPositiveNumber(hashOrNumber)) {
-        filters.push(`numberGte: ${hashOrNumber as number}`);
+        filters.push(`numberGte: ${hashOrNumber}`);
       } else {
         throw new Error('[PolkascanExplorerAdapter] getBlocksFrom: Provide a block hash (string) or block number (number).');
       }
     } else if (direction === 'until') {
       if (isBlockHash(hashOrNumber)) {
-        filters.push(`hashUntil: "${hashOrNumber as string}"`);
+        filters.push(`hashUntil: "${hashOrNumber}"`);
       } else if (isPositiveNumber(hashOrNumber)) {
-        filters.push(`numberLte: ${hashOrNumber as number}`);
+        filters.push(`numberLte: ${hashOrNumber}`);
       } else {
         throw new Error('[PolkascanExplorerAdapter] getBlocksUntil: Provide a block hash (string) or block number (number).');
       }

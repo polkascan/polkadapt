@@ -23,7 +23,7 @@ import {
   generateObjectQuery,
   generateObjectsListQuery,
   generateSubscription,
-  isArray,
+  isArray, isDate,
   isDefined,
   isFunction,
   isNumber,
@@ -73,9 +73,9 @@ export interface ExtrinsicsFilters {
   multiAddressAccountId?: string;
   specName?: string;
   specVersion?: number;
-  dateRangeStart?: string;
-  dateRangeEnd?: string;
-  blockRangeStart?: number;
+  dateRangeBegin?: Date;
+  dateRangeEnd?: Date;
+  blockRangeBegin?: number;
   blockRangeEnd?: number;
 }
 
@@ -131,14 +131,14 @@ const createExtrinsicsFilters = (extrinsicsFilters?: ExtrinsicsFilters): string[
     const multiAddressAccountId = extrinsicsFilters.multiAddressAccountId;
     const specName = extrinsicsFilters.specName;
     const specVersion = extrinsicsFilters.specVersion;
-    const dateRangeStart = extrinsicsFilters.dateRangeStart;
+    const dateRangeBegin = extrinsicsFilters.dateRangeBegin;
     const dateRangeEnd = extrinsicsFilters.dateRangeEnd;
-    const blockRangeStart = extrinsicsFilters.blockRangeStart;
+    const blockRangeBegin = extrinsicsFilters.blockRangeBegin;
     const blockRangeEnd = extrinsicsFilters.blockRangeEnd;
 
     if (isDefined(blockNumber)) {
       if (isPositiveNumber(blockNumber)) {
-        filters.push(`blockNumber: ${blockNumber as number}`);
+        filters.push(`blockNumber: ${blockNumber}`);
       } else {
         throw new Error('[PolkascanExplorerAdapter] Extrinsics: Provided block number must be a positive number.');
       }
@@ -146,7 +146,7 @@ const createExtrinsicsFilters = (extrinsicsFilters?: ExtrinsicsFilters): string[
 
     if (isDefined(callModule)) {
       if (isString(callModule)) {
-        filters.push(`callModule: "${callModule as string}"`);
+        filters.push(`callModule: "${callModule}"`);
       } else {
         throw new Error('[PolkascanExplorerAdapter] Extrinsics: Provided call module must be a non-empty string.');
       }
@@ -157,7 +157,7 @@ const createExtrinsicsFilters = (extrinsicsFilters?: ExtrinsicsFilters): string[
         if (!isDefined(callModule)) {
           throw new Error('[PolkascanExplorerAdapter] Extrinsics: Missing call module (string), only call name is provided.');
         }
-        filters.push(`callName: "${callName as string}"`);
+        filters.push(`callName: "${callName}"`);
       } else {
         throw new Error('[PolkascanExplorerAdapter] Extrinsics: Provided call name must be a non-empty string.');
       }
@@ -173,7 +173,7 @@ const createExtrinsicsFilters = (extrinsicsFilters?: ExtrinsicsFilters): string[
 
     if (isDefined(multiAddressAccountId)) {
       if (isString(multiAddressAccountId)) {
-        filters.push(`multiAddressAccountId: "${multiAddressAccountId as string}"`);
+        filters.push(`multiAddressAccountId: "${multiAddressAccountId}"`);
       } else {
         throw new Error('[PolkascanExplorerAdapter] Extrinsics: Provided call module must be a non-empty string.');
       }
@@ -181,7 +181,7 @@ const createExtrinsicsFilters = (extrinsicsFilters?: ExtrinsicsFilters): string[
 
     if (isDefined(specName)) {
       if (isString(specName)) {
-        filters.push(`specName: "${specName as string}"`);
+        filters.push(`specName: "${specName}"`);
       } else {
         throw new Error('[PolkascanExplorerAdapter] Extrinsics: Provided spec name must be a non-empty string.');
       }
@@ -189,39 +189,47 @@ const createExtrinsicsFilters = (extrinsicsFilters?: ExtrinsicsFilters): string[
 
     if (isDefined(specVersion)) {
       if (isNumber(specVersion)) {
-        filters.push(`specVersion: "${specVersion as number}"`);
+        filters.push(`specVersion: ${specVersion}`);
       } else {
         throw new Error('[PolkascanExplorerAdapter] Extrinsics: Provided spec version must be a number.');
       }
     }
 
-    if (isDefined(dateRangeStart)) {
-      if (isString(dateRangeStart)) {
-        filters.push(`dateRangeStart: "${dateRangeStart as string}"`);
+    if (isDefined(dateRangeBegin) && isDefined(dateRangeEnd)) {
+      if (isDate(dateRangeBegin) && isDate(dateRangeEnd)) {
+        filters.push(`blockDatetimeRange: { begin: "${dateRangeBegin.toISOString()}", end: "${dateRangeEnd.toISOString()}" }`);
       } else {
-        throw new Error('[PolkascanExplorerAdapter] Extrinsics: Provided start date must be a non-empty string.');
+        throw new Error('[PolkascanExplorerAdapter] Extrinsics: Provided begin and end date must be a Date.');
+      }
+    } else if (isDefined(dateRangeBegin)) {
+      if (isDate(dateRangeBegin)) {
+        filters.push(`blockDatetimeGte: "${dateRangeBegin.toISOString()}"`);
+      } else {
+        throw new Error('[PolkascanExplorerAdapter] Extrinsics: Provided begin date must be a Date.');
+      }
+    } else if (isDefined(dateRangeEnd)) {
+      if (isDate(dateRangeEnd)) {
+        filters.push(`blockDatetimeLte: "${dateRangeEnd.toISOString()}"`);
+      } else {
+        throw new Error('[PolkascanExplorerAdapter] Extrinsics: Provided end date must be a Date.');
       }
     }
 
-    if (isDefined(dateRangeEnd)) {
-      if (isString(dateRangeEnd)) {
-        filters.push(`dateRangeEnd: "${dateRangeEnd as string}"`);
+    if (isDefined(blockRangeBegin) && isDefined(blockRangeEnd)) {
+      if (isPositiveNumber(blockRangeBegin) && isPositiveNumber(blockRangeEnd)) {
+        filters.push(`blockNumberRange: { begin: ${blockRangeBegin}, end: ${blockRangeEnd} }`);
       } else {
-        throw new Error('[PolkascanExplorerAdapter] Extrinsics: Provided end date must be a non-empty string.');
+        throw new Error('[PolkascanExplorerAdapter] Extrinsics: Provided begin and end block must be a positive number.');
       }
-    }
-
-    if (isDefined(blockRangeStart)) {
-      if (isPositiveNumber(blockRangeStart)) {
-        filters.push(`blockRangeStart: ${blockRangeStart as number}`);
+    } else if (isDefined(blockRangeBegin)) {
+      if (isPositiveNumber(blockRangeBegin)) {
+        filters.push(`blockNumberGte: ${blockRangeBegin}`);
       } else {
-        throw new Error('[PolkascanExplorerAdapter] Extrinsics: Provided start block must be a positive number.');
+        throw new Error('[PolkascanExplorerAdapter] Extrinsics: Provided begin block must be a positive number.');
       }
-    }
-
-    if (isDefined(blockRangeEnd)) {
+    } else if (isDefined(blockRangeEnd)) {
       if (isPositiveNumber(blockRangeEnd)) {
-        filters.push(`blockRangeEnd: ${blockRangeEnd as number}`);
+        filters.push(`blockNumberLte: ${blockRangeEnd}`);
       } else {
         throw new Error('[PolkascanExplorerAdapter] Extrinsics: Provided end block must be a positive number.');
       }

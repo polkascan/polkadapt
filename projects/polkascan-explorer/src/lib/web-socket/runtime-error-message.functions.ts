@@ -76,7 +76,7 @@ export const getRuntimeErrorMessages = (adapter: Adapter) =>
       filters.push(`specName: "${specName}"`);
       filters.push(`specVersion: ${specVersion}`);
       if (isString(pallet)) {
-        filters.push(`pallet: "${pallet as string}"`);
+        filters.push(`pallet: "${pallet}"`);
       }
     } else {
       throw new Error(

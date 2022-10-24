@@ -71,7 +71,7 @@ export const getTaggedAccounts = (adapter: Adapter) =>
     const filters: string[] = [];
 
     if (isString(tagType)) {
-        filters.push(`tagType: "${tagType as string}"`);
+        filters.push(`tagType: "${tagType}"`);
     }
 
     const query = generateObjectsListQuery('getTaggedAccounts', taggedAccountFields, filters);

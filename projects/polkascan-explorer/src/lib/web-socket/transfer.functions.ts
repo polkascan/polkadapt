@@ -107,7 +107,7 @@ const createTransfersFilters = (transfersFilters?: TransfersFilters): string[] =
 
     if (isDefined(fromMultiAddressAccountId)) {
       if (isString(fromMultiAddressAccountId)) {
-        filters.push(`fromMultiAddressAccountId: "${fromMultiAddressAccountId as string}"`);
+        filters.push(`fromMultiAddressAccountId: "${fromMultiAddressAccountId}"`);
       } else {
         throw new Error('[PolkascanExplorerAdapter] Transfers: Provided fromMultiAddressAccountId must be a non-empty string.');
       }
@@ -115,7 +115,7 @@ const createTransfersFilters = (transfersFilters?: TransfersFilters): string[] =
 
     if (isDefined(toMultiAddressAccountId)) {
       if (isString(toMultiAddressAccountId)) {
-        filters.push(`toMultiAddressAccountId: "${toMultiAddressAccountId as string}"`);
+        filters.push(`toMultiAddressAccountId: "${toMultiAddressAccountId}"`);
       } else {
         throw new Error('[PolkascanExplorerAdapter] Transfers: Provided toMultiAddressAccountId must be a non-empty string.');
       }
