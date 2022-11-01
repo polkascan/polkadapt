@@ -129,13 +129,19 @@ const createTransfersFilters = (transfersFilters?: TransfersFilters): string[] =
 
 
 export const getTransfers = (adapter: Adapter) =>
-  async (transfersFilters?: TransfersFilters, pageSize?: number, pageKey?: string): Promise<pst.ListResponse<pst.Transfer>> => {
+  async (transfersFilters?: TransfersFilters,
+         pageSize?: number,
+         pageKey?: string,
+         blockLimitOffset?: number,
+         blockLimitCount?: number): Promise<pst.ListResponse<pst.Transfer>> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
     const filters: string[] = createTransfersFilters(transfersFilters);
-    const query = generateObjectsListQuery('getTransfers', genericTransferFields, filters, pageSize, pageKey);
+    const query = generateObjectsListQuery('getTransfers',
+      genericTransferFields, filters, pageSize, pageKey, blockLimitOffset, blockLimitCount
+    );
     const result = await adapter.socket.query(query) as { getTransfers: pst.ListResponse<pst.Transfer> };
     const transfers = result.getTransfers.objects;
 

@@ -56,36 +56,52 @@ export type Api = {
         Promise<pst.Block>;
       getLatestBlock: () =>
         Promise<pst.Block>;
-      getBlocks: (pageSize?: number, pageKey?: string) =>
+      getBlocks: (pageSize?: number, pageKey?: string, blockLimitOffset?: number, blockLimitCount?: number) =>
         Promise<pst.ListResponse<pst.Block>>;
-      getBlocksFrom: (hashOrNumber: string | number, pageSize?: number, pageKey?: string) =>
+      getBlocksFrom: (hashOrNumber: string | number,
+                      pageSize?: number,
+                      pageKey?: string,
+                      blockLimitOffset?: number,
+                      blockLimitCount?: number) =>
         Promise<pst.ListResponse<pst.Block>>;
-      getBlocksUntil: (hashOrNumber: string | number, pageSize?: number, pageKey?: string) =>
+      getBlocksUntil: (hashOrNumber: string | number,
+                       pageSize?: number,
+                       pageKey?: string,
+                       blockLimitOffset?: number,
+                       blockLimitCount?: number) =>
         Promise<pst.ListResponse<pst.Block>>;
       subscribeNewBlock: (callback: (block: pst.Block) => void) =>
         Promise<() => void>;
       getEvent: (blockNumber: number, eventIdx: number) =>
         Promise<pst.Event>;
-      getEvents: (filters?: EventsFilters, pageSize?: number, pageKey?: string) =>
+      getEvents: (filters?: EventsFilters, pageSize?: number, pageKey?: string, blockLimitOffset?: number, blockLimitCount?: number) =>
         Promise<pst.ListResponse<pst.Event>>;
       subscribeNewEvent: (filtersOrCallback: ((event: pst.Event) => void) | EventsFilters, callback?: (event: pst.Event) => void) =>
         Promise<() => void>;
       getExtrinsic: (blockNumber: number, eventIdx: number) =>
         Promise<pst.Extrinsic>;
-      getExtrinsics: (filters?: ExtrinsicsFilters, pageSize?: number, pageKey?: string) =>
+      getExtrinsics: (filters?: ExtrinsicsFilters,
+                      pageSize?: number,
+                      pageKey?: string,
+                      blockLimitOffset?: number,
+                      blockLimitCount?: number) =>
         Promise<pst.ListResponse<pst.Extrinsic>>;
       subscribeNewExtrinsic: (filtersOrCallback: ((extrinsic: pst.Extrinsic) => void) | ExtrinsicsFilters,
                               callback?: (extrinsic: pst.Extrinsic) => void) =>
         Promise<() => void>;
       getLog: (blockNumber: number, logIdx: number) =>
         Promise<pst.Log>;
-      getLogs: (pageSize?: number, pageKey?: string) =>
+      getLogs: (pageSize?: number, pageKey?: string, blockLimitOffset?: number, blockLimitCount?: number) =>
         Promise<pst.ListResponse<pst.Log>>;
       subscribeNewLog: (callback: (log: pst.Log) => void) =>
         Promise<() => void>;
       getTransfer: (blockNumber: number, eventIdx: number) =>
         Promise<pst.Transfer>;
-      getTransfers: (filters?: TransfersFilters, pageSize?: number, pageKey?: string) =>
+      getTransfers: (filters?: TransfersFilters,
+                     pageSize?: number,
+                     pageKey?: string,
+                     blockLimitOffset?: number,
+                     blockLimitCount?: number) =>
         Promise<pst.ListResponse<pst.Transfer>>;
       subscribeNewTransfer: (filtersOrcallback?: ((log: pst.Transfer) => void) | TransfersFilters,
                              callback?: (log: pst.Transfer) => void) =>
@@ -98,7 +114,7 @@ export type Api = {
         Promise<pst.ListResponse<pst.TaggedAccount>>;
       getRuntime: (specName: string, specVersion: number) =>
         Promise<pst.Runtime>;
-      getRuntimes: (pageSize?: number, pageKey?: string) =>
+      getRuntimes: (pageSize?: number, pageKey?: string, blockLimitOffset?: number, blockLimitCount?: number) =>
         Promise<pst.ListResponse<pst.Runtime>>;
       getLatestRuntime: () =>
         Promise<pst.Runtime>;
