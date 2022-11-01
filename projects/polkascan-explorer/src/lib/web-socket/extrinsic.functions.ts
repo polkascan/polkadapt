@@ -244,13 +244,19 @@ const createExtrinsicsFilters = (extrinsicsFilters?: ExtrinsicsFilters): string[
 
 
 export const getExtrinsics = (adapter: Adapter) =>
-  async (extrinsicsFilters?: ExtrinsicsFilters, pageSize?: number, pageKey?: string): Promise<pst.ListResponse<pst.Extrinsic>> => {
+  async (extrinsicsFilters?: ExtrinsicsFilters,
+         pageSize?: number,
+         pageKey?: string,
+         blockLimitOffset?: number,
+         blockLimitCount?: number): Promise<pst.ListResponse<pst.Extrinsic>> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
     const filters: string[] = createExtrinsicsFilters(extrinsicsFilters);
-    const query = generateObjectsListQuery('getExtrinsics', genericExtrinsicFields, filters, pageSize, pageKey);
+    const query = generateObjectsListQuery('getExtrinsics',
+      genericExtrinsicFields, filters, pageSize, pageKey, blockLimitOffset, blockLimitCount
+    );
     const result = await adapter.socket.query(query) as { getExtrinsics: pst.ListResponse<pst.Extrinsic> };
     const extrinsics = result.getExtrinsics.objects;
 

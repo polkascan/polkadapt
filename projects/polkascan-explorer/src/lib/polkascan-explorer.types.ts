@@ -22,6 +22,8 @@ export type ListResponse<T> = {
     pageSize: number;
     pageNext: string;
     pagePrev: string;
+    blockLimitOffset?: number;
+    blockLimitCount?: number;
   };
 };
 

@@ -217,13 +217,19 @@ const createEventsFilters = (eventsFilters?: EventsFilters): string[] => {
 
 
 export const getEvents = (adapter: Adapter) =>
-  async (eventsFilters?: EventsFilters, pageSize?: number, pageKey?: string): Promise<pst.ListResponse<pst.Event>> => {
+  async (eventsFilters?: EventsFilters,
+         pageSize?: number,
+         pageKey?: string,
+         blockLimitOffset?: number,
+         blockLimitCount?: number): Promise<pst.ListResponse<pst.Event>> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
     const filters: string[] = createEventsFilters(eventsFilters);
-    const query = generateObjectsListQuery('getEvents', genericEventFields, filters, pageSize, pageKey);
+    const query = generateObjectsListQuery('getEvents',
+      genericEventFields, filters, pageSize, pageKey, blockLimitOffset, blockLimitCount
+    );
     const result = await adapter.socket.query(query) as { getEvents: pst.ListResponse<pst.Event> };
     const events = result.getEvents.objects;
 

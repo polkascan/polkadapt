@@ -75,7 +75,9 @@ export const getBlock = (adapter: Adapter) =>
 const getBlocksFn = (adapter: Adapter, direction?: 'from' | 'until') =>
   async (hashOrNumber?: string | number,
          pageSize?: number,
-         pageKey?: string
+         pageKey?: string,
+         blockLimitOffset?: number,
+         blockLimitCount?: number
   ): Promise<pst.ListResponse<pst.Block>> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
@@ -101,7 +103,7 @@ const getBlocksFn = (adapter: Adapter, direction?: 'from' | 'until') =>
       }
     }
 
-    const query = generateObjectsListQuery('getBlocks', genericBlockFields, filters, pageSize, pageKey);
+    const query = generateObjectsListQuery('getBlocks', genericBlockFields, filters, pageSize, pageKey, blockLimitOffset, blockLimitCount);
     const result = await adapter.socket.query(query) as { getBlocks: pst.ListResponse<pst.Block> };
     const blocks: pst.Block[] = result.getBlocks.objects;
     if (isArray(blocks)) {
@@ -130,7 +132,8 @@ export const getLatestBlock = (adapter: Adapter) =>
 
 
 export const getBlocks = (adapter: Adapter) =>
-  (pageSize?: number, pageKey?: string) => getBlocksFn(adapter)(undefined, pageSize, pageKey);
+  (pageSize?: number, pageKey?: string, blockLimitOffset?: number, blockLimitCount?: number) =>
+    getBlocksFn(adapter)(undefined, pageSize, pageKey, blockLimitOffset, blockLimitCount);
 
 
 export const getBlocksFrom = (adapter: Adapter) => getBlocksFn(adapter, 'from');
