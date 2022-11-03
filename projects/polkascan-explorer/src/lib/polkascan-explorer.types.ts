@@ -71,6 +71,20 @@ export type Event = {
 };
 
 
+export type EventIndexAccount = {
+  blockNumber: number;  // PK
+  eventIdx: number;  // PK
+  attributeIdx: number; // PK
+  accountId: string;
+  attributes: string | null;
+  pallet: string;
+  eventName: string;
+  blockDatetime: string | null;
+  sortValue: number | null;
+  extrinsicIdx: number | null;
+};
+
+
 export type Extrinsic = {
   blockNumber: number;  // PK
   extrinsicIdx: number;  // PK
