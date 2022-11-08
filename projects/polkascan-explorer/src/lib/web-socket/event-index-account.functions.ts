@@ -194,14 +194,14 @@ export const getEventsForAccount = (adapter: Adapter) =>
     const filters: string[] = createEventsForAccountFilters(eventsIndexAccountFilters);
     filters.push(`accountId: "${accountId}"`);
 
-    const query = generateObjectsListQuery('getEventIndexAccount',
+    const query = generateObjectsListQuery('getEventsForAccount',
       genericEventFields, filters, pageSize, pageKey, blockLimitOffset, blockLimitCount
     );
-    const result = await adapter.socket.query(query) as { getEventIndexAccount: pst.ListResponse<pst.EventIndexAccount> };
-    const events = result.getEventIndexAccount.objects;
+    const result = await adapter.socket.query(query) as { getEventsForAccount: pst.ListResponse<pst.EventIndexAccount> };
+    const events = result.getEventsForAccount.objects;
 
     if (isArray(events)) {
-      return result.getEventIndexAccount;
+      return result.getEventsForAccount;
     } else {
       throw new Error(`[PolkascanExplorerAdapter] getEventsForAccount: Returned response is invalid.`);
     }
@@ -235,11 +235,11 @@ export const subscribeNewEventForAccount = (adapter: Adapter) =>
       filters = createEventsForAccountFilters(args[0] as EventsIndexAccountFilters);
     }
 
-    const query = generateSubscription('subscribeEventIndexAccount', genericEventFields, filters);
+    const query = generateSubscription('subscribeNewEventForAccount', genericEventFields, filters);
     // return the unsubscribe function.
-    return await adapter.socket.createSubscription(query, (result: { subscribeEventIndexAccount: pst.EventIndexAccount }) => {
+    return await adapter.socket.createSubscription(query, (result: { subscribeNewEventForAccount: pst.EventIndexAccount }) => {
       try {
-        const event = result.subscribeEventIndexAccount;
+        const event = result.subscribeNewEventForAccount;
         if (isObject(event)) {
           callback(event);
         }
