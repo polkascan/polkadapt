@@ -34,7 +34,7 @@ import {
 const genericEventFields = [
   'blockNumber',
   'eventIdx',
-  'attributeIdx',
+  'attributeIndex',
   'accountId',
   'attributes',
   'pallet',
@@ -48,7 +48,7 @@ const genericEventFields = [
 export interface EventsIndexAccountFilters {
   blockNumber?: number;
   eventIdx?: number;
-  attributeIdx?: number;
+  attributeIndex?: number;
   pallet?: string;
   eventName?: string;
   extrinsicIdx?: number;
@@ -65,7 +65,7 @@ const createEventsForAccountFilters = (eventsIndexAccountFilters?: EventsIndexAc
   if (eventsIndexAccountFilters && isObject(eventsIndexAccountFilters)) {
     const blockNumber = eventsIndexAccountFilters.blockNumber;
     const eventIdx = eventsIndexAccountFilters.eventIdx;
-    const attributeIdx = eventsIndexAccountFilters.attributeIdx;
+    const attributeIndex = eventsIndexAccountFilters.attributeIndex;
     const pallet = eventsIndexAccountFilters.pallet;
     const eventName = eventsIndexAccountFilters.eventName;
     const extrinsicIdx = eventsIndexAccountFilters.extrinsicIdx;
@@ -90,11 +90,11 @@ const createEventsForAccountFilters = (eventsIndexAccountFilters?: EventsIndexAc
       }
     }
 
-    if (isDefined(attributeIdx)) {
-      if (isPositiveNumber(attributeIdx)) {
-        filters.push(`attributeIdx: ${attributeIdx}`);
+    if (isDefined(attributeIndex)) {
+      if (isPositiveNumber(attributeIndex)) {
+        filters.push(`attributeIndex: ${attributeIndex}`);
       } else {
-        throw new Error('[PolkascanExplorerAdapter] EventsIndexAccount: Provided attributeIdx must be a positive number.');
+        throw new Error('[PolkascanExplorerAdapter] EventsIndexAccount: Provided attributeIndex must be a positive number.');
       }
     }
 
