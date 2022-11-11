@@ -100,7 +100,7 @@ const createEventsForAccountFilters = (eventsIndexAccountFilters?: EventsIndexAc
 
     if (isDefined(pallet)) {
       if (isString(pallet)) {
-        filters.push(`eventModule: "${pallet}"`);
+        filters.push(`pallet: "${pallet}"`);
       } else {
         throw new Error('[PolkascanExplorerAdapter] EventsIndexAccount: Provided pallet must be a non-empty string.');
       }
