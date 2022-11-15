@@ -34,7 +34,7 @@ import {
 const genericEventFields = [
   'blockNumber',
   'eventIdx',
-  'attributeIndex',
+  'attributeName',
   'accountId',
   'attributes',
   'pallet',
@@ -48,7 +48,7 @@ const genericEventFields = [
 export interface EventsIndexAccountFilters {
   blockNumber?: number;
   eventIdx?: number;
-  attributeIndex?: number;
+  attributeName?: string;
   pallet?: string;
   eventName?: string;
   extrinsicIdx?: number;
@@ -64,11 +64,9 @@ const createEventsForAccountFilters = (eventsIndexAccountFilters?: EventsIndexAc
 
   if (eventsIndexAccountFilters && isObject(eventsIndexAccountFilters)) {
     const blockNumber = eventsIndexAccountFilters.blockNumber;
-    const eventIdx = eventsIndexAccountFilters.eventIdx;
-    const attributeIndex = eventsIndexAccountFilters.attributeIndex;
     const pallet = eventsIndexAccountFilters.pallet;
     const eventName = eventsIndexAccountFilters.eventName;
-    const extrinsicIdx = eventsIndexAccountFilters.extrinsicIdx;
+    const attributeName = eventsIndexAccountFilters.attributeName;
     const dateRangeBegin = eventsIndexAccountFilters.dateRangeBegin;
     const dateRangeEnd = eventsIndexAccountFilters.dateRangeEnd;
     const blockRangeBegin = eventsIndexAccountFilters.blockRangeBegin;
@@ -79,22 +77,6 @@ const createEventsForAccountFilters = (eventsIndexAccountFilters?: EventsIndexAc
         filters.push(`blockNumber: ${blockNumber}`);
       } else {
         throw new Error('[PolkascanExplorerAdapter] EventsIndexAccount: Provided block number must be a positive number.');
-      }
-    }
-
-    if (isDefined(eventIdx)) {
-      if (isPositiveNumber(eventIdx)) {
-        filters.push(`eventIdx: ${eventIdx}`);
-      } else {
-        throw new Error('[PolkascanExplorerAdapter] EventsIndexAccount: Provided eventIdx must be a positive number.');
-      }
-    }
-
-    if (isDefined(attributeIndex)) {
-      if (isPositiveNumber(attributeIndex)) {
-        filters.push(`attributeIndex: ${attributeIndex}`);
-      } else {
-        throw new Error('[PolkascanExplorerAdapter] EventsIndexAccount: Provided attributeIndex must be a positive number.');
       }
     }
 
@@ -117,14 +99,11 @@ const createEventsForAccountFilters = (eventsIndexAccountFilters?: EventsIndexAc
       }
     }
 
-    if (isDefined(extrinsicIdx)) {
-      if (isPositiveNumber(extrinsicIdx)) {
-        if (!isDefined(blockNumber)) {
-          throw new Error('[PolkascanExplorerAdapter] EventsIndexAccount: Missing block number (number), only extrinsicIdx is provided.');
-        }
-        filters.push(`extrinsicIdx: ${extrinsicIdx}`);
+    if (isDefined(attributeName)) {
+      if (isString(attributeName)) {
+        filters.push(`attributeName: "${attributeName}"`);
       } else {
-        throw new Error('[PolkascanExplorerAdapter] EventsIndexAccount: Provided extrinsicIdx must be a positive number.');
+        throw new Error('[PolkascanExplorerAdapter] EventsIndexAccount: Provided attribute name must be a non-empty string.');
       }
     }
 
