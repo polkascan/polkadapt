@@ -48,6 +48,11 @@ import { getRuntimeStorage, getRuntimeStorages } from './web-socket/runtime-stor
 import { getRuntimeType, getRuntimeTypes } from './web-socket/runtime-type.functions';
 import { getTransfer, getTransfers, subscribeNewTransfer, TransfersFilters } from './web-socket/transfer.functions';
 import { getTaggedAccount, getTaggedAccounts } from './web-socket/tagged-account.functions';
+import {
+  EventsIndexAccountFilters,
+  getEventsByAccount,
+  subscribeNewEventByAccount
+} from './web-socket/account-event.functions';
 
 export type Api = {
   polkascan: {
@@ -77,6 +82,17 @@ export type Api = {
       getEvents: (filters?: EventsFilters, pageSize?: number, pageKey?: string, blockLimitOffset?: number, blockLimitCount?: number) =>
         Promise<pst.ListResponse<pst.Event>>;
       subscribeNewEvent: (filtersOrCallback: ((event: pst.Event) => void) | EventsFilters, callback?: (event: pst.Event) => void) =>
+        Promise<() => void>;
+      getEventsByAccount: (accountId: string,
+                            filters?: EventsIndexAccountFilters,
+                            pageSize?: number,
+                            pageKey?: string,
+                            blockLimitOffset?: number,
+                            blockLimitCount?: number) =>
+        Promise<pst.ListResponse<pst.AccountEvent>>;
+      subscribeNewEventByAccount: (accountId: string,
+                                    filtersOrCallback: ((event: pst.AccountEvent) => void) | EventsIndexAccountFilters,
+                                    callback?: (event: pst.AccountEvent) => void) =>
         Promise<() => void>;
       getExtrinsic: (blockNumber: number, eventIdx: number) =>
         Promise<pst.Extrinsic>;
@@ -193,6 +209,8 @@ export class Adapter extends AdapterBase {
             getEvent: getEvent(this),
             getEvents: getEvents(this),
             subscribeNewEvent: subscribeNewEvent(this),
+            getEventsByAccount: getEventsByAccount(this),
+            subscribeNewEventByAccount: subscribeNewEventByAccount(this),
             getExtrinsic: getExtrinsic(this),
             getExtrinsics: getExtrinsics(this),
             subscribeNewExtrinsic: subscribeNewExtrinsic(this),
