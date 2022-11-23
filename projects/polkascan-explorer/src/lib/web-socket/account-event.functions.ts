@@ -59,7 +59,7 @@ export interface EventsIndexAccountFilters {
 }
 
 
-const createEventsForAccountFilters = (eventsIndexAccountFilters?: EventsIndexAccountFilters): string[] => {
+const createEventsByAccountFilters = (eventsIndexAccountFilters?: EventsIndexAccountFilters): string[] => {
   const filters: string[] = [];
 
   if (eventsIndexAccountFilters && isObject(eventsIndexAccountFilters)) {
@@ -155,70 +155,70 @@ const createEventsForAccountFilters = (eventsIndexAccountFilters?: EventsIndexAc
 };
 
 
-export const getEventsForAccount = (adapter: Adapter) =>
+export const getEventsByAccount = (adapter: Adapter) =>
   async (accountId: string,
          eventsIndexAccountFilters?: EventsIndexAccountFilters,
          pageSize?: number,
          pageKey?: string,
          blockLimitOffset?: number,
-         blockLimitCount?: number): Promise<pst.ListResponse<pst.EventIndexAccount>> => {
+         blockLimitCount?: number): Promise<pst.ListResponse<pst.AccountEvent>> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
     if (!isDefined(accountId)) {
-      throw new Error('[PolkascanExplorerAdapter] getEventsForAccount: Provide an accountId (string).');
+      throw new Error('[PolkascanExplorerAdapter] getEventsByAccount: Provide an accountId (string).');
     }
 
-    const filters: string[] = createEventsForAccountFilters(eventsIndexAccountFilters);
+    const filters: string[] = createEventsByAccountFilters(eventsIndexAccountFilters);
     filters.push(`accountId: "${accountId}"`);
 
-    const query = generateObjectsListQuery('getEventsForAccount',
+    const query = generateObjectsListQuery('getEventsByAccount',
       genericEventFields, filters, pageSize, pageKey, blockLimitOffset, blockLimitCount
     );
-    const result = await adapter.socket.query(query) as { getEventsForAccount: pst.ListResponse<pst.EventIndexAccount> };
-    const events = result.getEventsForAccount.objects;
+    const result = await adapter.socket.query(query) as { getEventsByAccount: pst.ListResponse<pst.AccountEvent> };
+    const events = result.getEventsByAccount.objects;
 
     if (isArray(events)) {
-      return result.getEventsForAccount;
+      return result.getEventsByAccount;
     } else {
-      throw new Error(`[PolkascanExplorerAdapter] getEventsForAccount: Returned response is invalid.`);
+      throw new Error(`[PolkascanExplorerAdapter] getEventsByAccount: Returned response is invalid.`);
     }
   };
 
 
-export const subscribeNewEventForAccount = (adapter: Adapter) =>
+export const subscribeNewEventByAccount = (adapter: Adapter) =>
   async (accountId: string,
-         ...args: (((event: pst.EventIndexAccount) => void) | EventsIndexAccountFilters | undefined)[]): Promise<() => void> => {
+         ...args: (((event: pst.AccountEvent) => void) | EventsIndexAccountFilters | undefined)[]): Promise<() => void> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
     if (!isDefined(accountId)) {
-      throw new Error('[PolkascanExplorerAdapter] subscribeNewEventForAccount: Provide an accountId (string).');
+      throw new Error('[PolkascanExplorerAdapter] subscribeNewEventByAccount: Provide an accountId (string).');
     }
 
     if (!isString(accountId)) {
-      throw new Error('[PolkascanExplorerAdapter] subscribeNewEventForAccount: Provided accountId must be a string.');
+      throw new Error('[PolkascanExplorerAdapter] subscribeNewEventByAccount: Provided accountId must be a string.');
     }
 
-    const callback = args.find((arg) => isFunction(arg)) as (undefined | ((event: pst.EventIndexAccount) => void));
+    const callback = args.find((arg) => isFunction(arg)) as (undefined | ((event: pst.AccountEvent) => void));
     if (!callback) {
-      throw new Error(`[PolkascanExplorerAdapter] subscribeNewEventForAccount: No callback function is provided.`);
+      throw new Error(`[PolkascanExplorerAdapter] subscribeNewEventByAccount: No callback function is provided.`);
     }
 
     let filters: string[] = [];
     filters.push(`accountId: "${accountId}"`);
 
-    if (isObject(args[1])) {
-      filters = createEventsForAccountFilters(args[0] as EventsIndexAccountFilters);
+    if (isObject(args[0])) {
+      filters = createEventsByAccountFilters(args[0] as EventsIndexAccountFilters);
     }
 
-    const query = generateSubscription('subscribeNewEventForAccount', genericEventFields, filters);
+    const query = generateSubscription('subscribeNewEventByAccount', genericEventFields, filters);
     // return the unsubscribe function.
-    return await adapter.socket.createSubscription(query, (result: { subscribeNewEventForAccount: pst.EventIndexAccount }) => {
+    return await adapter.socket.createSubscription(query, (result: { subscribeNewEventByAccount: pst.AccountEvent }) => {
       try {
-        const event = result.subscribeNewEventForAccount;
+        const event = result.subscribeNewEventByAccount;
         if (isObject(event)) {
           callback(event);
         }

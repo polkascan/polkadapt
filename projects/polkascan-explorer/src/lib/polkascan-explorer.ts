@@ -50,9 +50,9 @@ import { getTransfer, getTransfers, subscribeNewTransfer, TransfersFilters } fro
 import { getTaggedAccount, getTaggedAccounts } from './web-socket/tagged-account.functions';
 import {
   EventsIndexAccountFilters,
-  getEventsForAccount,
-  subscribeNewEventForAccount
-} from './web-socket/event-index-account.functions';
+  getEventsByAccount,
+  subscribeNewEventByAccount
+} from './web-socket/account-event.functions';
 
 export type Api = {
   polkascan: {
@@ -83,16 +83,16 @@ export type Api = {
         Promise<pst.ListResponse<pst.Event>>;
       subscribeNewEvent: (filtersOrCallback: ((event: pst.Event) => void) | EventsFilters, callback?: (event: pst.Event) => void) =>
         Promise<() => void>;
-      getEventsForAccount: (accountId: string,
+      getEventsByAccount: (accountId: string,
                             filters?: EventsIndexAccountFilters,
                             pageSize?: number,
                             pageKey?: string,
                             blockLimitOffset?: number,
                             blockLimitCount?: number) =>
-        Promise<pst.ListResponse<pst.EventIndexAccount>>;
-      subscribeNewEventForAccount: (accountId: string,
-                                    filtersOrCallback: ((event: pst.EventIndexAccount) => void) | EventsIndexAccountFilters,
-                                    callback?: (event: pst.EventIndexAccount) => void) =>
+        Promise<pst.ListResponse<pst.AccountEvent>>;
+      subscribeNewEventByAccount: (accountId: string,
+                                    filtersOrCallback: ((event: pst.AccountEvent) => void) | EventsIndexAccountFilters,
+                                    callback?: (event: pst.AccountEvent) => void) =>
         Promise<() => void>;
       getExtrinsic: (blockNumber: number, eventIdx: number) =>
         Promise<pst.Extrinsic>;
@@ -209,8 +209,8 @@ export class Adapter extends AdapterBase {
             getEvent: getEvent(this),
             getEvents: getEvents(this),
             subscribeNewEvent: subscribeNewEvent(this),
-            getEventsForAccount: getEventsForAccount(this),
-            subscribeNewEventForAccount: subscribeNewEventForAccount(this),
+            getEventsByAccount: getEventsByAccount(this),
+            subscribeNewEventByAccount: subscribeNewEventByAccount(this),
             getExtrinsic: getExtrinsic(this),
             getExtrinsics: getExtrinsics(this),
             subscribeNewExtrinsic: subscribeNewExtrinsic(this),
