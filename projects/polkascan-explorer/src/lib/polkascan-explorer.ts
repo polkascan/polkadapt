@@ -49,7 +49,7 @@ import { getRuntimeType, getRuntimeTypes } from './web-socket/runtime-type.funct
 import { getTransfer, getTransfers, subscribeNewTransfer, TransfersFilters } from './web-socket/transfer.functions';
 import { getTaggedAccount, getTaggedAccounts } from './web-socket/tagged-account.functions';
 import {
-  EventsIndexAccountFilters,
+  AccountEventsFilters,
   getEventsByAccount,
   subscribeNewEventByAccount
 } from './web-socket/account-event.functions';
@@ -84,14 +84,14 @@ export type Api = {
       subscribeNewEvent: (filtersOrCallback: ((event: pst.Event) => void) | EventsFilters, callback?: (event: pst.Event) => void) =>
         Promise<() => void>;
       getEventsByAccount: (accountId: string,
-                            filters?: EventsIndexAccountFilters,
+                            filters?: AccountEventsFilters,
                             pageSize?: number,
                             pageKey?: string,
                             blockLimitOffset?: number,
                             blockLimitCount?: number) =>
         Promise<pst.ListResponse<pst.AccountEvent>>;
       subscribeNewEventByAccount: (accountId: string,
-                                    filtersOrCallback: ((event: pst.AccountEvent) => void) | EventsIndexAccountFilters,
+                                    filtersOrCallback: ((event: pst.AccountEvent) => void) | AccountEventsFilters,
                                     callback?: (event: pst.AccountEvent) => void) =>
         Promise<() => void>;
       getExtrinsic: (blockNumber: number, eventIdx: number) =>

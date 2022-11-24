@@ -45,7 +45,7 @@ const genericEventFields = [
 ];
 
 
-export interface EventsIndexAccountFilters {
+export interface AccountEventsFilters {
   blockNumber?: number;
   eventIdx?: number;
   attributeName?: string;
@@ -56,54 +56,66 @@ export interface EventsIndexAccountFilters {
   dateRangeEnd?: Date;
   blockRangeBegin?: number;
   blockRangeEnd?: number;
+  eventTypes?: {[pallet: string]: string[]};
 }
 
 
-const createEventsByAccountFilters = (eventsIndexAccountFilters?: EventsIndexAccountFilters): string[] => {
+const createEventsByAccountFilters = (accountEventsFilters?: AccountEventsFilters): string[] => {
   const filters: string[] = [];
 
-  if (eventsIndexAccountFilters && isObject(eventsIndexAccountFilters)) {
-    const blockNumber = eventsIndexAccountFilters.blockNumber;
-    const pallet = eventsIndexAccountFilters.pallet;
-    const eventName = eventsIndexAccountFilters.eventName;
-    const attributeName = eventsIndexAccountFilters.attributeName;
-    const dateRangeBegin = eventsIndexAccountFilters.dateRangeBegin;
-    const dateRangeEnd = eventsIndexAccountFilters.dateRangeEnd;
-    const blockRangeBegin = eventsIndexAccountFilters.blockRangeBegin;
-    const blockRangeEnd = eventsIndexAccountFilters.blockRangeEnd;
+  if (accountEventsFilters && isObject(accountEventsFilters)) {
+    const blockNumber = accountEventsFilters.blockNumber;
+    const pallet = accountEventsFilters.pallet;
+    const eventName = accountEventsFilters.eventName;
+    const attributeName = accountEventsFilters.attributeName;
+    const dateRangeBegin = accountEventsFilters.dateRangeBegin;
+    const dateRangeEnd = accountEventsFilters.dateRangeEnd;
+    const blockRangeBegin = accountEventsFilters.blockRangeBegin;
+    const blockRangeEnd = accountEventsFilters.blockRangeEnd;
+    const eventTypes = accountEventsFilters.eventTypes;
 
     if (isDefined(blockNumber)) {
       if (isPositiveNumber(blockNumber)) {
         filters.push(`blockNumber: ${blockNumber}`);
       } else {
-        throw new Error('[PolkascanExplorerAdapter] EventsIndexAccount: Provided block number must be a positive number.');
+        throw new Error('[PolkascanExplorerAdapter] AccountEvents: Provided block number must be a positive number.');
       }
     }
 
-    if (isDefined(pallet)) {
-      if (isString(pallet)) {
-        filters.push(`pallet: "${pallet}"`);
-      } else {
-        throw new Error('[PolkascanExplorerAdapter] EventsIndexAccount: Provided pallet must be a non-empty string.');
+    if (isDefined(eventTypes)) {
+      const pairs = [];
+      for (const [p, events] of Object.entries(eventTypes)) {
+        pairs.push(`{ pallet: "${p}", eventNameIn: [${events.map(n => `"${n}"`).join(', ')}] }`);
       }
-    }
+      filters.push(`or: [ ${pairs.join(' ')} ]`);
+    } else {
 
-    if (isDefined(eventName)) {
-      if (isString(eventName)) {
-        if (!isDefined(pallet)) {
-          throw new Error('[PolkascanExplorerAdapter] EventsIndexAccount: Missing pallet (string), only event name is provided.');
+      if (isDefined(pallet)) {
+        if (isString(pallet)) {
+          filters.push(`pallet: "${pallet}"`);
+        } else {
+          throw new Error('[PolkascanExplorerAdapter] AccountEvents: Provided pallet must be a non-empty string.');
         }
-        filters.push(`eventName: "${eventName}"`);
-      } else {
-        throw new Error('[PolkascanExplorerAdapter] EventsIndexAccount: Provided event name must be a non-empty string.');
       }
+
+      if (isDefined(eventName)) {
+        if (isString(eventName)) {
+          if (!isDefined(pallet)) {
+            throw new Error('[PolkascanExplorerAdapter] AccountEvents: Missing pallet (string), only event name is provided.');
+          }
+          filters.push(`eventName: "${eventName}"`);
+        } else {
+          throw new Error('[PolkascanExplorerAdapter] AccountEvents: Provided event name must be a non-empty string.');
+        }
+      }
+
     }
 
     if (isDefined(attributeName)) {
       if (isString(attributeName)) {
         filters.push(`attributeName: "${attributeName}"`);
       } else {
-        throw new Error('[PolkascanExplorerAdapter] EventsIndexAccount: Provided attribute name must be a non-empty string.');
+        throw new Error('[PolkascanExplorerAdapter] AccountEvents: Provided attribute name must be a non-empty string.');
       }
     }
 
@@ -111,19 +123,19 @@ const createEventsByAccountFilters = (eventsIndexAccountFilters?: EventsIndexAcc
       if (isDate(dateRangeBegin) && isDate(dateRangeEnd)) {
         filters.push(`blockDatetimeRange: { begin: "${dateRangeBegin.toISOString()}", end: "${dateRangeEnd.toISOString()}" }`);
       } else {
-        throw new Error('[PolkascanExplorerAdapter] EventsIndexAccount: Provided begin and end date must be a Date.');
+        throw new Error('[PolkascanExplorerAdapter] AccountEvents: Provided begin and end date must be a Date.');
       }
     } else if (isDefined(dateRangeBegin)) {
       if (isDate(dateRangeBegin)) {
         filters.push(`blockDatetimeGte: "${dateRangeBegin.toISOString()}"`);
       } else {
-        throw new Error('[PolkascanExplorerAdapter] EventsIndexAccount: Provided begin date must be a Date.');
+        throw new Error('[PolkascanExplorerAdapter] AccountEvents: Provided begin date must be a Date.');
       }
     } else if (isDefined(dateRangeEnd)) {
       if (isDate(dateRangeEnd)) {
         filters.push(`blockDatetimeLte: "${dateRangeEnd.toISOString()}"`);
       } else {
-        throw new Error('[PolkascanExplorerAdapter] EventsIndexAccount: Provided end date must be a Date.');
+        throw new Error('[PolkascanExplorerAdapter] AccountEvents: Provided end date must be a Date.');
       }
     }
 
@@ -131,24 +143,24 @@ const createEventsByAccountFilters = (eventsIndexAccountFilters?: EventsIndexAcc
       if (isPositiveNumber(blockRangeBegin) && isPositiveNumber(blockRangeEnd)) {
         filters.push(`blockNumberRange: { begin: ${blockRangeBegin}, end: ${blockRangeEnd} }`);
       } else {
-        throw new Error('[PolkascanExplorerAdapter] EventsIndexAccount: Provided begin and end block must be a positive number.');
+        throw new Error('[PolkascanExplorerAdapter] AccountEvents: Provided begin and end block must be a positive number.');
       }
     } else if (isDefined(blockRangeBegin)) {
       if (isPositiveNumber(blockRangeBegin)) {
         filters.push(`blockNumberGte: ${blockRangeBegin}`);
       } else {
-        throw new Error('[PolkascanExplorerAdapter] EventsIndexAccount: Provided begin block must be a positive number.');
+        throw new Error('[PolkascanExplorerAdapter] AccountEvents: Provided begin block must be a positive number.');
       }
     } else if (isDefined(blockRangeEnd)) {
       if (isPositiveNumber(blockRangeEnd)) {
         filters.push(`blockNumberLte: ${blockRangeEnd}`);
       } else {
-        throw new Error('[PolkascanExplorerAdapter] EventsIndexAccount: Provided end block must be a positive number.');
+        throw new Error('[PolkascanExplorerAdapter] AccountEvents: Provided end block must be a positive number.');
       }
     }
 
-  } else if (isDefined(eventsIndexAccountFilters)) {
-    throw new Error('[PolkascanExplorerAdapter] EventsIndexAccount: Provided filters have to be wrapped in an object.');
+  } else if (isDefined(accountEventsFilters)) {
+    throw new Error('[PolkascanExplorerAdapter] AccountEvents: Provided filters have to be wrapped in an object.');
   }
 
   return filters;
@@ -157,7 +169,7 @@ const createEventsByAccountFilters = (eventsIndexAccountFilters?: EventsIndexAcc
 
 export const getEventsByAccount = (adapter: Adapter) =>
   async (accountId: string,
-         eventsIndexAccountFilters?: EventsIndexAccountFilters,
+         accountEventsFilters?: AccountEventsFilters,
          pageSize?: number,
          pageKey?: string,
          blockLimitOffset?: number,
@@ -170,7 +182,7 @@ export const getEventsByAccount = (adapter: Adapter) =>
       throw new Error('[PolkascanExplorerAdapter] getEventsByAccount: Provide an accountId (string).');
     }
 
-    const filters: string[] = createEventsByAccountFilters(eventsIndexAccountFilters);
+    const filters: string[] = createEventsByAccountFilters(accountEventsFilters);
     filters.push(`accountId: "${accountId}"`);
 
     const query = generateObjectsListQuery('getEventsByAccount',
@@ -189,7 +201,7 @@ export const getEventsByAccount = (adapter: Adapter) =>
 
 export const subscribeNewEventByAccount = (adapter: Adapter) =>
   async (accountId: string,
-         ...args: (((event: pst.AccountEvent) => void) | EventsIndexAccountFilters | undefined)[]): Promise<() => void> => {
+         ...args: (((event: pst.AccountEvent) => void) | AccountEventsFilters | undefined)[]): Promise<() => void> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
@@ -211,8 +223,9 @@ export const subscribeNewEventByAccount = (adapter: Adapter) =>
     filters.push(`accountId: "${accountId}"`);
 
     if (isObject(args[0])) {
-      filters = createEventsByAccountFilters(args[0] as EventsIndexAccountFilters);
+      filters = createEventsByAccountFilters(args[0] as AccountEventsFilters);
     }
+    filters.push(`accountId: "${accountId}"`);
 
     const query = generateSubscription('subscribeNewEventByAccount', genericEventFields, filters);
     // return the unsubscribe function.
