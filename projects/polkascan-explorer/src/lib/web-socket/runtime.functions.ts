@@ -32,7 +32,9 @@ const runtimeFields: (keyof pst.Runtime)[] = [
   'countPallets',
   'countStorageFunctions',
   'countConstants',
-  'countErrors'
+  'countErrors',
+  'blockNumber',
+  'blockHash'
 ];
 
 

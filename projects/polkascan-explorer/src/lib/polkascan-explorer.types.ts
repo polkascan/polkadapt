@@ -140,6 +140,8 @@ export type Runtime = {
   countStorageFunctions: number;
   countConstants: number;
   countErrors: number;
+  blockNumber: number;
+  blockHash: string;
 };
 
 
