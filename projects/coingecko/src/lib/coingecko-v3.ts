@@ -24,6 +24,10 @@ export type Api = {
       Promise<number | undefined>;
     getHistoricalPrice: (day: number, month: number, year: number, currency: string) =>
       Promise<number | undefined>;
+    getHistoricalPricesRange: (from: number, to: number, currency: string) =>
+      Promise<[number, number][] | undefined>;
+    getHistoricalPrices: (currency: string, days: number | 'max') =>
+      Promise<[number, number][] | undefined>;
   };
 };
 
@@ -35,6 +39,14 @@ export type Config = {
 type CoinGeckoSimpleResponse = { [chain: string]: { [currency: string]: number } };
 // eslint-disable-next-line @typescript-eslint/naming-convention
 type CoinGeckoHistoryResponse = { market_data: { current_price: { [currency: string]: number } } };
+type CoinGeckoPriceRangeResponse = { prices: [number, number][]};
+type CoinGeckoMarketChartResponse = {
+  prices: [number, number][];
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  market_caps: [number, number][];
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  totals_volume: [number, number][];
+};
 
 export class Adapter extends AdapterBase {
   name = 'coingecko';
@@ -81,6 +93,36 @@ export class Adapter extends AdapterBase {
             }
             if (response && response.market_data && response.market_data.current_price) {
               return response.market_data.current_price[currency.toLowerCase()];
+            }
+            return undefined;
+          },
+          getHistoricalPricesRange: async (from, to, currency) => {
+            let response: CoinGeckoPriceRangeResponse;
+            try {
+              response = await this.request(
+              `coins/${this.config.chain}/market_chart/range?vs_currency=${currency}&from=${from}&to=${to}`
+              ) as CoinGeckoPriceRangeResponse;
+            } catch (e) {
+              console.error('[CoinGecko v3 adapter] Could not fetch price range information.', e);
+              return undefined;
+            }
+            if (response && response.prices && Array.isArray(response.prices)) {
+              return response.prices;
+            }
+            return undefined;
+          },
+          getHistoricalPrices: async (currency: string, days: number | 'max') => {
+            let response: CoinGeckoMarketChartResponse;
+            try {
+              response = await this.request(
+              `coins/${this.config.chain}/market_chart?vs_currency=${currency}&days=${days}&interval=daily`
+              ) as CoinGeckoMarketChartResponse;
+            } catch (e) {
+              console.error('[CoinGecko v3 adapter] Could not fetch historic prices information.', e);
+              return undefined;
+            }
+            if (response && response.prices && Array.isArray(response.prices)) {
+              return response.prices;
             }
             return undefined;
           }
