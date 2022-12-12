@@ -28,6 +28,7 @@ const runtimeConstantFields: (keyof pst.RuntimeConstant)[] = [
   'constantName',
   'palletConstantIdx',
   'scaleType',
+  'scaleTypeComposition',
   'value',
   'documentation'
 ];

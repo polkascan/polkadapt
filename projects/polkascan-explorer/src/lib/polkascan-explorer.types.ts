@@ -76,7 +76,7 @@ export type AccountEvent = {
   eventIdx: number;  // PK
   attributeName: string; // PK
   accountId: string;
-  attributes: any;
+  attributes: string | null;
   pallet: string;
   eventName: string;
   blockDatetime: string | null;
@@ -164,6 +164,7 @@ export type RuntimeCallArgument = {
   callArgumentIdx: number | null;  // PK
   name: string | null;
   scaleType: string | null;
+  scaleTypeComposition: string | null;
 };
 
 
@@ -174,6 +175,7 @@ export type RuntimeConstant = {
   constantName: string | null;  // PK
   palletConstantIdx: number;
   scaleType: string | null;
+  scaleTypeComposition: string | null;
   value: any | null;
   documentation: string | null;
 };
@@ -207,8 +209,9 @@ export type RuntimeEventAttribute = {
   specVersion: number;  // PK
   pallet: string;  // PK
   eventName: string | null;  // PK
-  eventAttributeIdx: number;  // PK
+  eventAttributeName: string;  // PK
   scaleType: string | null;
+  scaleTypeComposition: string | null;
 };
 
 
@@ -259,28 +262,6 @@ export type Log = {
   complete: number;
 };
 
-
-export type Transfer = {
-  blockNumber: number;  // PK
-  eventIdx: number;  // PK
-  extrinsicIdx: number | null;
-  fromMultiAddressType: string | null;
-  fromMultiAddressAccountId: string | null;
-  fromMultiAddressAccountIndex: number | null;
-  fromMultiAddressRaw: string | null;
-  fromMultiAddressAddress32: string | null;
-  fromMultiAddressAddress20: string | null;
-  toMultiAddressType: string | null;
-  toMultiAddressAccountId: string | null;
-  toMultiAddressAccountIndex: number | null;
-  toMultiAddressRaw: string | null;
-  toMultiAddressAddress32: string | null;
-  toMultiAddressAddress20: string | null;
-  value: number | null;
-  blockDatetime: string | null;
-  blockHash: string;
-  complete: boolean;
-};
 
 export type TaggedAccount = {
   accountId: string;

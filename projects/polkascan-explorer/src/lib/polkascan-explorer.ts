@@ -45,7 +45,6 @@ import { getRuntimeEvent, getRuntimeEvents } from './web-socket/runtime-event.fu
 import { getRuntimeEventAttributes } from './web-socket/runtime-event-attribute.functions';
 import { getRuntimePallet, getRuntimePallets } from './web-socket/runtime-pallet.functions';
 import { getRuntimeStorage, getRuntimeStorages } from './web-socket/runtime-storage.functions';
-import { getTransfer, getTransfers, subscribeNewTransfer, TransfersFilters } from './web-socket/transfer.functions';
 import { getTaggedAccount, getTaggedAccounts } from './web-socket/tagged-account.functions';
 import {
   AccountEventsFilters,
@@ -109,17 +108,6 @@ export type Api = {
       getLogs: (pageSize?: number, pageKey?: string, blockLimitOffset?: number, blockLimitCount?: number) =>
         Promise<pst.ListResponse<pst.Log>>;
       subscribeNewLog: (callback: (log: pst.Log) => void) =>
-        Promise<() => void>;
-      getTransfer: (blockNumber: number, eventIdx: number) =>
-        Promise<pst.Transfer>;
-      getTransfers: (filters?: TransfersFilters,
-                     pageSize?: number,
-                     pageKey?: string,
-                     blockLimitOffset?: number,
-                     blockLimitCount?: number) =>
-        Promise<pst.ListResponse<pst.Transfer>>;
-      subscribeNewTransfer: (filtersOrcallback?: ((log: pst.Transfer) => void) | TransfersFilters,
-                             callback?: (log: pst.Transfer) => void) =>
         Promise<() => void>;
     };
     state: {
@@ -212,9 +200,6 @@ export class Adapter extends AdapterBase {
             getLog: getLog(this),
             getLogs: getLogs(this),
             subscribeNewLog: subscribeNewLog(this),
-            getTransfer: getTransfer(this),
-            getTransfers: getTransfers(this),
-            subscribeNewTransfer: subscribeNewTransfer(this),
           },
           state: {
             getTaggedAccount: getTaggedAccount(this),
