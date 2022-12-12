@@ -121,16 +121,19 @@ export class Adapter extends AdapterBase {
               console.error('[CoinGecko v3 adapter] Could not fetch historic prices information.', e);
               return undefined;
             }
-            if (response && response.prices && Array.isArray(response.prices)) {
-              const lastItem = response.prices[response.prices.length];
+            const prices = response && response.prices;
+            if (prices && Array.isArray(prices)) {
+              const lastItem = prices[prices.length];
               if (lastItem) {
                 const date = new Date(lastItem[0]);
                 const startOfUtcDay = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
                 if (+date !== +startOfUtcDay) {
-                  response.prices.pop();
+                  prices.pop();
                 }
               }
-              return response.prices;
+              if (prices.length > 0) {
+                return prices;
+              }
             }
             return undefined;
           }
