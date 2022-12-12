@@ -246,16 +246,6 @@ export type RuntimeStorage = {
 };
 
 
-export type RuntimeType = {
-  specName: string;  // PK
-  specVersion: number;  // PK
-  scaleType: string;  // PK
-  decoderClass: string | null;
-  isCorePrimitive: boolean;
-  isRuntimePrimitive: boolean;
-};
-
-
 export type Log = {
   blockNumber: number;  // PK
   logIdx: number;  // PK

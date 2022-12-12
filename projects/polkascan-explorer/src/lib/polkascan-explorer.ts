@@ -45,7 +45,6 @@ import { getRuntimeEvent, getRuntimeEvents } from './web-socket/runtime-event.fu
 import { getRuntimeEventAttributes } from './web-socket/runtime-event-attribute.functions';
 import { getRuntimePallet, getRuntimePallets } from './web-socket/runtime-pallet.functions';
 import { getRuntimeStorage, getRuntimeStorages } from './web-socket/runtime-storage.functions';
-import { getRuntimeType, getRuntimeTypes } from './web-socket/runtime-type.functions';
 import { getTransfer, getTransfers, subscribeNewTransfer, TransfersFilters } from './web-socket/transfer.functions';
 import { getTaggedAccount, getTaggedAccounts } from './web-socket/tagged-account.functions';
 import {
@@ -162,10 +161,6 @@ export type Api = {
         Promise<pst.RuntimeStorage>;
       getRuntimeStorages: (specName: string, specVersion: number, pallet?: string) =>
         Promise<pst.ListResponse<pst.RuntimeStorage>>;
-      getRuntimeType: (specName: string, specVersion: number, pallet: string, scaleType: string) =>
-        Promise<pst.RuntimeType>;
-      getRuntimeTypes: (specName: string, specVersion: number, pallet?: string) =>
-        Promise<pst.ListResponse<pst.RuntimeType>>;
     };
   };
   rpc: {
@@ -241,8 +236,6 @@ export class Adapter extends AdapterBase {
             getRuntimePallets: getRuntimePallets(this),
             getRuntimeStorage: getRuntimeStorage(this),
             getRuntimeStorages: getRuntimeStorages(this),
-            getRuntimeType: getRuntimeType(this),
-            getRuntimeTypes: getRuntimeTypes(this)
           }
         },
         rpc: {
