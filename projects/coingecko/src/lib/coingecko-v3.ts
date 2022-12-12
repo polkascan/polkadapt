@@ -122,6 +122,14 @@ export class Adapter extends AdapterBase {
               return undefined;
             }
             if (response && response.prices && Array.isArray(response.prices)) {
+              const lastItem = response.prices[response.prices.length];
+              if (lastItem) {
+                const date = new Date(lastItem[0]);
+                const startOfUtcDay = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+                if (+date !== +startOfUtcDay) {
+                  response.prices.pop();
+                }
+              }
               return response.prices;
             }
             return undefined;
