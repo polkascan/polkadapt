@@ -55,7 +55,7 @@ export const getRuntimeErrorMessage = (adapter: Adapter) =>
 
     const result = await adapter.socket.query(query) as { getRuntimeErrorMessage: pst.RuntimeErrorMessage };
     const runtimeErrorMessage = result.getRuntimeErrorMessage;
-    if (isObject(runtimeErrorMessage)) {
+    if (runtimeErrorMessage === null || isObject(runtimeErrorMessage)) {
       return runtimeErrorMessage;
     } else {
       throw new Error(`[PolkascanExplorerAdapter] getRuntimeErrorMessage: Returned response is invalid.`);

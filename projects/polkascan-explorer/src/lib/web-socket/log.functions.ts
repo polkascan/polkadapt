@@ -69,7 +69,7 @@ export const getLog = (adapter: Adapter) =>
 
     const result = await adapter.socket.query(query) as { getLog: pst.Log };
     const log = result.getLog;
-    if (isObject(log)) {
+    if (log === null || isObject(log)) {
       return log;
     } else {
       throw new Error(`[PolkascanExplorerAdapter] getLog: Returned response is invalid.`);

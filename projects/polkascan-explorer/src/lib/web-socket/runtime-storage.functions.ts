@@ -63,9 +63,9 @@ export const getRuntimeStorage = (adapter: Adapter) =>
 
     const result = await adapter.socket.query(query) as { getRuntimeStorage: pst.RuntimeStorage };
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const RuntimeStorage = result.getRuntimeStorage;
-    if (isObject(RuntimeStorage)) {
-      return RuntimeStorage;
+    const runtimeStorage = result.getRuntimeStorage;
+    if (runtimeStorage === null || isObject(runtimeStorage)) {
+      return runtimeStorage;
     } else {
       throw new Error(`[PolkascanExplorerAdapter] getRuntimeStorage: Returned response is invalid.`);
     }
@@ -96,8 +96,8 @@ export const getRuntimeStorages = (adapter: Adapter) =>
 
     const result = await adapter.socket.query(query) as { getRuntimeStorages: pst.ListResponse<pst.RuntimeStorage> };
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const RuntimeStorages = result.getRuntimeStorages.objects;
-    if (isArray(RuntimeStorages)) {
+    const runtimeStorages = result.getRuntimeStorages.objects;
+    if (isArray(runtimeStorages)) {
       return result.getRuntimeStorages;
     } else {
       throw new Error(`[PolkascanExplorerAdapter] getRuntimeStorages: Returned response is invalid.`);

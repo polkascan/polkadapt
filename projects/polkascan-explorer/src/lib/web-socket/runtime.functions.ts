@@ -57,8 +57,10 @@ export const getRuntime = (adapter: Adapter) =>
 
     const result = await adapter.socket.query(query) as { getRuntime: pst.Runtime };
     const runtime = result.getRuntime;
-    if (isObject(runtime)) {
-      runtime.specVersion = parseInt(runtime.specVersion as unknown as string, 10);  // TODO hack
+    if (runtime === null || isObject(runtime)) {
+      if (runtime) {
+        runtime.specVersion = parseInt(runtime.specVersion as unknown as string, 10);  // TODO hack
+      }
       return runtime;
     } else {
       throw new Error(`[PolkascanExplorerAdapter] getRuntime: Returned response is invalid.`);
@@ -75,8 +77,10 @@ export const getLatestRuntime = (adapter: Adapter) =>
     const query = generateObjectQuery('getLatestRuntime', runtimeFields, []);
     const result = await adapter.socket.query(query) as { getLatestRuntime: pst.Runtime };
     const runtime = result.getLatestRuntime;
-    if (isObject(runtime)) {
-      runtime.specVersion = parseInt(runtime.specVersion as unknown as string, 10);  // TODO hack
+    if (runtime === null || isObject(runtime)) {
+      if (runtime) {
+        runtime.specVersion = parseInt(runtime.specVersion as unknown as string, 10);  // TODO hack
+      }
       return runtime;
     } else {
       throw new Error(`[PolkascanExplorerAdapter] getRuntime: Returned response is invalid.`);

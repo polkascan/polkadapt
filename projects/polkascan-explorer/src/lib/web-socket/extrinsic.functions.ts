@@ -112,7 +112,7 @@ export const getExtrinsic = (adapter: Adapter) =>
 
     const result = await adapter.socket.query(query) as { getExtrinsic: pst.Extrinsic };
     const extrinsic = result.getExtrinsic;
-    if (isObject(extrinsic)) {
+    if (extrinsic === null || isObject(extrinsic)) {
       return extrinsic;
     } else {
       throw new Error(`[PolkascanExplorerAdapter] getExtrinsic: Returned response is invalid.`);

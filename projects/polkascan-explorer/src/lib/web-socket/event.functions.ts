@@ -91,7 +91,7 @@ export const getEvent = (adapter: Adapter) => async (blockNumber: number, eventI
   const query = generateObjectQuery('getEvent', genericEventFields, filters);
   const result = await adapter.socket.query(query) as { getEvent: pst.Event };
   const event = result.getEvent;
-  if (isObject(event)) {
+  if (event === null || isObject(event)) {
     return event;
   } else {
     throw new Error(`[PolkascanExplorerAdapter] getEvent: Returned response is invalid.`);

@@ -57,7 +57,7 @@ export const getRuntimeCall = (adapter: Adapter) =>
 
     const result = await adapter.socket.query(query) as { getRuntimeCall: pst.RuntimeCall };
     const runtimeCall = result.getRuntimeCall;
-    if (isObject(runtimeCall)) {
+    if (runtimeCall === null || isObject(runtimeCall)) {
       return runtimeCall;
     } else {
       throw new Error(`[PolkascanExplorerAdapter] getRuntimeCall: Returned response is invalid.`);

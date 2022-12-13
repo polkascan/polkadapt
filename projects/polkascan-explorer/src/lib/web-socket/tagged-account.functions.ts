@@ -54,7 +54,7 @@ export const getTaggedAccount = (adapter: Adapter) =>
 
     const result = await adapter.socket.query(query) as { getTaggedAccount: pst.TaggedAccount };
     const account = result.getTaggedAccount;
-    if (isObject(account)) {
+    if (account === null || isObject(account)) {
       return account;
     } else {
       throw new Error(`[PolkascanExplorerAdapter] getTaggedAccount: Returned response is invalid.`);

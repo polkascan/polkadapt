@@ -56,7 +56,7 @@ export const getRuntimeEvent = (adapter: Adapter) =>
 
     const result = await adapter.socket.query(query) as { getRuntimeEvent: pst.RuntimeEvent };
     const runtimeEvent = result.getRuntimeEvent;
-    if (isObject(runtimeEvent)) {
+    if (runtimeEvent === null || isObject(runtimeEvent)) {
       return runtimeEvent;
     } else {
       throw new Error(`[PolkascanExplorerAdapter] getRuntimeEvent: Returned response is invalid.`);

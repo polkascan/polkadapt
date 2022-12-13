@@ -64,7 +64,7 @@ export const getBlock = (adapter: Adapter) =>
     const query = generateObjectQuery('getBlock', genericBlockFields, filters);
     const result = await adapter.socket.query(query) as { getBlock: pst.Block };
     const block = result.getBlock;
-    if (isObject(block)) {
+    if (block === null || isObject(block)) {
       return block;
     } else {
       throw new Error(`[PolkascanExplorerAdapter] getBlock: Returned response is invalid.`);

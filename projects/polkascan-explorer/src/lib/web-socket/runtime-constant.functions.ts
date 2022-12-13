@@ -58,7 +58,7 @@ export const getRuntimeConstant = (adapter: Adapter) =>
 
     const result = await adapter.socket.query(query) as { getRuntimeConstant: pst.RuntimeConstant };
     const runtimeConstant = result.getRuntimeConstant;
-    if (isObject(runtimeConstant)) {
+    if (runtimeConstant === null || isObject(runtimeConstant)) {
       return runtimeConstant;
     } else {
       throw new Error(`[PolkascanExplorerAdapter] getRuntimeConstant: Returned response is invalid.`);
