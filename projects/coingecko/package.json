@@ -1,6 +1,6 @@
 {
   "name": "@polkadapt/coingecko",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "license": "Apache-2.0",
   "author": "Polkascan Foundation <info@polkascan.org>",
   "description": "PolkADAPT plug-in to fetch pricing data from CoinGecko.",

@@ -26,8 +26,9 @@ const runtimeEventAttributeFields: (keyof pst.RuntimeEventAttribute)[] = [
   'specVersion',
   'pallet',
   'eventName',
-  'eventAttributeIdx',
-  'scaleType'
+  'eventAttributeName',
+  'scaleType',
+  'scaleTypeComposition'
 ];
 
 

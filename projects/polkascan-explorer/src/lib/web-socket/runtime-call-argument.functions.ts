@@ -28,7 +28,8 @@ const runtimeCallArgumentFields: (keyof pst.RuntimeCallArgument)[] = [
   'callName',
   'callArgumentIdx',
   'name',
-  'scaleType'
+  'scaleType',
+  'scaleTypeComposition'
 ];
 
 

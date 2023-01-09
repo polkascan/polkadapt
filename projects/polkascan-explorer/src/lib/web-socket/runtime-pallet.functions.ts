@@ -56,7 +56,7 @@ export const getRuntimePallet = (adapter: Adapter) =>
 
     const result = await adapter.socket.query(query) as { getRuntimePallet: pst.RuntimePallet };
     const runtimePallet = result.getRuntimePallet;
-    if (isObject(runtimePallet)) {
+    if (runtimePallet === null || isObject(runtimePallet)) {
       return runtimePallet;
     } else {
       throw new Error(`[PolkascanExplorerAdapter] getRuntimePallet: Returned response is invalid.`);

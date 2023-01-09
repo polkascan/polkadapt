@@ -56,7 +56,7 @@ export const getRuntimeEvent = (adapter: Adapter) =>
 
     const result = await adapter.socket.query(query) as { getRuntimeEvent: pst.RuntimeEvent };
     const runtimeEvent = result.getRuntimeEvent;
-    if (isObject(runtimeEvent)) {
+    if (runtimeEvent === null || isObject(runtimeEvent)) {
       return runtimeEvent;
     } else {
       throw new Error(`[PolkascanExplorerAdapter] getRuntimeEvent: Returned response is invalid.`);
@@ -77,7 +77,7 @@ export const getRuntimeEvents = (adapter: Adapter) =>
       filters.push(`specName: "${specName}"`);
       filters.push(`specVersion: ${specVersion}`);
       if (isString(pallet)) {
-        filters.push(`pallet: "${pallet as string}"`);
+        filters.push(`pallet: "${pallet}"`);
       }
     } else {
       throw new Error(

@@ -22,6 +22,8 @@ export type ListResponse<T> = {
     pageSize: number;
     pageNext: string;
     pagePrev: string;
+    blockLimitOffset?: number;
+    blockLimitCount?: number;
   };
 };
 
@@ -66,6 +68,20 @@ export type Event = {
   specName: string | null;
   specVersion: number | null;
   complete: number;
+};
+
+
+export type AccountEvent = {
+  blockNumber: number;  // PK
+  eventIdx: number;  // PK
+  attributeName: string; // PK
+  accountId: string;
+  attributes: string | null;
+  pallet: string;
+  eventName: string;
+  blockDatetime: string | null;
+  sortValue: number | null;
+  extrinsicIdx: number | null;
 };
 
 
@@ -124,6 +140,8 @@ export type Runtime = {
   countStorageFunctions: number;
   countConstants: number;
   countErrors: number;
+  blockNumber: number;
+  blockHash: string;
 };
 
 
@@ -146,6 +164,7 @@ export type RuntimeCallArgument = {
   callArgumentIdx: number | null;  // PK
   name: string | null;
   scaleType: string | null;
+  scaleTypeComposition: string | null;
 };
 
 
@@ -156,6 +175,7 @@ export type RuntimeConstant = {
   constantName: string | null;  // PK
   palletConstantIdx: number;
   scaleType: string | null;
+  scaleTypeComposition: string | null;
   value: any | null;
   documentation: string | null;
 };
@@ -189,8 +209,9 @@ export type RuntimeEventAttribute = {
   specVersion: number;  // PK
   pallet: string;  // PK
   eventName: string | null;  // PK
-  eventAttributeIdx: number;  // PK
+  eventAttributeName: string;  // PK
   scaleType: string | null;
+  scaleTypeComposition: string | null;
 };
 
 
@@ -228,16 +249,6 @@ export type RuntimeStorage = {
 };
 
 
-export type RuntimeType = {
-  specName: string;  // PK
-  specVersion: number;  // PK
-  scaleType: string;  // PK
-  decoderClass: string | null;
-  isCorePrimitive: boolean;
-  isRuntimePrimitive: boolean;
-};
-
-
 export type Log = {
   blockNumber: number;  // PK
   logIdx: number;  // PK
@@ -251,28 +262,6 @@ export type Log = {
   complete: number;
 };
 
-
-export type Transfer = {
-  blockNumber: number;  // PK
-  eventIdx: number;  // PK
-  extrinsicIdx: number | null;
-  fromMultiAddressType: string | null;
-  fromMultiAddressAccountId: string | null;
-  fromMultiAddressAccountIndex: number | null;
-  fromMultiAddressRaw: string | null;
-  fromMultiAddressAddress32: string | null;
-  fromMultiAddressAddress20: string | null;
-  toMultiAddressType: string | null;
-  toMultiAddressAccountId: string | null;
-  toMultiAddressAccountIndex: number | null;
-  toMultiAddressRaw: string | null;
-  toMultiAddressAddress32: string | null;
-  toMultiAddressAddress20: string | null;
-  value: number | null;
-  blockDatetime: string | null;
-  blockHash: string;
-  complete: boolean;
-};
 
 export type TaggedAccount = {
   accountId: string;
