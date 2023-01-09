@@ -45,9 +45,12 @@ import { getRuntimeEvent, getRuntimeEvents } from './web-socket/runtime-event.fu
 import { getRuntimeEventAttributes } from './web-socket/runtime-event-attribute.functions';
 import { getRuntimePallet, getRuntimePallets } from './web-socket/runtime-pallet.functions';
 import { getRuntimeStorage, getRuntimeStorages } from './web-socket/runtime-storage.functions';
-import { getRuntimeType, getRuntimeTypes } from './web-socket/runtime-type.functions';
-import { getTransfer, getTransfers, subscribeNewTransfer, TransfersFilters } from './web-socket/transfer.functions';
 import { getTaggedAccount, getTaggedAccounts } from './web-socket/tagged-account.functions';
+import {
+  AccountEventsFilters,
+  getEventsByAccount,
+  subscribeNewEventByAccount
+} from './web-socket/account-event.functions';
 
 export type Api = {
   polkascan: {
@@ -56,39 +59,55 @@ export type Api = {
         Promise<pst.Block>;
       getLatestBlock: () =>
         Promise<pst.Block>;
-      getBlocks: (pageSize?: number, pageKey?: string) =>
+      getBlocks: (pageSize?: number, pageKey?: string, blockLimitOffset?: number, blockLimitCount?: number) =>
         Promise<pst.ListResponse<pst.Block>>;
-      getBlocksFrom: (hashOrNumber: string | number, pageSize?: number, pageKey?: string) =>
+      getBlocksFrom: (hashOrNumber: string | number,
+                      pageSize?: number,
+                      pageKey?: string,
+                      blockLimitOffset?: number,
+                      blockLimitCount?: number) =>
         Promise<pst.ListResponse<pst.Block>>;
-      getBlocksUntil: (hashOrNumber: string | number, pageSize?: number, pageKey?: string) =>
+      getBlocksUntil: (hashOrNumber: string | number,
+                       pageSize?: number,
+                       pageKey?: string,
+                       blockLimitOffset?: number,
+                       blockLimitCount?: number) =>
         Promise<pst.ListResponse<pst.Block>>;
       subscribeNewBlock: (callback: (block: pst.Block) => void) =>
         Promise<() => void>;
       getEvent: (blockNumber: number, eventIdx: number) =>
         Promise<pst.Event>;
-      getEvents: (filters?: EventsFilters, pageSize?: number, pageKey?: string) =>
+      getEvents: (filters?: EventsFilters, pageSize?: number, pageKey?: string, blockLimitOffset?: number, blockLimitCount?: number) =>
         Promise<pst.ListResponse<pst.Event>>;
       subscribeNewEvent: (filtersOrCallback: ((event: pst.Event) => void) | EventsFilters, callback?: (event: pst.Event) => void) =>
         Promise<() => void>;
+      getEventsByAccount: (accountId: string,
+                            filters?: AccountEventsFilters,
+                            pageSize?: number,
+                            pageKey?: string,
+                            blockLimitOffset?: number,
+                            blockLimitCount?: number) =>
+        Promise<pst.ListResponse<pst.AccountEvent>>;
+      subscribeNewEventByAccount: (accountId: string,
+                                    filtersOrCallback: ((event: pst.AccountEvent) => void) | AccountEventsFilters,
+                                    callback?: (event: pst.AccountEvent) => void) =>
+        Promise<() => void>;
       getExtrinsic: (blockNumber: number, eventIdx: number) =>
         Promise<pst.Extrinsic>;
-      getExtrinsics: (filters?: ExtrinsicsFilters, pageSize?: number, pageKey?: string) =>
+      getExtrinsics: (filters?: ExtrinsicsFilters,
+                      pageSize?: number,
+                      pageKey?: string,
+                      blockLimitOffset?: number,
+                      blockLimitCount?: number) =>
         Promise<pst.ListResponse<pst.Extrinsic>>;
       subscribeNewExtrinsic: (filtersOrCallback: ((extrinsic: pst.Extrinsic) => void) | ExtrinsicsFilters,
                               callback?: (extrinsic: pst.Extrinsic) => void) =>
         Promise<() => void>;
       getLog: (blockNumber: number, logIdx: number) =>
         Promise<pst.Log>;
-      getLogs: (pageSize?: number, pageKey?: string) =>
+      getLogs: (pageSize?: number, pageKey?: string, blockLimitOffset?: number, blockLimitCount?: number) =>
         Promise<pst.ListResponse<pst.Log>>;
       subscribeNewLog: (callback: (log: pst.Log) => void) =>
-        Promise<() => void>;
-      getTransfer: (blockNumber: number, eventIdx: number) =>
-        Promise<pst.Transfer>;
-      getTransfers: (filters?: TransfersFilters, pageSize?: number, pageKey?: string) =>
-        Promise<pst.ListResponse<pst.Transfer>>;
-      subscribeNewTransfer: (filtersOrcallback?: ((log: pst.Transfer) => void) | TransfersFilters,
-                             callback?: (log: pst.Transfer) => void) =>
         Promise<() => void>;
     };
     state: {
@@ -98,7 +117,7 @@ export type Api = {
         Promise<pst.ListResponse<pst.TaggedAccount>>;
       getRuntime: (specName: string, specVersion: number) =>
         Promise<pst.Runtime>;
-      getRuntimes: (pageSize?: number, pageKey?: string) =>
+      getRuntimes: (pageSize?: number, pageKey?: string, blockLimitOffset?: number, blockLimitCount?: number) =>
         Promise<pst.ListResponse<pst.Runtime>>;
       getLatestRuntime: () =>
         Promise<pst.Runtime>;
@@ -130,10 +149,6 @@ export type Api = {
         Promise<pst.RuntimeStorage>;
       getRuntimeStorages: (specName: string, specVersion: number, pallet?: string) =>
         Promise<pst.ListResponse<pst.RuntimeStorage>>;
-      getRuntimeType: (specName: string, specVersion: number, pallet: string, scaleType: string) =>
-        Promise<pst.RuntimeType>;
-      getRuntimeTypes: (specName: string, specVersion: number, pallet?: string) =>
-        Promise<pst.ListResponse<pst.RuntimeType>>;
     };
   };
   rpc: {
@@ -177,15 +192,14 @@ export class Adapter extends AdapterBase {
             getEvent: getEvent(this),
             getEvents: getEvents(this),
             subscribeNewEvent: subscribeNewEvent(this),
+            getEventsByAccount: getEventsByAccount(this),
+            subscribeNewEventByAccount: subscribeNewEventByAccount(this),
             getExtrinsic: getExtrinsic(this),
             getExtrinsics: getExtrinsics(this),
             subscribeNewExtrinsic: subscribeNewExtrinsic(this),
             getLog: getLog(this),
             getLogs: getLogs(this),
             subscribeNewLog: subscribeNewLog(this),
-            getTransfer: getTransfer(this),
-            getTransfers: getTransfers(this),
-            subscribeNewTransfer: subscribeNewTransfer(this),
           },
           state: {
             getTaggedAccount: getTaggedAccount(this),
@@ -207,8 +221,6 @@ export class Adapter extends AdapterBase {
             getRuntimePallets: getRuntimePallets(this),
             getRuntimeStorage: getRuntimeStorage(this),
             getRuntimeStorages: getRuntimeStorages(this),
-            getRuntimeType: getRuntimeType(this),
-            getRuntimeTypes: getRuntimeTypes(this)
           }
         },
         rpc: {

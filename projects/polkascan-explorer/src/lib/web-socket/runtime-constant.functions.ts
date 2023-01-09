@@ -28,6 +28,7 @@ const runtimeConstantFields: (keyof pst.RuntimeConstant)[] = [
   'constantName',
   'palletConstantIdx',
   'scaleType',
+  'scaleTypeComposition',
   'value',
   'documentation'
 ];
@@ -57,7 +58,7 @@ export const getRuntimeConstant = (adapter: Adapter) =>
 
     const result = await adapter.socket.query(query) as { getRuntimeConstant: pst.RuntimeConstant };
     const runtimeConstant = result.getRuntimeConstant;
-    if (isObject(runtimeConstant)) {
+    if (runtimeConstant === null || isObject(runtimeConstant)) {
       return runtimeConstant;
     } else {
       throw new Error(`[PolkascanExplorerAdapter] getRuntimeConstant: Returned response is invalid.`);
@@ -78,7 +79,7 @@ export const getRuntimeConstants = (adapter: Adapter) =>
       filters.push(`specName: "${specName}"`);
       filters.push(`specVersion: ${specVersion}`);
       if (isString(pallet)) {
-        filters.push(`pallet: "${pallet as string}"`);
+        filters.push(`pallet: "${pallet}"`);
       }
     } else {
       throw new Error(

@@ -64,7 +64,7 @@ export const getBlock = (adapter: Adapter) =>
     const query = generateObjectQuery('getBlock', genericBlockFields, filters);
     const result = await adapter.socket.query(query) as { getBlock: pst.Block };
     const block = result.getBlock;
-    if (isObject(block)) {
+    if (block === null || isObject(block)) {
       return block;
     } else {
       throw new Error(`[PolkascanExplorerAdapter] getBlock: Returned response is invalid.`);
@@ -75,7 +75,9 @@ export const getBlock = (adapter: Adapter) =>
 const getBlocksFn = (adapter: Adapter, direction?: 'from' | 'until') =>
   async (hashOrNumber?: string | number,
          pageSize?: number,
-         pageKey?: string
+         pageKey?: string,
+         blockLimitOffset?: number,
+         blockLimitCount?: number
   ): Promise<pst.ListResponse<pst.Block>> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
@@ -85,23 +87,23 @@ const getBlocksFn = (adapter: Adapter, direction?: 'from' | 'until') =>
 
     if (direction === 'from') {
       if (isBlockHash(hashOrNumber)) {
-        filters.push(`hashFrom: "${hashOrNumber as string}"`);
+        filters.push(`hashFrom: "${hashOrNumber}"`);
       } else if (isPositiveNumber(hashOrNumber)) {
-        filters.push(`numberGte: ${hashOrNumber as number}`);
+        filters.push(`numberGte: ${hashOrNumber}`);
       } else {
         throw new Error('[PolkascanExplorerAdapter] getBlocksFrom: Provide a block hash (string) or block number (number).');
       }
     } else if (direction === 'until') {
       if (isBlockHash(hashOrNumber)) {
-        filters.push(`hashUntil: "${hashOrNumber as string}"`);
+        filters.push(`hashUntil: "${hashOrNumber}"`);
       } else if (isPositiveNumber(hashOrNumber)) {
-        filters.push(`numberLte: ${hashOrNumber as number}`);
+        filters.push(`numberLte: ${hashOrNumber}`);
       } else {
         throw new Error('[PolkascanExplorerAdapter] getBlocksUntil: Provide a block hash (string) or block number (number).');
       }
     }
 
-    const query = generateObjectsListQuery('getBlocks', genericBlockFields, filters, pageSize, pageKey);
+    const query = generateObjectsListQuery('getBlocks', genericBlockFields, filters, pageSize, pageKey, blockLimitOffset, blockLimitCount);
     const result = await adapter.socket.query(query) as { getBlocks: pst.ListResponse<pst.Block> };
     const blocks: pst.Block[] = result.getBlocks.objects;
     if (isArray(blocks)) {
@@ -130,7 +132,8 @@ export const getLatestBlock = (adapter: Adapter) =>
 
 
 export const getBlocks = (adapter: Adapter) =>
-  (pageSize?: number, pageKey?: string) => getBlocksFn(adapter)(undefined, pageSize, pageKey);
+  (pageSize?: number, pageKey?: string, blockLimitOffset?: number, blockLimitCount?: number) =>
+    getBlocksFn(adapter)(undefined, pageSize, pageKey, blockLimitOffset, blockLimitCount);
 
 
 export const getBlocksFrom = (adapter: Adapter) => getBlocksFn(adapter, 'from');
