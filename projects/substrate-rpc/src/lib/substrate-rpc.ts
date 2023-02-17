@@ -27,7 +27,7 @@ type Polkadapted<T> = {
   T[K] extends ((...args: any[]) => any) ? T[K] : (Polkadapted<T[K]> & Promise<T[K]>);
 };
 
-export type Api = {
+type InternalApi = {
   polkadotjs: Promise<ApiPromise>;
   getBlock: (hashOrNumber: string | number) =>
     Promise<types.Block>;
@@ -35,6 +35,10 @@ export type Api = {
     Promise<types.Block>;
   subscribeNewBlock: (callback: (block: types.Block) => void) =>
     Promise<() => void>;
+};
+
+export type Api = InternalApi & {
+  polkadotjs: Polkadapted<ApiPromise>;
 };
 
 export interface Config {
@@ -56,7 +60,7 @@ type ActiveCall = {
 export class Adapter extends AdapterBase {
   name = 'substrate-rpc';
   config: Config;
-  promise: Promise<Api>;
+  promise: Promise<InternalApi>;
   polkadotJsPromise: Promise<ApiPromise>;
   private resolvePromise: ((api: ApiPromise) => void) | undefined;
   private api: ApiPromise | undefined;
@@ -76,18 +80,8 @@ export class Adapter extends AdapterBase {
     super(config.chain);
     this.config = config;
     // Create the initial Promise to expose to PolkADAPT Core.
-    this.polkadotJsPromise = this.createPromise();
-
-    this.promise = new Promise((resolve) => {
-      resolve({
-        polkadotjs: this.polkadotJsPromise,
-        getBlock: getBlock(this),
-        getLatestBlock: getLatestBlock(this),
-        subscribeNewBlock: subscribeNewBlock(this)
-      });
-    });
+    this.initPromise();
   }
-
 
   get isReady(): Promise<boolean> {
     return new Promise<boolean>((resolve, reject) => {
@@ -107,6 +101,20 @@ export class Adapter extends AdapterBase {
       }, e => {
         reject(e);
       });
+    });
+  }
+
+  initPromise(): void {
+    this.promise = new Promise((resolve) => {
+      this.polkadotJsPromise = this.createPromise();
+      this.polkadotJsPromise.then((apiPromise) => {
+        resolve({
+          polkadotjs: this.polkadotJsPromise,
+          getBlock: getBlock(this),
+          getLatestBlock: getLatestBlock(this),
+          subscribeNewBlock: subscribeNewBlock(this)
+        });
+      }, () => {});
     });
   }
 
@@ -180,7 +188,7 @@ export class Adapter extends AdapterBase {
     // If the promise is still unresolved, we can re-use it for the new connection.
     if (!this.resolvePromise) {
       // But it was already resolved, so we need to reset it.
-      this.polkadotJsPromise = this.createPromise();
+      this.initPromise();
     }
     if (this.wsProvider) {
       // Remove the event listeners from the old wsProvider.
