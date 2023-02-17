@@ -21,4 +21,10 @@
  */
 
 export * from './lib/substrate-rpc';
+import type * as types from './lib/substrate-rpc.types';
+
+/* eslint-disable @typescript-eslint/no-empty-interface */
+declare module '@polkadapt/core/augmented-types' {
+    interface Block extends types.Block {}
+}
 export * as types from './lib/substrate-rpc.types';

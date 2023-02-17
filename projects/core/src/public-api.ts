@@ -21,3 +21,4 @@
  */
 
 export * from './lib/core';
+export * from './augmented-types';
