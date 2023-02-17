@@ -21,3 +21,4 @@
  */
 
 export * from './lib/substrate-rpc';
+export * as types from './lib/substrate-rpc.types';

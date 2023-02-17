@@ -19,13 +19,23 @@
 import { ApiPromise, WsProvider } from '@polkadot/api';
 import { AdapterBase } from '@polkadapt/core';
 import { ApiOptions } from '@polkadot/api/types';
+import * as types from './substrate-rpc.types';
+import { getBlock, getLatestBlock, subscribeNewBlock } from './web-socket/block.functions';
 
 type Polkadapted<T> = {
   [K in keyof T]:
-    T[K] extends ((...args: any[]) => any) ? T[K] : (Polkadapted<T[K]> & Promise<T[K]>);
+  T[K] extends ((...args: any[]) => any) ? T[K] : (Polkadapted<T[K]> & Promise<T[K]>);
 };
 
-export type Api = Polkadapted<ApiPromise>;
+export type Api = {
+  polkadotjs: Promise<ApiPromise>;
+  getBlock: (hashOrNumber: string | number) =>
+    Promise<types.Block>;
+  getLatestBlock: () =>
+    Promise<types.Block>;
+  subscribeNewBlock: (callback: (block: types.Block) => void) =>
+    Promise<() => void>;
+};
 
 export interface Config {
   chain: string;
@@ -46,7 +56,8 @@ type ActiveCall = {
 export class Adapter extends AdapterBase {
   name = 'substrate-rpc';
   config: Config;
-  promise: Promise<ApiPromise>;
+  promise: Promise<Api>;
+  polkadotJsPromise: Promise<ApiPromise>;
   private resolvePromise: ((api: ApiPromise) => void) | undefined;
   private api: ApiPromise | undefined;
   private unproxiedApi: ApiPromise | undefined;
@@ -65,8 +76,18 @@ export class Adapter extends AdapterBase {
     super(config.chain);
     this.config = config;
     // Create the initial Promise to expose to PolkADAPT Core.
-    this.promise = this.createPromise();
+    this.polkadotJsPromise = this.createPromise();
+
+    this.promise = new Promise((resolve) => {
+      resolve({
+        polkadotjs: this.polkadotJsPromise,
+        getBlock: getBlock(this),
+        getLatestBlock: getLatestBlock(this),
+        subscribeNewBlock: subscribeNewBlock(this)
+      });
+    });
   }
+
 
   get isReady(): Promise<boolean> {
     return new Promise<boolean>((resolve, reject) => {
@@ -159,7 +180,7 @@ export class Adapter extends AdapterBase {
     // If the promise is still unresolved, we can re-use it for the new connection.
     if (!this.resolvePromise) {
       // But it was already resolved, so we need to reset it.
-      this.promise = this.createPromise();
+      this.polkadotJsPromise = this.createPromise();
     }
     if (this.wsProvider) {
       // Remove the event listeners from the old wsProvider.
@@ -318,7 +339,7 @@ export class Adapter extends AdapterBase {
         this.resolvePromise(this.api);
       } else {
         // This is a new connection. We can just replace the Promise with an already resolved one.
-        this.promise = Promise.resolve(this.api);
+        this.polkadotJsPromise = Promise.resolve(this.api);
       }
       if (this.resolveConnected) {
         this.resolveConnected(true);
