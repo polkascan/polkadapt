@@ -18,7 +18,7 @@
 
 
 import { Adapter } from '../substrate-rpc';
-import * as types from '../substrate-rpc.types';
+import { types } from '@polkadapt/core';
 import { BlockHash, BlockNumber, EventRecord, Header, SignedBlock } from '@polkadot/types/interfaces';
 import { U64, Vec } from '@polkadot/types';
 

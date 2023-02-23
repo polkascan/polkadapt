@@ -19,7 +19,7 @@
 import { ApiPromise, WsProvider } from '@polkadot/api';
 import { AdapterBase } from '@polkadapt/core';
 import { ApiOptions } from '@polkadot/api/types';
-import * as types from './substrate-rpc.types';
+import { types } from '@polkadapt/core';
 import { getBlock, getLatestBlock, subscribeNewBlock } from './web-socket/block.functions';
 
 export type Api = {
