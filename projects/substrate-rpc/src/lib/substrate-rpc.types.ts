@@ -17,4 +17,6 @@ export type Block = {
   totalFeeBlockAuthor: number | null;
   specName: string;
   specVersion: number;
+  extrinsics: any[];  // TODO EXTRINSIC
+  events: any[];  // TODO EVENT
 };

@@ -19,13 +19,13 @@
 
 import { Adapter } from '../substrate-rpc';
 import * as types from '../substrate-rpc.types';
-import { BlockHash, BlockNumber, Header, SignedBlock } from '@polkadot/types/interfaces';
-import { U64 } from '@polkadot/types';
+import { BlockHash, BlockNumber, EventRecord, Header, SignedBlock } from '@polkadot/types/interfaces';
+import { U64, Vec } from '@polkadot/types';
 
 export const getBlock = (adapter: Adapter) =>
   async (hashOrNumber: string | number): Promise<types.Block> => {
 
-    const api = await adapter.polkadotJsPromise;
+    const api = await adapter.apiPromise;
     let blockHash: BlockHash | undefined;
 
     try {
@@ -58,18 +58,21 @@ export const getBlock = (adapter: Adapter) =>
       api.rpc.chain.getBlock(blockHash),
       api.query.system.events.at(blockHash),
       api.query.timestamp.now.at(blockHash)
-    ])).map((p) => p.status === 'fulfilled' ? p.value : null) as [SignedBlock, any[], U64];
+    ])).map((p) => p.status === 'fulfilled' ? p.value : null) as [SignedBlock | null, Vec<EventRecord> | null, U64 | null];
 
     if (signedBlock) {
+      // eslint-disable-next-line id-blacklist
       block.number = signedBlock.block.header.number.toNumber();
       block.parentHash = signedBlock.block.header.parentHash.toString();
       block.extrinsicsRoot = signedBlock.block.header.extrinsicsRoot.toString();
       block.stateRoot = signedBlock.block.header.stateRoot.toString();
       block.countLogs = signedBlock.block.header.digest.logs.length;
       block.countExtrinsics = signedBlock.block.extrinsics.length;
+      block.extrinsics = signedBlock.block.extrinsics.toJSON() as any[];  // TODO Fix typing
     }
     if (events) {
       block.countEvents = events.length;
+      block.events = events.toJSON() as any[];  // TODO Fix typing
     }
     if (timestamp) {
       block.datetime = new Date(parseInt(timestamp.toString(), 10)).toISOString();
@@ -80,15 +83,14 @@ export const getBlock = (adapter: Adapter) =>
 
 export const getLatestBlock = (adapter: Adapter) =>
   async (): Promise<types.Block> => {
-    const api = await adapter.polkadotJsPromise;
+    const api = await adapter.apiPromise;
     const latestBlock = await api.rpc.chain.getBlockHash();
     return await getBlock(adapter)(latestBlock.toString());
   };
 
-
 export const subscribeNewBlock = (adapter: Adapter) =>
   async (...args: ((block: types.Block) => void)[]): Promise<() => void> => {
-    const api = await adapter.polkadotJsPromise;
+    const api = await adapter.apiPromise;
     const fn = async (header: Header) => {
       const block = await getBlock(adapter)(header.number.toNumber());
       args[0](block);
