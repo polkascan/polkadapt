@@ -1,7 +1,7 @@
 /*
  * PolkADAPT
  *
- * Copyright 2020-2022 Polkascan Foundation (NL)
+ * Copyright 2020-2023 Polkascan Foundation (NL)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,15 +16,4 @@
  * limitations under the License.
  */
 
-/*
- * Public API Surface of polkascan
- */
-
-export * from './lib/polkascan-explorer';
-import type * as types from './lib/polkascan-explorer.types';
-
-/* eslint-disable @typescript-eslint/no-empty-interface */
-declare module '@polkadapt/core/augmented-types' {
-    interface Block extends types.Block {}
-    interface Extrinsic extends types.Extrinsic {}
-}
+export {};
