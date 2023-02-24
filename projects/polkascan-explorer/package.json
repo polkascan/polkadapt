@@ -12,7 +12,8 @@
     "url": "https://github.com/polkascan/polkadapt.git"
   },
   "peerDependencies": {
-    "@polkadapt/core": "1.0.0"
+    "@polkadapt/core": "1.0.0",
+    "rxjs": "~7.5.0"
   },
   "dependencies": {},
   "devDependencies": {

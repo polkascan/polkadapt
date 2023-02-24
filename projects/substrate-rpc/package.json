@@ -13,7 +13,8 @@
   },
   "peerDependencies": {
     "@polkadapt/core": "1.0.0",
-    "@polkadot/api": "*"
+    "@polkadot/api": "*",
+    "rxjs": "~7.5.0"
   },
   "dependencies": {},
   "devDependencies": {

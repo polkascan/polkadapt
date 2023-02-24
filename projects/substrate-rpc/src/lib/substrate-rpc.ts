@@ -16,19 +16,17 @@
  * limitations under the License.
  */
 
-import { ApiPromise, WsProvider } from '@polkadot/api';
+import { ApiRx, WsProvider } from '@polkadot/api';
 import { AdapterBase } from '@polkadapt/core';
 import { ApiOptions } from '@polkadot/api/types';
 import { types } from '@polkadapt/core';
+import { catchError, Observable } from 'rxjs';
 import { getBlock, getLatestBlock, subscribeNewBlock } from './web-socket/block.functions';
 
 export type Api = {
-  getBlock: (hashOrNumber: string | number) =>
-    Promise<types.Block>;
-  getLatestBlock: () =>
-    Promise<types.Block>;
-  subscribeNewBlock: (callback: (block: types.Block) => void) =>
-    Promise<() => void>;
+  subscribeNewBlock: () => Observable<types.Block>;
+  getBlock: (hashOrNumber: string | number) => Observable<types.Block>;
+  getLatestBlock: () => Observable<types.Block>;
 };
 
 export interface Config {
@@ -51,10 +49,10 @@ export class Adapter extends AdapterBase {
   name = 'substrate-rpc';
   config: Config;
   promise: Promise<Api>;
-  apiPromise: Promise<ApiPromise>;
-  private resolvePromise: ((api: ApiPromise) => void) | undefined;
-  private api: ApiPromise | undefined;
-  private unproxiedApi: ApiPromise | undefined;
+  apiPromise: Promise<ApiRx>;
+  private resolvePromise: ((api: ApiRx) => void) | undefined;
+  private api: ApiRx | undefined;
+  private unproxiedApi: ApiRx | undefined;
   private isConnected: Promise<boolean> = Promise.resolve(false);
   private resolveConnected: ((v: boolean) => void) | undefined;
   private activeCalls: { [K: string]: ActiveCall } = {};
@@ -72,12 +70,10 @@ export class Adapter extends AdapterBase {
     // Create the initial Promise to expose to PolkADAPT Core.
     this.apiPromise = this.createPromise();
 
-    this.promise = new Promise((resolve) => {
-      resolve({
-        getBlock: getBlock(this),
-        getLatestBlock: getLatestBlock(this),
-        subscribeNewBlock: subscribeNewBlock(this)
-      });
+    this.promise = Promise.resolve({
+      getBlock: getBlock(this),
+      getLatestBlock: getLatestBlock(this),
+      subscribeNewBlock: subscribeNewBlock(this)
     });
   }
 
@@ -88,10 +84,10 @@ export class Adapter extends AdapterBase {
           throw new Error('[SubstrateRPCAdapter] Could not check readiness, adapter is not connected');
         }
         if (this.unproxiedApi) {
-          this.unproxiedApi.isReadyOrError.then(() => {
+          this.unproxiedApi.isReady.pipe(
+            catchError(e => { reject(e); throw e; })
+          ).subscribe(() => {
             resolve(true);
-          }, e => {
-            reject(e);
           });
         } else {
           throw new Error('[SubstrateRPCAdapter] Could not check readiness, no apiPromise available');
@@ -272,8 +268,8 @@ export class Adapter extends AdapterBase {
     this.removeEventListener(eventName, listener);
   }
 
-  private createPromise(): Promise<ApiPromise> {
-    return new Promise<ApiPromise>(resolve => {
+  private createPromise(): Promise<ApiRx> {
+    return new Promise<ApiRx>(resolve => {
       // Set up a one-time-only function to resolve the initial entrypoint Promise after connecting.
       this.resolvePromise = api => {
         // Unset the function.
@@ -376,7 +372,7 @@ export class Adapter extends AdapterBase {
     });
   }
 
-  private async createApi(): Promise<ApiPromise> {
+  private async createApi(): Promise<ApiRx> {
     if (!this.config.providerUrl) {
       throw new Error('[SubstrateRPCAdapter] Can\'t create Polkadot.js API without a providerUrl.');
     }
@@ -386,17 +382,22 @@ export class Adapter extends AdapterBase {
     this.wsEventOffFunctions.push(this.wsProvider.on('disconnected', () => this.handleWsDisconnected()));
     await this.wsProvider.connect();
 
+    let api: ApiRx | undefined;
     try {
       const apiOptions: ApiOptions = {provider: this.wsProvider};
       if (this.config.apiOptions) {
         // Provider can be overwritten by the given apiOptions.
         Object.assign(apiOptions, this.config.apiOptions);
       }
-      return await ApiPromise.create(apiOptions);
+      api = await ApiRx.create(apiOptions).toPromise();
     } catch (e) {
       console.error('[SubstrateRPCAdapter] Could not create apiPromise');
       throw e;
     }
+    if (!api) {
+      throw new Error('[SubstrateRPCAdapter] Could not create apiPromise');
+    }
+    return api;
   }
 
   private handleWsConnected() {
