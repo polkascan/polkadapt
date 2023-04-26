@@ -22,7 +22,7 @@ import * as pst from '../polkascan-explorer.types';
 import {
   generateObjectQuery,
   generateObjectsListQuery,
-  generateSubscription,
+  generateSubscriptionQuery,
   isArray, isDate,
   isDefined,
   isFunction,
@@ -257,7 +257,7 @@ export const subscribeNewEvent = (adapter: Adapter) =>
       filters = createEventsFilters(args[0] as EventsFilters);
     }
 
-    const query = generateSubscription('subscribeNewEvent', genericEventFields, filters);
+    const query = generateSubscriptionQuery('subscribeNewEvent', genericEventFields, filters);
     // return the unsubscribe function.
     return await adapter.socket.createSubscription(query, (result: { subscribeNewEvent: pst.Event }) => {
       try {

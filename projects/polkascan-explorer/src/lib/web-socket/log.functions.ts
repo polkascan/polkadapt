@@ -20,7 +20,7 @@
 import { Adapter } from '../polkascan-explorer';
 import * as pst from '../polkascan-explorer.types';
 import {
-  generateObjectQuery, generateObjectsListQuery, generateSubscription, isArray, isDefined, isFunction, isObject, isPositiveNumber
+  generateObjectQuery, generateObjectsListQuery, generateSubscriptionQuery, isArray, isDefined, isFunction, isObject, isPositiveNumber
 } from './helpers';
 
 const genericLogFields = [
@@ -106,7 +106,7 @@ export const subscribeNewLog = (adapter: Adapter) =>
       throw new Error(`[PolkascanExplorerAdapter] subscribeNewLog: No callback function is provided.`);
     }
 
-    const query = generateSubscription('subscribeNewLog', genericLogFields);
+    const query = generateSubscriptionQuery('subscribeNewLog', genericLogFields);
 
     // return the unsubscribe function.
     return await adapter.socket.createSubscription(query, (result: { subscribeNewLog: pst.Log }) => {

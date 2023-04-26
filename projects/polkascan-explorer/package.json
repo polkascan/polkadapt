@@ -13,7 +13,7 @@
   },
   "peerDependencies": {
     "@polkadapt/core": "1.0.0",
-    "rxjs": "~7.5.0"
+    "rxjs": "~7.8.0"
   },
   "dependencies": {},
   "devDependencies": {

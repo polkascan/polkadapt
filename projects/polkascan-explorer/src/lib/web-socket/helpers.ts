@@ -17,6 +17,10 @@
  */
 
 
+import { defer, Observable, publish, refCount, ReplaySubject, share, shareReplay, tap } from 'rxjs';
+import { finalize } from 'rxjs/operators';
+import { Adapter } from '../polkascan-explorer';
+
 export const isBlockHash = (hash: unknown): hash is string => isString(hash) && hash.startsWith('0x');
 
 
@@ -42,7 +46,6 @@ export const isArray = (val: unknown): val is unknown[] => Array.isArray(val);
 
 export const isDate = (date: unknown): date is Date =>
   isDefined(date) && Object.prototype.toString.call(date) === '[object Date]' && !isNaN(date as number);
-
 
 
 const generateQuery = (
@@ -121,6 +124,70 @@ export const generateObjectsListQuery = (name: string,
   generateQuery(name, fields, filters, false, true, pageSize, pageKey, blockLimitOffset, blockLimitCount);
 
 
-export const generateSubscription = (name: string,
-                                     fields?: string[],
-                                     filters?: string[]) => generateQuery(name, fields, filters, true);
+export const generateSubscriptionQuery = (name: string,
+                                          fields?: string[],
+                                          filters?: string[]) => generateQuery(name, fields, filters, true);
+
+
+export const createSharedObservable = <T>(adapter: Adapter, query: string): Observable<T> => {
+
+  if (!adapter) {
+    throw new Error('[PolkascanAdapter]: Could not generate observable, adapter not present.');
+  }
+
+  if (!query) {
+    throw new Error('[PolkascanAdapter]: Could not generate observable, query not present.');
+  }
+
+  let counter = 0;
+  let unsubscribeFn: (() => void) | null = null;
+  const source = new ReplaySubject<T>(1);
+
+  const emitResult = (response: T) => {
+    source.next(response);
+  };
+
+  const subscriber = () => {
+    if (counter === 0) {
+      if (adapter && adapter.socket) {
+        adapter.socket.createSubscription(query, emitResult).then(
+          (unsubFn) => {
+            unsubscribeFn = unsubFn;
+          },
+          (e: string) => {
+            throw new Error(e);
+          });
+      }
+    }
+  };
+
+  const unsubscriber = () => {
+    if (counter === 0) {
+      if (unsubscribeFn) {
+        unsubscribeFn();
+      }
+      unsubscribeFn = null;
+    }
+  };
+
+  const shared = source.pipe(
+    shareReplay({
+      bufferSize: 1,
+      refCount: true
+    }),
+    tap({
+      subscribe: () => {
+        subscriber();
+        counter++;
+      },
+      unsubscribe: () => {
+        counter--;
+        unsubscriber();
+      },
+      finalize: () => {
+      }   // TODO, stop subscription on websocket if finalized??
+    })
+  );
+
+  return shared;
+};

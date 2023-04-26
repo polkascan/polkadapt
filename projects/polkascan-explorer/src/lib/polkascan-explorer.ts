@@ -19,9 +19,9 @@
 import { AdapterBase } from '@polkadapt/core';
 import { PolkascanExplorerWebSocket } from './polkascan-explorer.web-socket';
 import * as pst from './polkascan-explorer.types';
+import { types } from '@polkadapt/core';
 import {
   getBlock,
-  getBlockAugmentation,
   getBlocks,
   getBlocksFrom,
   getBlocksUntil,
@@ -51,14 +51,11 @@ import {
   getEventsByAccount,
   subscribeNewEventByAccount
 } from './web-socket/account-event.functions';
+import { Observable } from 'rxjs';
 
 export type Api = {
   polkascan: {
     chain: {
-      getBlock: (hashOrNumber: string | number) =>
-        Promise<pst.Block>;
-      getLatestBlock: () =>
-        Promise<pst.Block>;
       getBlocks: (pageSize?: number, pageKey?: string, blockLimitOffset?: number, blockLimitCount?: number) =>
         Promise<pst.ListResponse<pst.Block>>;
       getBlocksFrom: (hashOrNumber: string | number,
@@ -73,8 +70,6 @@ export type Api = {
                        blockLimitOffset?: number,
                        blockLimitCount?: number) =>
         Promise<pst.ListResponse<pst.Block>>;
-      subscribeNewBlock: (callback: (block: pst.Block) => void) =>
-        Promise<() => void>;
       getEvent: (blockNumber: number, eventIdx: number) =>
         Promise<pst.Event>;
       getEvents: (filters?: EventsFilters, pageSize?: number, pageKey?: string, blockLimitOffset?: number, blockLimitCount?: number) =>
@@ -151,11 +146,9 @@ export type Api = {
         Promise<pst.ListResponse<pst.RuntimeStorage>>;
     };
   };
-  rpc: {
-    chain: {
-      getBlock: (hash: string) => Promise<any>;
-    };
-  };
+  getBlock: (hash: string) => Observable<types.Block>;
+  getLatestBlock: () => Observable<types.Block>;
+  subscribeNewBlock: () => Observable<types.Block>;
 };
 
 export interface Config {
@@ -183,12 +176,9 @@ export class Adapter extends AdapterBase {
       resolve({
         polkascan: {
           chain: {
-            getBlock: getBlock(this),
-            getLatestBlock: getLatestBlock(this),
             getBlocks: getBlocks(this),
             getBlocksFrom: getBlocksFrom(this),
             getBlocksUntil: getBlocksUntil(this),
-            subscribeNewBlock: subscribeNewBlock(this),
             getEvent: getEvent(this),
             getEvents: getEvents(this),
             subscribeNewEvent: subscribeNewEvent(this),
@@ -223,11 +213,9 @@ export class Adapter extends AdapterBase {
             getRuntimeStorages: getRuntimeStorages(this),
           }
         },
-        rpc: {
-          chain: {
-            getBlock: getBlockAugmentation(this)
-          }
-        }
+        getBlock: getBlock(this),
+        getLatestBlock: getLatestBlock(this),
+        subscribeNewBlock: subscribeNewBlock(this)
       });
     });
   }
@@ -273,7 +261,7 @@ export class Adapter extends AdapterBase {
         timeout = setTimeout(() => {
           removeListeners();
           reject('PolkascanExplorer websocket connection timed out.');
-        }, 10000);
+        }, 10000) as unknown as number;
       }
     });
   }

@@ -22,7 +22,7 @@ import * as pst from '../polkascan-explorer.types';
 import {
   generateObjectQuery,
   generateObjectsListQuery,
-  generateSubscription,
+  generateSubscriptionQuery,
   isArray, isDate,
   isDefined,
   isFunction,
@@ -284,7 +284,7 @@ export const subscribeNewExtrinsic = (adapter: Adapter) =>
       filters = createExtrinsicsFilters(args[0] as ExtrinsicsFilters);
     }
 
-    const query = generateSubscription('subscribeNewExtrinsic', genericExtrinsicFields, filters);
+    const query = generateSubscriptionQuery('subscribeNewExtrinsic', genericExtrinsicFields, filters);
 
     // return the unsubscribe function.
     return await adapter.socket.createSubscription(query, (result: { subscribeNewExtrinsic: pst.Extrinsic }) => {

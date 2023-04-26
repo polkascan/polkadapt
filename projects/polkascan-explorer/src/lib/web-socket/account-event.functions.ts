@@ -21,7 +21,7 @@ import { Adapter } from '../polkascan-explorer';
 import * as pst from '../polkascan-explorer.types';
 import {
   generateObjectsListQuery,
-  generateSubscription,
+  generateSubscriptionQuery,
   isArray,
   isDate,
   isDefined,
@@ -227,7 +227,7 @@ export const subscribeNewEventByAccount = (adapter: Adapter) =>
     }
     filters.push(`accountId: "${accountId}"`);
 
-    const query = generateSubscription('subscribeNewEventByAccount', genericEventFields, filters);
+    const query = generateSubscriptionQuery('subscribeNewEventByAccount', genericEventFields, filters);
     // return the unsubscribe function.
     return await adapter.socket.createSubscription(query, (result: { subscribeNewEventByAccount: pst.AccountEvent }) => {
       try {

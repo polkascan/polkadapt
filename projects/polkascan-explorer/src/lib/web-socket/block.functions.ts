@@ -19,16 +19,19 @@
 
 import { Adapter } from '../polkascan-explorer';
 import * as pst from '../polkascan-explorer.types';
+import { types } from '@polkadapt/core';
 import {
+  createSharedObservable,
   generateObjectQuery,
   generateObjectsListQuery,
-  generateSubscription,
+  generateSubscriptionQuery,
   isArray,
   isBlockHash,
   isFunction,
   isObject,
   isPositiveNumber
 } from './helpers';
+import { map, Observable, ReplaySubject, Subject, take } from 'rxjs';
 
 const genericBlockFields = [
   'number',
@@ -46,7 +49,7 @@ const genericBlockFields = [
 
 
 export const getBlock = (adapter: Adapter) =>
-  async (hashOrNumber: string | number): Promise<pst.Block> => {
+  (hashOrNumber: string | number): Observable<types.Block> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] getBlock: Websocket unavailable.');
     }
@@ -61,14 +64,26 @@ export const getBlock = (adapter: Adapter) =>
       throw new Error('[PolkascanExplorerAdapter] getBlock: Provide a block hash (string) or block number (number).');
     }
 
+    const subject = new ReplaySubject<types.Block>(1);
     const query = generateObjectQuery('getBlock', genericBlockFields, filters);
-    const result = await adapter.socket.query(query) as { getBlock: pst.Block };
-    const block = result.getBlock;
-    if (block === null || isObject(block)) {
-      return block;
-    } else {
-      throw new Error(`[PolkascanExplorerAdapter] getBlock: Returned response is invalid.`);
-    }
+    const promise = adapter.socket.query(query) as Promise<{ getBlock: pst.Block | null }>;
+
+    promise.then(
+      (response) => {
+        const block = response.getBlock;
+        if (block === null) {
+          subject.error(new Error(`[PolkascanExplorerAdapter] getBlock: Block not found.`));
+        } else if (isObject(block)) {
+          subject.next(block as types.Block);
+        } else {
+          subject.error(new Error(`[PolkascanExplorerAdapter] getBlock: Returned response is invalid.`));
+        }
+      },
+      (reason) => {
+        subject.error(reason);
+      });
+
+    return subject.pipe(take(1));
   };
 
 
@@ -115,19 +130,29 @@ const getBlocksFn = (adapter: Adapter, direction?: 'from' | 'until') =>
 
 
 export const getLatestBlock = (adapter: Adapter) =>
-  async (): Promise<pst.Block> => {
+  (): Observable<types.Block> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
+    const subject = new ReplaySubject<types.Block>(1);
     const query = generateObjectQuery('getLatestBlock', genericBlockFields, []);
-    const result = await adapter.socket.query(query) as { getLatestBlock: pst.Block };
-    const block = result.getLatestBlock;
-    if (isObject(block)) {
-      return block;
-    } else {
-      throw new Error(`[PolkascanExplorerAdapter] getLatestBlock: Returned response is invalid.`);
-    }
+    const promise = adapter.socket.query(query) as Promise<{ getLatestBlock: pst.Block }>;
+
+    promise.then(
+      (response) => {
+        const block = response.getLatestBlock;
+        if (isObject(block)) {
+          subject.next(block as types.Block);
+        } else {
+          subject.error(`[PolkascanExplorerAdapter] getLatestBlock: Returned response is invalid.`);
+        }
+      },
+      (reason) => {
+        subject.error(reason);
+      });
+
+    return subject.pipe(take(1));
   };
 
 
@@ -143,52 +168,22 @@ export const getBlocksUntil = (adapter: Adapter) => getBlocksFn(adapter, 'until'
 
 
 export const subscribeNewBlock = (adapter: Adapter) =>
-  async (...args: ((block: pst.Block) => void)[]): Promise<() => void> => {
+  (): Observable<types.Block> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
-    const callback = args.find((arg) => isFunction(arg));
-    if (!callback) {
-      throw new Error(`[PolkascanExplorerAdapter] subscribeNewBlock: No callback function is provided.`);
-    }
+    const query = generateSubscriptionQuery('subscribeNewBlock', genericBlockFields);
 
-    const query = generateSubscription('subscribeNewBlock', genericBlockFields);
-    // return the unsubscribe function.
-    return await adapter.socket.createSubscription(query, (result: { subscribeNewBlock: pst.Block }) => {
-      const block: pst.Block = result.subscribeNewBlock;
-      if (isObject(block)) {
-        callback(block);
-      }
-    });
-  };
-
-
-export const getBlockAugmentation = (adapter: Adapter) =>
-  async (hash: string): Promise<any> => {
-    if (!adapter.socket) {
-      throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
-    }
-
-    if (!isBlockHash(hash)) {
-      throw new Error('[PolkascanExplorerAdapter] getBlock (augmentation): Hash must be of type string.');
-    }
-
-    // Get data from polkascan to augment it to the rpc block.
-    const fields = ['countExtrinsics', 'countEvents'];
-    const filters = [`hash: "${hash}"`];
-    const query = generateObjectQuery('getBlock', fields, filters);
-
-    try {
-      const result = await adapter.socket.query(query) as { getBlock: pst.Block };
-      const block = result.getBlock;
-      if (isObject(block)) {
-        return {block};
-      }
-      return {};
-
-    } catch (e) {
-      // Ignore failure. We won't augment the block into the rpc fetched block;
-      return {};
-    }
+    const observable = createSharedObservable<{ subscribeNewBlock: pst.Block }>(adapter, query);
+    return observable.pipe(
+      map((result) => {
+        const block: types.Block = result.subscribeNewBlock;
+        if (isObject(block)) {
+          return block;
+        } else {
+          throw new Error('[PolkascanExplorerAdapter] subscribeNewBlock Returned response is invalid.');
+        }
+      })
+    );
   };
