@@ -78,6 +78,7 @@ class TestAdapterBase extends AdapterBase {
       values: {
         objectFromBoth: () => {
           const obj = {
+            id: 1,
             nested: {
               conflicted: this.letter,
             }
@@ -118,6 +119,8 @@ class TestAdapterBase extends AdapterBase {
         streamFromBoth: {}
       }
     };
+    this.api.values.objectFromBoth.identifiers = ['id'];
+    this.api.values.arrayFromBoth.identifiers = ['id'];
     this.promise = Promise.resolve(this.api);
   }
 

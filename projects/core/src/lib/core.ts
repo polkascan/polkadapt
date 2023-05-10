@@ -46,10 +46,16 @@ type PolkadaptRunConfigAdapters = (AdapterBase | string) | (AdapterBase | string
 
 export interface PolkadaptRunConfig {
   chain?: string;
-  converter?: PolkadaptRunConfigConverter;
-  strategy?: PolkadaptRunConfigStrategy;
   adapters?: PolkadaptRunConfigAdapters;
+  augment?: boolean;
+  observableResults?: boolean;
 }
+
+type CallContext = {
+  path: string[];
+  called: boolean;
+  callArgs: unknown[];
+};
 
 type FunctionWithIdentifiers = {
   (arg: unknown): unknown;
