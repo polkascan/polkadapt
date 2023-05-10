@@ -1,4 +1,5 @@
 /*
+/*
  * PolkADAPT
  *
  * Copyright 2020-2022 Polkascan Foundation (NL)
@@ -15,6 +16,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+import {
+  BehaviorSubject,
+  debounceTime,
+  filter,
+  map,
+  merge,
+  Observable,
+  of,
+  ReplaySubject,
+  shareReplay,
+  Subject, Subscription, take, takeUntil, tap, timer
+} from 'rxjs';
+import { deepMerge } from './helpers';
 
 export enum PolkadaptEventNames {
   readyChange = 'readyChange'
@@ -35,6 +50,11 @@ export interface PolkadaptRunConfig {
   strategy?: PolkadaptRunConfigStrategy;
   adapters?: PolkadaptRunConfigAdapters;
 }
+
+type FunctionWithIdentifiers = {
+  (arg: unknown): unknown;
+  identifiers: string[];
+};
 
 //
 // Polkadapt class
@@ -119,9 +139,9 @@ export class Polkadapt<T> {
   // a passed through callback.
   run(config?: PolkadaptRunConfig | string): T {
     let chain: string | undefined;
-    let converter: PolkadaptRunConfigConverter | undefined;
-    let strategy: PolkadaptRunConfigStrategy | undefined;
-    let adapters: PolkadaptRegisteredAdapter[] | undefined;
+    let adapters: PolkadaptRegisteredAdapter[] = [];
+    let augmentedResults = true;
+    let observableResults = true;
 
     if (typeof config === 'string') {
       chain = config;
@@ -129,12 +149,8 @@ export class Polkadapt<T> {
       if (typeof config.chain === 'string') {
         chain = config.chain;
       }
-      if (typeof config.strategy === 'string') {
-        strategy = config.strategy;
-      }
-      if (typeof config.converter === 'function') {
-        converter = config.converter;
-      }
+      augmentedResults = config.augment !== false;
+      observableResults = config.observableResults !== false;
 
       if (config.adapters) {
         let adapterNotFound = false;
@@ -160,59 +176,57 @@ export class Polkadapt<T> {
       }
     }
 
-    if (!converter) {
-      converter = (results: { [p: string]: unknown }[]): any => {
-        // This is the default converter of the candidate results.
-        // By using a recursive Proxy we can (fake) deep merge the result objects.
-        if (results.every((r) => typeof r === 'object')) {
-          const createResultProxy = (candidateObjects: { [p: string]: unknown }[]): unknown => {
-            const target: { [k: string]: any } = {};
-            candidateObjects.forEach(o => {
-              for (const prop in o) {
-                if (!target[prop]) {
-                  target[prop] = {};
-                }
+    const converter = (results: { [p: string]: unknown }[]): any => {
+      // This is the default converter of the candidate results.
+      // By using a recursive Proxy we can (fake) deep merge the result objects.
+      if (results.every((r) => typeof r === 'object')) {
+        const createResultProxy = (candidateObjects: { [p: string]: unknown }[]): unknown => {
+          const target: { [k: string]: any } = {};
+          candidateObjects.forEach(o => {
+            for (const prop in o) {
+              if (!target[prop]) {
+                target[prop] = {};
               }
-            });
-            return new Proxy(target, {
-              get: (obj, prop: string) => {
-                // Create an Array of all results that contain the property name.
-                const matches: { [p: string]: unknown }[] = [];
-                candidateObjects.forEach(o => {
-                  if (prop in o) {
-                    matches.push(o);
-                  }
-                });
-                if (matches.length === 0) {
-                  // This property was not found on the result objects.
-                  return;
+            }
+          });
+          return new Proxy(target, {
+            get: (obj, prop: string) => {
+              // Create an Array of all results that contain the property name.
+              const matches: { [p: string]: unknown }[] = [];
+              candidateObjects.forEach(o => {
+                if (prop in o) {
+                  matches.push(o);
                 }
-                // If there's only one result object that contains the property name, return the property value.
-                if (matches.length === 1) {
-                  if (typeof matches[0][prop] === 'function') {
-                    return (matches[0][prop] as (...args: unknown[]) => unknown).bind(matches[0]);
-                  }
-                  return matches[0][prop];
-                }
-                // If all property values are objects, we have to (recursively) proxy these objects as well.
-                const propValues = matches.map(o => o[prop]);
-                if (propValues.every(v => typeof v === 'object')) {
-                  return createResultProxy(propValues as { [p: string]: unknown }[]);
-                }
-                // The property values cannot be merged, e.g. one is an object and the other is an Array or primitive.
-                // In this case we return an Array containing the separate results.
-                return propValues;
+              });
+              if (matches.length === 0) {
+                // This property was not found on the result objects.
+                return;
               }
-            });
-          };
-          return createResultProxy(results);
-        } else {
-          return results;
-        }
-      };
-    }
+              // If there's only one result object that contains the property name, return the property value.
+              if (matches.length === 1) {
+                if (typeof matches[0][prop] === 'function') {
+                  return (matches[0][prop] as (...args: unknown[]) => unknown).bind(matches[0]);
+                }
+                return matches[0][prop];
+              }
+              // If all property values are objects, we have to (recursively) proxy these objects as well.
+              const propValues = matches.map(o => o[prop]);
+              if (propValues.every(v => typeof v === 'object')) {
+                return createResultProxy(propValues as { [p: string]: unknown }[]);
+              }
+              // The property values cannot be merged, e.g. one is an object and the other is an Array or primitive.
+              // In this case we return an Array containing the separate results.
+              return propValues;
+            }
+          });
+        };
+        return createResultProxy(results);
+      } else {
+        return results;
+      }
+    };
 
-    return this.createRecursiveProxy(chain, converter, strategy, adapters) as T;
+    return this.createCallPathProxy(chain, adapters, augmentedResults, observableResults) as T;
   }
 
 
@@ -298,252 +312,303 @@ export class Polkadapt<T> {
   }
 
 
-  // Generate the proxy object that will return a promise on execution.
-  private createRecursiveProxy(chain: string | undefined,
-                               converter: PolkadaptRunConfigConverter,
-                               strategy: PolkadaptRunConfigStrategy | undefined,
-                               adapters?: PolkadaptRegisteredAdapter[]): any {
-    const path: string[] = [];  // Contains the mirroring path of the method chain.
-    const candidateReturnValues: Map<AdapterBase, Promise<unknown>> = new Map();  // Filled for matched method chains.
-    let called = false;  // Called will be true if the method chain is executed.
-    let callArgs: unknown[];  // A list with the arguments passed to the call at execution.
-    let callback: (...attrs: unknown[]) => unknown;  // The user passed callback function to be executed when subscriptions emit.
-    const candidateMessages = new Map();  // Messages storage per subscription. (enables combineLatest and merge)
-    let unsubscribeFunctions: (() => unknown)[];  // Storage for all the unsubscribe functions for active subscriptions.
-
-    // This interceptor returns a function that will store the received subscription messages for a candidate.
-    // A combined result from all candidates will be used as the value for the given callback function.
-    const callbackInterceptor = (subscription: any) => (message: any) => {
-      // Message received, store (or overwrite the previous) message.
-      candidateMessages.set(subscription, message);
-
-      // Place all adapter messages from the Map in an array.
-      const messages: any[] = [];
-      candidateMessages.forEach((value) => {
-        messages.push(value);
-      });
-
-      // Convert messages and execute the user passed callback function with the result.
-      if (strategy === 'combineLatest') {
-        if (candidateMessages.size === candidateReturnValues.size) {
-          callback(converter(messages));
-        }
-      } else if (strategy === 'merge' && candidateMessages.size > 1) {
-        callback(converter(messages));
-      } else {
-        callback(message);
-      }
+  // Generate the proxy object that will return an Observable when the property is being called.
+  private createCallPathProxy(chain: string | undefined,
+                              adapters: PolkadaptRegisteredAdapter[],
+                              augmentedResults: boolean,
+                              observableResults: boolean
+  ): () => void {
+    const context: CallContext = {
+      path: [],  // Contains the mirroring path of the method chain.
+      called: false,  // Called will be true if the method chain is executed.
+      callArgs: [],  // A list with the arguments passed to the call at execution.
     };
 
-    // Polkadapt will return this unsubscribe function when it's promise is resolved in the client application. Every
-    // adapter that has a subscription running will get unsubscribed.
-    const unsubscribeAll = () => {
-      if (unsubscribeFunctions.length === 0) {
-        return Promise.resolve();
-      } else if (unsubscribeFunctions.length === 1) {
-        return Promise.resolve(unsubscribeFunctions[0]());
-      } else {
-        return Promise.all(unsubscribeFunctions.map((ufn: (() => unknown)) => ufn()));
-      }
-    };
+    // The actual observable returned to the application.
+    const destroyer: Subject<void> = new Subject();
+    const resultObservable = new ReplaySubject(1);
 
-    // The actual promise returned to the application containing data or unsubscribe functionality.
-    const resultPromise = new Promise<any>((resolve, reject) => {
-      this.ready(adapters).then(
-        async () => {
-          if (!chain) {
-            const possibleChains = new Set(this.adapters.map(a => a.instance.chain));
-            if (possibleChains.size > 1) {
-              throw new Error('Please supply chain argument, because adapters have been registered for multiple chains.');
-            } else {
-              chain = [...possibleChains][0];
-            }
-          }
-          // Get Promise entrypoints for each adapter.
-          let candidates = this.adapters.filter(a =>
-            !a.instance.chain || (Object.prototype.toString.call(a.instance.chain) === '[object String]' && chain === a.instance.chain)
-          );
-
-          if (adapters && adapters.length) {
-            candidates = candidates.filter((a) => adapters.includes(a));
-            if (candidates.length === 0) {
-              throw new Error('The requested adapters are not registered for the supplied chain.');
-            }
-          }
-
-          // Array of matching items that contain functionality at the end of the method chain.
-          const candidateItems: Map<AdapterBase, unknown> = new Map();
-          // (items can be function or primitive or object)
-
-          // Walk the chain path for every adapter.
-          for (const c of candidates) {
-            let item = await c.instance.promise as { [p: string]: unknown };
-            let pathFailed = false;
-
-            for (const prop of path) {
-              if (prop in item) {
-                item = item[prop] as { [p: string]: unknown };
-              } else {
-                pathFailed = true;
-              }
-            }
-
-            if (!pathFailed) {
-              candidateItems.set(c.instance, item);
-            }
-          }
-
-          // If no items have been on the adapters method chains (paths) then reject the promise.
-          if (candidateItems.size === 0) {
-            reject(`No adapters were found containing path ${path.join('.')}`);
-            return;
-          }
-
-          // Method chain has execution on last item. It is called.
-          if (called) {
-            candidateItems.forEach((value, adapter) => {
-              try {
-                const result = (value as (...args: unknown[]) => unknown)(...callArgs.map((arg: unknown) => {
-                  if (typeof arg === 'function') {
-                    // Set candidate in interceptor callback function.
-                    return arg(value) as unknown;
-                  } else {
-                    return arg;
-                  }
-                }));
-                candidateReturnValues.set(adapter, Promise.resolve(result));
-              } catch (e) {
-                // This candidate is not a function.
-              }
-            });
-
-            if (candidateReturnValues.size === 0) {
-              reject(`No adapters were found containing path ${path.join('.')}`);
-
-            } else if (candidateReturnValues.size === 1) {
-              (candidateReturnValues.values().next().value as Promise<unknown>).then((returnValue: unknown) => {
-                if (typeof returnValue === 'function') {
-                  unsubscribeFunctions = [() => {
-                    if (this.adapters.map(a => a.instance).includes(candidateReturnValues.keys().next().value as AdapterBase)) {
-                      return (returnValue as () => void)();
-                    }
-                  }];
-                  // Callbacks will be triggered, return an unsubscribe all function.
-                  resolve(unsubscribeAll);
-                } else {
-                  resolve(returnValue);
-                }
-              }, reject);
-            } else {
-              Promise.all(Array.from(candidateReturnValues.values())).then(
-                (returnValues) => {
-                  // Check if a return value is an unsubscribe function. If so we have a subscription.
-                  unsubscribeFunctions = returnValues
-                    .map((value, index) => {
-                      if (typeof value === 'function') {
-                        return () => {
-                          if (this.adapters.map(a => a.instance).includes(Array.from(candidateReturnValues.keys())[index])) {
-                            return (value as () => void)();
-                          }
-                        };
-                      }
-                      return null;
-                    })
-                    .filter((v) => !!v) as (() => any)[];
-
-                  if (unsubscribeFunctions.length > 0) {
-                    returnValues.forEach((rv, index) => {
-                      if (typeof rv !== 'function') {
-                        // Add result, no need to store the candidate
-                        candidateMessages.set(index, rv);
-                      }
-                    });
-                    // Callbacks will be triggered, return an unsubscribe all function.
-                    resolve(unsubscribeAll);
-                  } else {
-                    resolve(converter(returnValues));
-                  }
-                },
-                (errors: any) => {
-                  // Check if subscriptions were made. Unsubscribe immediately.
-                  for (const value of candidateReturnValues.values()) {
-                    value.then((returnValue: unknown) => {
-                      if (typeof returnValue === 'function') {
-                        returnValue();
-                      }
-                    }, () => {
-                    });
-                  }
-
-                  reject(errors);
-                });
-            }
-
-          } else {
-            // Last item of method chain has not been called, so just return candidate item values.
-            if (candidateItems.size === 1) {
-              const returnValue = candidateItems.values().next().value as unknown;
-              resolve(returnValue);
-            } else {
-              resolve(converter(Array.from(candidateItems.values())));
-            }
-          }
-        },
-        () => {
-        });
-    });
-
-    // Generate a Proxy element that will be returned while walking the method chain at every step.
-    // When a method is called (executed) we assume the chain is complete and a promise is returned.
-    // In case no method is called the proxy will simply return itself. Eventually it will have to be called sometime
+    // Generate a Proxy element that will be returned while walking the call path at every step.
+    // When a property is called (executed), we assume the path is complete and an Observable is returned.
+    // In case the property is not called, the proxy will simply return itself. Eventually it will have to be called
     // in order to get information from the adapters.
     const proxy: () => void = new Proxy(
       () => {
       },
       {
         get: (obj, prop) => {
-          if (prop === 'then') {
-            // Not very elegant, but we're probably at the end of the intended path that is not a callable, but a
-            // normal property. The async/await mechanics will detect whether this is a 'then-able' object, so the
-            // await statement will try to wait for the given resolve function to be called.
-            return async (resolve: (v: any) => void, reject: (v: any) => void) => {
-              try {
-                resolve(await resultPromise);
-              } catch (e) {
-                reject(e);
-              }
-            };
-          } else {
-            // Add current step of the method chain to the mirroring path.
-            path.push(prop.toString());
-            // Return same proxy to make the next step available.
-            return proxy;
-          }
+          // Add current step of the method chain to the mirroring path.
+          context.path.push(prop.toString());
+          // Return same proxy to make the next step available.
+          return proxy;
         },
         apply: (target, thisArg, argArray) => {
-          // Method is called.
-          called = true;
-          // Store arguments passed by the application. (Possibly includes a callback function as last argument)
-          callArgs = argArray;
-
-          // Find the callback function in the call arguments and store it. Replace it by callback interceptor.
-          callArgs.forEach((arg, index) => {
-            if (!callback && typeof arg === 'function') {
-              // Store passed callback function.
-              callback = arg as (...args: unknown[]) => unknown;
-              // Replace callback function with interceptor (that combines multiple adapter results).
-              callArgs[index] = callbackInterceptor;
-            }
-          });
-
-          // Return promise that will be resolved in the next browser cycle.
-          return resultPromise;
+          // Property is called.
+          context.callArgs = argArray;
+          context.called = true;
+          return resultObservable;
         }
       }
     );
 
-    // First method of the method chain. Return generated proxy.
+    // Asynchronously handle the path, whether it's been called, and which arguments were used. The resultObservable
+    // will emit the values eventually.
+    void this.processCallAsync(chain, adapters, context, resultObservable, destroyer, augmentedResults, observableResults);
     return proxy;
+  }
+
+  private async processCallAsync(chain: string | undefined,
+                                 adapters: PolkadaptRegisteredAdapter[],
+                                 context: CallContext,
+                                 resultObservable: Subject<unknown>,
+                                 destroyer: Subject<void>,
+                                 augmentedResults: boolean,
+                                 observableResults: boolean
+  ): Promise<void> {
+    const candidateIdentifiers: Map<AdapterBase, string[]> = new Map();  // Filled for matched method chains.
+    const candidateResultObservables: Map<AdapterBase, Observable<unknown>> = new Map();  // Filled for matched method chains.
+    const itemRegister: Map<string, BehaviorSubject<{ [p: string]: unknown }> | unknown> = new Map();
+
+    let candidates: PolkadaptRegisteredAdapter[] = adapters;
+    if (candidates.length === 0) {
+      candidates = this.adapters;
+    }
+
+    // Determine the chain.
+    if (!chain) {
+      const possibleChains = new Set(candidates.map(a => a.instance.chain));
+      if (possibleChains.size > 1) {
+        resultObservable.error(new Error('Please supply chain argument, because adapters have been registered for multiple chains.'));
+        return;
+      } else {
+        chain = [...possibleChains][0];
+      }
+    }
+
+    // Now check if given adapters are all registered for this chain.
+    if (adapters.length && adapters.some(a => !this.adapters.includes(a) || a.instance.chain && a.instance.chain !== chain)) {
+      resultObservable.error(new Error('Adapter not registered for the supplied chain.'));
+      return;
+    }
+
+    // Only use adapter instances for this chain.
+    candidates = candidates.filter(a => !a.instance.chain || a.instance.chain === chain);
+
+    try {
+      await this.ready(candidates);
+    } catch (e) {
+      resultObservable.error(e);
+      return;
+    }
+
+    // Array of matching items that contain functionality at the end of the call path.
+    const candidateCalls: Map<AdapterBase, unknown> = new Map();
+    // (items can be function or primitive or object)
+
+    // Walk the call path for every adapter.
+    for (const c of candidates) {
+      let item = await c.instance.promise as { [p: string]: unknown };   /// TODO ???
+      let pathFailed = false;
+
+      for (const prop of context.path) {
+        if (prop in item) {
+          item = item[prop] as { [p: string]: unknown };
+        } else {
+          pathFailed = true;
+        }
+      }
+
+      if (!pathFailed) {
+        candidateCalls.set(c.instance, item);
+      }
+    }
+
+    // If no items have been on the adapters method chains (paths).
+    if (candidateCalls.size === 0) {
+      resultObservable.error(new Error(`No adapters were found containing path ${context.path.join('.')}`));
+      return;
+    }
+
+    // Method chain has execution on last item. It is called.
+    if (context.called) {
+      let identifiers: string[];
+      let flattenedIdentifiers: string;
+
+      Array.from(candidateCalls.entries()).forEach(([adapter, value], index) => {
+        candidateIdentifiers.set(adapter, (value as FunctionWithIdentifiers).identifiers);
+        if (index === 0) {
+          identifiers = (value as FunctionWithIdentifiers).identifiers || [];
+          flattenedIdentifiers = identifiers.slice().sort().join();
+        } else if (flattenedIdentifiers !== ((value as FunctionWithIdentifiers).identifiers || []).slice().sort().join()) {
+          resultObservable.error(new Error('Identifiers do not match between adapter functions.'));
+          return;
+        }
+      });
+
+      candidateCalls.forEach((call, adapter) => {
+        try {
+          const result = (call as (...args: unknown[]) => Observable<unknown>)(...context.callArgs);
+          candidateResultObservables.set(adapter, result);
+        } catch (e) {
+          // This candidate is not a function.
+        }
+      });
+
+      if (candidateResultObservables.size === 0) {
+        resultObservable.error(new Error(`No adapters were found containing path ${context.path.join('.')}`));
+        return;
+      } else {
+        const destroy = new Subject<void>();
+        let count = 0;
+
+        // Now we merge all candidate result observables into one stream and pass emissions to the resultObservable.
+        merge(...Array.from(candidateResultObservables.values())).pipe(
+          takeUntil(destroy),
+          takeUntil(timer(5000)),
+          map((result) => {
+            // Here we process the actual result values that are coming from multiple sources.
+            if (identifiers && identifiers.length) {
+              const isObject = typeof result === 'object';
+              const isArray = Array.isArray(result);
+
+              if (isObject) {
+                // Make sure result has properties for all identifiers.
+                if (isArray) {
+                  if (result.some(entry => !identifiers.every(attr => Object.keys(entry as object).includes(attr)))) {
+                    resultObservable.error(new Error('Identifiers not set in at least one object'));
+                    return;
+                  }
+                } else if (!identifiers.every(attr => Object.keys(result as object).includes(attr))) {
+                  resultObservable.error(new Error('Identifiers not set in object'));
+                  return;
+                }
+                if (observableResults) {
+                  // Update or create an Observable for each identified object.
+                  // Also for a single item, we temporarily make an Array for it.
+                  const returnValues = (isArray ? result : [result]).map((item: { [p: string]: unknown }) => {
+                    const pk = identifiers.map((attr) => item[attr]).join(' ');
+
+                    let observable = itemRegister.get(pk) as BehaviorSubject<{ [p: string]: unknown }>;
+                    if (observable) {
+                      // TODO Sanity check. If items are not in the same format, it cannot be merged.
+                      if (augmentedResults) {
+                        item = deepMerge(observable.value, item);
+                      }
+                      observable.next(item);
+                      if (!isArray) {
+                        // If result is not an Array, then return undefined, so the item Observable doesn't get emitted more than once.
+                        return;
+                      }
+                    } else {
+                      // Create a new observable for this item.
+                      observable = new BehaviorSubject(item);
+                      itemRegister.set(pk, observable);
+                    }
+
+                    let activeSubscriptions = 0;
+                    let stopDebounce: Subscription;
+
+                    const objObservable = observable.pipe(
+                      shareReplay(1),
+                      tap({
+                        subscribe: () => {
+                          console.log('observable subscribe');
+                          activeSubscriptions++;
+                          count++;
+                        },
+                        unsubscribe: () => {
+                          console.log('observable unsubscribe');
+                          activeSubscriptions--;
+                          count--;
+                          if (activeSubscriptions === 0 && stopDebounce) {
+                            stopDebounce.unsubscribe();
+                          }
+                          if (count === 0) {
+                            destroy.next();
+                            destroy.complete();
+                          }
+                        },
+                        complete: () => {
+                          console.log('observable complete');
+                        }
+                      })
+                    );
+
+                    stopDebounce = objObservable.pipe(
+                      tap({
+                        subscribe: () => {
+                          console.log('debounce');
+                          count--;
+                        }
+                      }),
+                      debounceTime(2 * 60 * 1000),
+                      take(1)
+                    ).subscribe(() => {
+                      itemRegister.delete(pk);
+                    });
+                    return objObservable;
+                  });
+                  // Return a single item if it was one in the first place.
+                  return isArray ? returnValues : returnValues[0];
+                } else if (augmentedResults) {
+                  // Do not return result in an Observable, and emit every time with an updated version of each object.
+                  const returnValues = (isArray ? result : [result]).map((item: { [p: string]: unknown }) => {
+                    const pk = identifiers.map((attr) => item[attr]).join(' ');
+
+                    const existing = itemRegister.get(pk);
+                    if (existing) {
+                      // TODO Sanity check. If items are not in the same format, it cannot be merged.
+                      item = deepMerge(existing, item);
+                    }
+                    itemRegister.set(pk, item);
+                    setTimeout(() => {
+                      itemRegister.delete(pk);
+                    }, 2 * 60 * 1000);
+                    return item;
+                  });
+                  // Return a single item if it was one in the first place.
+                  return isArray ? returnValues : returnValues[0];
+                }
+              } else {
+                // Do not augment results.
+                return result;
+              }
+            } else {
+              resultObservable.error(new Error('Result is not an object, though identifiers were set.'));
+              return;
+            }
+
+
+            if (observableResults) {
+              // This result is not identifiable, so just return an updated Observable with the latest value.
+              let primitiveObservable: BehaviorSubject<unknown> = itemRegister.get('p') as BehaviorSubject<unknown>;
+              if (primitiveObservable) {
+                primitiveObservable.next(result);
+              } else {
+                primitiveObservable = new BehaviorSubject<unknown>(result);
+              }
+
+              const prObservable = primitiveObservable.pipe(shareReplay(1));
+              prObservable.pipe(
+                debounceTime(2 * 60 * 1000),
+                take(1)
+              ).subscribe(() => {
+                primitiveObservable.complete();
+                itemRegister.delete('p');
+              });
+              return prObservable;
+            } else {
+              return result;
+            }
+          }),
+          filter(r => typeof r !== 'undefined')
+        ).subscribe((v: any) => {
+          resultObservable.next(v);
+        });
+      }
+    } else {
+      resultObservable.error(new Error('End of call path, but it was not called.'));
+    }
   }
 }
 

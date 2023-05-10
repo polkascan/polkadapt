@@ -22,8 +22,10 @@ import { Vec } from '@polkadot/types';
 import { Observable, of, from, map, switchMap, combineLatestWith } from 'rxjs';
 import { Adapter } from '../substrate-rpc';
 
-export const getBlock = (adapter: Adapter) =>
-  (hashOrNumber: string | number): Observable<types.Block> =>
+const identifiers = ['number'];
+
+export const getBlock = (adapter: Adapter) => {
+  const fn = (hashOrNumber: string | number): Observable<types.Block> =>
     from(adapter.apiPromise).pipe(
       switchMap(api => {
         let blockHash: Observable<BlockHash> | null = null;
@@ -74,17 +76,27 @@ export const getBlock = (adapter: Adapter) =>
         return block;
       })
     );
+  fn.identifiers = identifiers;
+  return fn;
+};
 
-export const getLatestBlock = (adapter: Adapter) =>
-  (): Observable<types.Block> =>
+export const getLatestBlock = (adapter: Adapter) => {
+
+
+  const fn = (): Observable<types.Block> =>
     from(adapter.apiPromise).pipe(
       switchMap(api => api.rpc.chain.getBlockHash()),
       switchMap(blockHash => getBlock(adapter)(blockHash.toString()))
     );
+  fn.identifiers = identifiers;
+};
 
-export const subscribeNewBlock = (adapter: Adapter) =>
-  (): Observable<types.Block> =>
+export const subscribeNewBlock = (adapter: Adapter) => {
+  const fn = (): Observable<types.Block> =>
     from(adapter.apiPromise).pipe(
       switchMap(api => api.rpc.chain.subscribeNewHeads()),
       switchMap(header => getBlock(adapter)(header.number.toNumber()))
     );
+  fn.identifiers = identifiers;
+  return fn;
+};
