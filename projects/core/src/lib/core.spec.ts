@@ -33,6 +33,7 @@ import {
 
 type ApiCall = (() => Observable<unknown>) & {identifiers?: string[]};
 type PolkadaptObservableCall = () => Observable<Observable<unknown>>;
+type PolkadaptArrayOfObservablesCall = () => Observable<Observable<unknown>[]>;
 type PolkadaptObjectCall = () => Observable<unknown>;
 
 type TestApi = {
@@ -88,7 +89,7 @@ class TestAdapterBase extends AdapterBase {
           return of(obj);
         },
         arrayFromBoth: () => {
-          const arr: {[p: string]: any}[] = [{id: 1}, {id: 2}, {id: 3, same: (this.letter === 'a')}];
+          const arr: {[p: string]: any}[] = [{id: 1}, {id: 2}, {id: 3, isThisA: (this.letter === 'a')}];
           arr[0][this.letter] = true;
           arr[1][this.letter] = false;
           return of(arr).pipe(delay(this.letter === 'a' ? 0 : this.timeout));
@@ -397,6 +398,7 @@ describe('Polkadapt', () => {
         done.fail(error);
       },
       complete: () => {
+        expect(count).toBe(3);
         done();
       }
     });
@@ -405,7 +407,7 @@ describe('Polkadapt', () => {
   fit('should emit new values from multiple adapters if no identifiers are set, no observables', (done) => {
     // TODO also primitives, arrays, object, or null/undefined.
     let count = 0;
-    (pa.run({chain: chainName, observableResults: false}).subscriptions.streamFromBoth.withoutIdentifiers as PolkadaptObjectCall)().pipe(
+    (pa.run({observableResults: false}).subscriptions.streamFromBoth.withoutIdentifiers as PolkadaptObjectCall)().pipe(
       take(4)
     ).subscribe({
       next: result => {
@@ -429,15 +431,16 @@ describe('Polkadapt', () => {
         done.fail(error);
       },
       complete: () => {
+        expect(count).toBe(4);
         done();
       }
     });
   });
 
-  fit('should modify a static object from multiple adapters based on the identifiers', (done) => {
+  fit('should merge a static object from multiple adapters based on the identifiers, with observables', (done) => {
     let count = 0;
     const destroyer = new Subject<void>();
-    (pa.run({chain: chainName}).subscriptions.streamFromBoth.selfChangingProperties as PolkadaptObservableCall)().pipe(
+    (pa.run().subscriptions.streamFromBoth.selfChangingProperties as PolkadaptObservableCall)().pipe(
       takeUntil(destroyer)
     ).subscribe({
       next: mergedResult => {
@@ -460,26 +463,96 @@ describe('Polkadapt', () => {
         done.fail(error);
       },
       complete: () => {
+        expect(count).toBe(2);
         done();
       }
     });
   });
 
-  it('should modify a static array of multiple objects from multiple adapters based on the identifiers', (done) => {
+  fit('should merge a static object from multiple adapters based on the identifiers, no observables', (done) => {
     let count = 0;
-    pa.run().values.arrayFromBoth().subscribe({
+    (pa.run({observableResults: false}).subscriptions.streamFromBoth.selfChangingProperties as PolkadaptObjectCall)().pipe(
+      take(3)
+    ).subscribe({
       next: result => {
+        if (count === 0) {
+          expect(result).toEqual({id1: '1', id2: '2', i: 0, a: 'a'});
+        } else if (count === 1) {
+          expect(result).toEqual({id1: '1', id2: '2', i: 1, a: 'a'});
+        } else {
+          expect(result).toEqual({id1: '1', id2: '2', i: 0, a: 'a', b: 'b'});
+        }
+        count++;
+      },
+      error: (error: Error) => {
+        done.fail(error);
+      },
+      complete: () => {
+        expect(count).toBe(3);
+        done();
+      }
+    });
+  });
+
+  fit('should merge a static array of objects from multiple adapters based on the identifiers, with observables', (done) => {
+    let count = 0;
+    (pa.run().values.arrayFromBoth as PolkadaptArrayOfObservablesCall)().subscribe({
+      next: mergedResult => {
+        expect(Array.isArray(mergedResult)).toBeTrue();
+        expect(mergedResult.length).toBe(3);
+        mergedResult.forEach((obs, i) => {
+          obs.subscribe(result => {
+            console.log('inner obs', i, result);
+            switch (count) {
+              case 0:
+                expect(result).toEqual({id: 1, a: true});
+                break;
+              case 1:
+                expect(result).toEqual({id: 2, a: false});
+                break;
+              case 2:
+                expect(result).toEqual({id: 3, isThisA: true});
+                break;
+              case 3:
+                expect(result).toEqual({id: 1, a: true, b: true});
+                break;
+              case 4:
+                expect(result).toEqual({id: 2, a: false, b: false});
+                break;
+              case 5:
+                expect(result).toEqual({id: 3, isThisA: false});
+                break;
+            }
+            count += 1;
+          });
+        });
+      },
+      error: (error: Error) => {
+        done.fail(error);
+      },
+      complete: () => {
+        expect(count).toBe(6);
+        done();
+      }
+    });
+  });
+
+  fit('should merge a static array of objects from multiple adapters based on the identifiers, no observables', (done) => {
+    let count = 0;
+    pa.run({observableResults: false}).values.arrayFromBoth().subscribe({
+      next: result => {
+        console.log('no obs', result);
         if (count === 0) {
           expect(result).toEqual([
             {id: 1, a: true},
             {id: 2, a: false},
-            {id: 3, same: 'a'},
+            {id: 3, isThisA: true},
           ]);
         } else if (count === 1) {
           expect(result).toEqual([
             {id: 1, a: true, b: true},
             {id: 2, a: false, b: false},
-            {id: 3, same: 'b'},
+            {id: 3, isThisA: false},
           ]);
         }
         count++;
