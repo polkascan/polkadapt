@@ -388,7 +388,7 @@ export class Polkadapt<T> {
   ): Promise<void> {
     const candidateIdentifiers: Map<AdapterBase, string[]> = new Map();  // Filled for matched method chains.
     const candidateResultObservables: Map<AdapterBase, Observable<unknown>> = new Map();  // Filled for matched method chains.
-    const itemRegister: Map<string, BehaviorSubject<{ [p: string]: unknown }> | unknown> = new Map();
+    const itemRegistry: Map<string, BehaviorSubject<{ [p: string]: unknown }> | unknown> = new Map();
     const registryExpirationTimeout = 5 * 60 * 1000;
 
     let candidates: PolkadaptRegisteredAdapter[] = adapters;
@@ -506,7 +506,7 @@ export class Polkadapt<T> {
                   const returnValues = (isArray ? result : [result]).map((item: { [p: string]: unknown }) => {
                     const pk = identifiers.map((attr) => item[attr]).join(' ');
 
-                    let observable = itemRegister.get(pk) as BehaviorSubject<{ [p: string]: unknown }>;
+                    let observable = itemRegistry.get(pk) as BehaviorSubject<{ [p: string]: unknown }>;
                     if (observable) {
                       // TODO Sanity check. If items are not in the same format, it cannot be merged.
                       if (augmentedResults) {
@@ -520,14 +520,14 @@ export class Polkadapt<T> {
                     } else {
                       // Create a new observable for this item.
                       observable = new BehaviorSubject(item);
-                      itemRegister.set(pk, observable);
+                      itemRegistry.set(pk, observable);
                     }
 
                     const objObservable = observable.pipe(
                       takeUntil(destroyer),
                       tap({
                         complete: () => {
-                          itemRegister.delete(pk);
+                          itemRegistry.delete(pk);
                         }
                       }),
                       shareReplay(1),
@@ -547,44 +547,47 @@ export class Polkadapt<T> {
                   const returnValues = (isArray ? result : [result]).map((item: { [p: string]: unknown }) => {
                     const pk = identifiers.map((attr) => item[attr]).join(' ');
 
-                    const existing = itemRegister.get(pk);
+                    const existing = itemRegistry.get(pk);
                     if (existing) {
                       // TODO Sanity check. If items are not in the same format, it cannot be merged.
                       item = deepMerge(existing, item);
                     }
-                    itemRegister.set(pk, item);
+                    itemRegistry.set(pk, item);
                     setTimeout(() => {
-                      itemRegister.delete(pk);
+                      itemRegistry.delete(pk);
                     }, registryExpirationTimeout);
                     return item;
                   });
                   // Return a single item if it was one in the first place.
                   return isArray ? returnValues : returnValues[0];
+                } else {
+                  // Do not augment results.
+                  return result;
                 }
               } else {
-                // Do not augment results.
-                return result;
+                resultObservable.error(new Error('Result is not an object, though identifiers were set.'));
+                return;
               }
-            } else {
-              resultObservable.error(new Error('Result is not an object, though identifiers were set.'));
-              return;
             }
 
             if (observableResults) {
               // This result is not identifiable, so just return an updated Observable with the latest value.
-              let observable: BehaviorSubject<unknown> = itemRegister.get('-') as BehaviorSubject<unknown>;
+              let observable: BehaviorSubject<unknown> = itemRegistry.get('-') as BehaviorSubject<unknown>;
               if (observable) {
                 observable.next(result);
+                // Return undefined, so the Observable doesn't get emitted more than once.
+                return;
               } else {
                 observable = new BehaviorSubject<unknown>(result);
-                itemRegister.set('-', observable);
+                itemRegistry.set('-', observable);
               }
 
               const primObservable = observable.pipe(
                 takeUntil(destroyer),
                 tap({
                   complete: () => {
-                    itemRegister.delete('-');
+                    console.log('primObservable complete');
+                    itemRegistry.delete('-');
                   }
                 }),
                 shareReplay(1)

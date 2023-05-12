@@ -32,7 +32,8 @@ import {
 } from 'rxjs';
 
 type ApiCall = (() => Observable<unknown>) & {identifiers?: string[]};
-type PolkadaptCall = () => Observable<Observable<unknown>>;
+type PolkadaptObservableCall = () => Observable<Observable<unknown>>;
+type PolkadaptObjectCall = () => Observable<unknown>;
 
 type TestApi = {
   values: {
@@ -150,7 +151,7 @@ class TestAdapterA extends TestAdapterBase {
     this.api.subscriptions.partialFailure = this.api.subscriptions.successFromA;
 
     const streamA = interval(this.timeout).pipe(
-      map(i => ({id1: '1', id2: '2', a: i, b: 'b'}))
+      map(i => ({id1: '1', id2: '2', i, a: 'a'}))
     );
     const streamAFn = () => streamA;
     streamAFn.identifiers = ['id1', 'id2'];
@@ -161,7 +162,7 @@ class TestAdapterA extends TestAdapterBase {
     this.api.subscriptions.streamFromBoth.withoutIdentifiers = () => streamA;
 
     const streamAIncreasing = () => interval(this.timeout).pipe(
-      map(i => ({id: Math.floor(i / 4), a: i, b: 'b'}))
+      map(i => ({id: Math.floor(i / 4), i, a: 'a'}))
     );
     streamAIncreasing.identifiers = ['id'];
     this.api.subscriptions.streamFromA.increasingIdentifiers = streamAIncreasing; // removes the identifiers
@@ -195,7 +196,7 @@ class TestAdapterB extends TestAdapterBase {
 
     const streamB = interval(this.timeout).pipe(
       delay(this.timeout / 2),
-      map(i => ({id1: '1', id2: '2', a: i, c: 'c'}))
+      map(i => ({id1: '1', id2: '2', i, b: 'b'}))
     );
     const streamBFn = () => streamB;
     streamBFn.identifiers = ['id1', 'id2'];
@@ -205,7 +206,7 @@ class TestAdapterB extends TestAdapterBase {
 
     const streamBIncreasing = () => interval(this.timeout).pipe(
       delay(this.timeout / 2),
-      map(i => ({id: Math.floor(i / 4), a: i, c: 'c'}))
+      map(i => ({id: Math.floor(i / 4), i, b: 'b'}))
     );
     streamBIncreasing.identifiers = ['id'];
     this.api.subscriptions.streamFromBoth.increasingIdentifiers = streamBIncreasing; // removes the identifiers
@@ -308,8 +309,8 @@ describe('Polkadapt', () => {
   xit('should reject ready when an adapter encounters a connection error');
 
   it('should return an Observable when an adapter API is called.', (done) => {
-    const value = (pa.run({chain: chainName}).values.successFromA as PolkadaptCall)();
-    const stream = (pa.run({chain: chainName}).subscriptions.successFromA as PolkadaptCall)();
+    const value = (pa.run({chain: chainName}).values.successFromA as PolkadaptObservableCall)();
+    const stream = (pa.run({chain: chainName}).subscriptions.successFromA as PolkadaptObservableCall)();
     expect(value).toBeInstanceOf(Observable);
     expect(stream).toBeInstanceOf(Observable);
     let count = 0;
@@ -350,7 +351,7 @@ describe('Polkadapt', () => {
   });
 
   it('should return the Observable result of one adapter.', (done) => {
-    (pa.run({chain: chainName}).values.successFromA as PolkadaptCall)().subscribe({
+    (pa.run({chain: chainName}).values.successFromA as PolkadaptObservableCall)().subscribe({
       next: (result) => {
         result.subscribe((val) => {
           expect(val).toEqual('a');
@@ -363,25 +364,64 @@ describe('Polkadapt', () => {
     });
   });
 
-  xit('should emit new values from multiple adapters if no identifiers are set', (done) => {
+  fit('should emit new values from multiple adapters if no identifiers are set, with observables', (done) => {
+    let count = 0;
+    const destroyer = new Subject<void>();
+    (pa.run({chain: chainName}).subscriptions.streamFromBoth.withoutIdentifiers as PolkadaptObservableCall)().pipe(
+      takeUntil(destroyer)
+    ).subscribe({
+      next: newResult => {
+        newResult.pipe(
+          take(4)
+        ).subscribe(result => {
+          switch (count) {
+            case 0:
+              expect(result).toEqual({id1: '1', id2: '2', i: 0, a: 'a'});
+              break;
+            case 1:
+              expect(result).toEqual({id1: '1', id2: '2', i: 1, a: 'a'});
+              break;
+            case 2:
+              expect(result).toEqual({id1: '1', id2: '2', i: 0, b: 'b'});
+              break;
+            case 3:
+              expect(result).toEqual({id1: '1', id2: '2', i: 2, a: 'a'});
+              destroyer.next();
+              destroyer.complete();
+              break;
+          }
+          count += 1;
+        });
+      },
+      error: (error: Error) => {
+        done.fail(error);
+      },
+      complete: () => {
+        done();
+      }
+    });
+  });
+
+  fit('should emit new values from multiple adapters if no identifiers are set, no observables', (done) => {
     // TODO also primitives, arrays, object, or null/undefined.
     let count = 0;
-    pa.run({chain: chainName}).values.objectFromBoth().subscribe({
+    (pa.run({chain: chainName, observableResults: false}).subscriptions.streamFromBoth.withoutIdentifiers as PolkadaptObjectCall)().pipe(
+      take(4)
+    ).subscribe({
       next: result => {
-        if (count === 0) {
-          expect(result).toEqual({
-            nested: {
-              conflicted: 'a',
-              a: true,
-            }
-          });
-        } else {
-          expect(result).toEqual({
-            nested: {
-              conflicted: 'b',
-              b: true
-            }
-          });
+        switch (count) {
+          case 0:
+            expect(result).toEqual({id1: '1', id2: '2', i: 0, a: 'a'});
+            break;
+          case 1:
+            expect(result).toEqual({id1: '1', id2: '2', i: 1, a: 'a'});
+            break;
+          case 2:
+            expect(result).toEqual({id1: '1', id2: '2', i: 0, b: 'b'});
+            break;
+          case 3:
+            expect(result).toEqual({id1: '1', id2: '2', i: 2, a: 'a'});
+            break;
         }
         count += 1;
       },
@@ -397,27 +437,24 @@ describe('Polkadapt', () => {
   fit('should modify a static object from multiple adapters based on the identifiers', (done) => {
     let count = 0;
     const destroyer = new Subject<void>();
-    (pa.run({chain: chainName}).subscriptions.streamFromBoth.selfChangingProperties as PolkadaptCall)().pipe(
+    (pa.run({chain: chainName}).subscriptions.streamFromBoth.selfChangingProperties as PolkadaptObservableCall)().pipe(
       takeUntil(destroyer)
     ).subscribe({
       next: mergedResult => {
         mergedResult.pipe(
           take(3)
-        ).subscribe(
-          {
-            next: (result: unknown) => {
-              if (count === 0) {
-                expect(result).toEqual({id1: '1', id2: '2', a: 0, b: 'b'});
-              } else if (count === 1) {
-                expect(result).toEqual({id1: '1', id2: '2', a: 1, b: 'b'});
-              } else {
-                expect(result).toEqual({id1: '1', id2: '2', a: 0, b: 'b', c: 'c'});
-                destroyer.next();
-                destroyer.complete();
-              }
-              count++;
-            },
-          });
+        ).subscribe(result => {
+          if (count === 0) {
+            expect(result).toEqual({id1: '1', id2: '2', i: 0, a: 'a'});
+          } else if (count === 1) {
+            expect(result).toEqual({id1: '1', id2: '2', i: 1, a: 'a'});
+          } else {
+            expect(result).toEqual({id1: '1', id2: '2', i: 0, a: 'a', b: 'b'});
+            destroyer.next();
+            destroyer.complete();
+          }
+          count++;
+        });
       },
       error: (error: Error) => {
         done.fail(error);
