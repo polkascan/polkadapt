@@ -25,7 +25,7 @@ import {
   merge,
   Observable,
   of,
-  ReplaySubject,
+  ReplaySubject, share,
   shareReplay,
   Subject, Subscription, take, takeUntil, tap, timer
 } from 'rxjs';
@@ -331,8 +331,8 @@ export class Polkadapt<T> {
     };
 
     // The actual observable returned to the application.
-    const destroyer: Subject<void> = new Subject();
-    const resultObservable = new ReplaySubject(1);
+    const destroyer = new Subject<void>();
+    const resultObservable = new Subject<unknown>();
 
     // Generate a Proxy element that will be returned while walking the call path at every step.
     // When a property is called (executed), we assume the path is complete and an Observable is returned.
@@ -352,7 +352,22 @@ export class Polkadapt<T> {
           // Property is called.
           context.callArgs = argArray;
           context.called = true;
-          return resultObservable;
+          let counter = 0;
+          return resultObservable.pipe(
+            shareReplay(),
+            tap({
+              subscribe: () => {
+                counter += 1;
+              },
+              unsubscribe: () => {
+                counter -= 1;
+                if (counter === 0) {
+                  destroyer.next();
+                  destroyer.complete();
+                }
+              }
+            }),
+          );
         }
       }
     );
@@ -374,6 +389,7 @@ export class Polkadapt<T> {
     const candidateIdentifiers: Map<AdapterBase, string[]> = new Map();  // Filled for matched method chains.
     const candidateResultObservables: Map<AdapterBase, Observable<unknown>> = new Map();  // Filled for matched method chains.
     const itemRegister: Map<string, BehaviorSubject<{ [p: string]: unknown }> | unknown> = new Map();
+    const registryExpirationTimeout = 5 * 60 * 1000;
 
     let candidates: PolkadaptRegisteredAdapter[] = adapters;
     if (candidates.length === 0) {
@@ -464,13 +480,9 @@ export class Polkadapt<T> {
         resultObservable.error(new Error(`No adapters were found containing path ${context.path.join('.')}`));
         return;
       } else {
-        const destroy = new Subject<void>();
-        let count = 0;
-
         // Now we merge all candidate result observables into one stream and pass emissions to the resultObservable.
         merge(...Array.from(candidateResultObservables.values())).pipe(
-          takeUntil(destroy),
-          takeUntil(timer(5000)),
+          takeUntil(destroyer),
           map((result) => {
             // Here we process the actual result values that are coming from multiple sources.
             if (identifiers && identifiers.length) {
@@ -511,46 +523,20 @@ export class Polkadapt<T> {
                       itemRegister.set(pk, observable);
                     }
 
-                    let activeSubscriptions = 0;
-                    let stopDebounce: Subscription;
-
                     const objObservable = observable.pipe(
-                      shareReplay(1),
+                      takeUntil(destroyer),
                       tap({
-                        subscribe: () => {
-                          console.log('observable subscribe');
-                          activeSubscriptions++;
-                          count++;
-                        },
-                        unsubscribe: () => {
-                          console.log('observable unsubscribe');
-                          activeSubscriptions--;
-                          count--;
-                          if (activeSubscriptions === 0 && stopDebounce) {
-                            stopDebounce.unsubscribe();
-                          }
-                          if (count === 0) {
-                            destroy.next();
-                            destroy.complete();
-                          }
-                        },
                         complete: () => {
-                          console.log('observable complete');
-                        }
-                      })
-                    );
-
-                    stopDebounce = objObservable.pipe(
-                      tap({
-                        subscribe: () => {
-                          console.log('debounce');
-                          count--;
+                          itemRegister.delete(pk);
                         }
                       }),
-                      debounceTime(2 * 60 * 1000),
+                      shareReplay(1),
+                    );
+                    objObservable.pipe(
+                      debounceTime(registryExpirationTimeout),
                       take(1)
                     ).subscribe(() => {
-                      itemRegister.delete(pk);
+                      observable.complete();
                     });
                     return objObservable;
                   });
@@ -569,7 +555,7 @@ export class Polkadapt<T> {
                     itemRegister.set(pk, item);
                     setTimeout(() => {
                       itemRegister.delete(pk);
-                    }, 2 * 60 * 1000);
+                    }, registryExpirationTimeout);
                     return item;
                   });
                   // Return a single item if it was one in the first place.
@@ -584,33 +570,38 @@ export class Polkadapt<T> {
               return;
             }
 
-
             if (observableResults) {
               // This result is not identifiable, so just return an updated Observable with the latest value.
-              let primitiveObservable: BehaviorSubject<unknown> = itemRegister.get('p') as BehaviorSubject<unknown>;
-              if (primitiveObservable) {
-                primitiveObservable.next(result);
+              let observable: BehaviorSubject<unknown> = itemRegister.get('-') as BehaviorSubject<unknown>;
+              if (observable) {
+                observable.next(result);
               } else {
-                primitiveObservable = new BehaviorSubject<unknown>(result);
+                observable = new BehaviorSubject<unknown>(result);
+                itemRegister.set('-', observable);
               }
 
-              const prObservable = primitiveObservable.pipe(shareReplay(1));
-              prObservable.pipe(
-                debounceTime(2 * 60 * 1000),
+              const primObservable = observable.pipe(
+                takeUntil(destroyer),
+                tap({
+                  complete: () => {
+                    itemRegister.delete('-');
+                  }
+                }),
+                shareReplay(1)
+              );
+              primObservable.pipe(
+                debounceTime(registryExpirationTimeout),
                 take(1)
               ).subscribe(() => {
-                primitiveObservable.complete();
-                itemRegister.delete('p');
+                observable.complete();
               });
-              return prObservable;
+              return primObservable;
             } else {
               return result;
             }
           }),
           filter(r => typeof r !== 'undefined')
-        ).subscribe((v: any) => {
-          resultObservable.next(v);
-        });
+        ).subscribe(resultObservable);
       }
     } else {
       resultObservable.error(new Error('End of call path, but it was not called.'));

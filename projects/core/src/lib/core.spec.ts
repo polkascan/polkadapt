@@ -24,11 +24,11 @@ import {
   map,
   Observable,
   of,
-  Subject,
+  Subject, switchAll, switchMap,
   take,
   takeUntil,
   tap,
-  throwError
+  throwError, timer
 } from 'rxjs';
 
 type ApiCall = (() => Observable<unknown>) & {identifiers?: string[]};
@@ -150,7 +150,6 @@ class TestAdapterA extends TestAdapterBase {
     this.api.subscriptions.partialFailure = this.api.subscriptions.successFromA;
 
     const streamA = interval(this.timeout).pipe(
-      tap({next: () => console.log('streamA next'), complete: () => console.log('streamA complete')}),
       map(i => ({id1: '1', id2: '2', a: i, b: 'b'}))
     );
     const streamAFn = () => streamA;
@@ -195,9 +194,8 @@ class TestAdapterB extends TestAdapterBase {
     this.api.subscriptions.partialFailure = this.api.subscriptions.failureFromB;
 
     const streamB = interval(this.timeout).pipe(
-      tap({next: () => console.log('streamB next'), complete: () => console.log('streamB complete')}),
       delay(this.timeout / 2),
-      map(i => ({id1: '1', id2: '2', a: i, b: 'b', c: 'c'}))
+      map(i => ({id1: '1', id2: '2', a: i, c: 'c'}))
     );
     const streamBFn = () => streamB;
     streamBFn.identifiers = ['id1', 'id2'];
@@ -207,7 +205,7 @@ class TestAdapterB extends TestAdapterBase {
 
     const streamBIncreasing = () => interval(this.timeout).pipe(
       delay(this.timeout / 2),
-      map(i => ({id: Math.floor(i / 4), a: i, b: 'b', c: 'c'}))
+      map(i => ({id: Math.floor(i / 4), a: i, c: 'c'}))
     );
     streamBIncreasing.identifiers = ['id'];
     this.api.subscriptions.streamFromBoth.increasingIdentifiers = streamBIncreasing; // removes the identifiers
@@ -398,9 +396,12 @@ describe('Polkadapt', () => {
 
   fit('should modify a static object from multiple adapters based on the identifiers', (done) => {
     let count = 0;
-    (pa.run({chain: chainName}).subscriptions.streamFromBoth.selfChangingProperties as PolkadaptCall)().subscribe({
-      next: resultObservable => {
-        resultObservable.pipe(
+    const destroyer = new Subject<void>();
+    (pa.run({chain: chainName}).subscriptions.streamFromBoth.selfChangingProperties as PolkadaptCall)().pipe(
+      takeUntil(destroyer)
+    ).subscribe({
+      next: mergedResult => {
+        mergedResult.pipe(
           take(3)
         ).subscribe(
           {
@@ -408,9 +409,11 @@ describe('Polkadapt', () => {
               if (count === 0) {
                 expect(result).toEqual({id1: '1', id2: '2', a: 0, b: 'b'});
               } else if (count === 1) {
-                expect(result).toEqual({id1: '1', id2: '2', a: 0, b: 'b', c: 'c'});
+                expect(result).toEqual({id1: '1', id2: '2', a: 1, b: 'b'});
               } else {
-                expect(result).toEqual({id1: '1', id2: '2', a: 1, b: 'b', c: 'c'});
+                expect(result).toEqual({id1: '1', id2: '2', a: 0, b: 'b', c: 'c'});
+                destroyer.next();
+                destroyer.complete();
               }
               count++;
             },
