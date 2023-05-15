@@ -17,21 +17,9 @@
  */
 
 import { AdapterBase, Polkadapt } from './core';
-import {
-  combineLatestWith,
-  delay,
-  interval,
-  map,
-  Observable,
-  of,
-  Subject, switchAll, switchMap,
-  take,
-  takeUntil,
-  tap,
-  throwError, timer
-} from 'rxjs';
+import { delay, interval, map, Observable, of, skip, Subject, take, takeUntil, throwError, zip } from 'rxjs';
 
-type ApiCall = (() => Observable<unknown>) & {identifiers?: string[]};
+type ApiCall = (() => Observable<unknown>) & { identifiers?: string[] };
 type PolkadaptObservableCall = () => Observable<Observable<unknown>>;
 type PolkadaptArrayOfObservablesCall = () => Observable<Observable<unknown>[]>;
 type PolkadaptObjectCall = () => Observable<unknown>;
@@ -89,7 +77,7 @@ class TestAdapterBase extends AdapterBase {
           return of(obj);
         },
         arrayFromBoth: () => {
-          const arr: {[p: string]: any}[] = [{id: 1}, {id: 2}, {id: 3, isThisA: (this.letter === 'a')}];
+          const arr: { [p: string]: any }[] = [{id: 1}, {id: 2}, {id: 3, isThisA: (this.letter === 'a')}];
           arr[0][this.letter] = true;
           arr[1][this.letter] = false;
           return of(arr).pipe(delay(this.letter === 'a' ? 0 : this.timeout));
@@ -112,11 +100,11 @@ class TestAdapterBase extends AdapterBase {
           interval(this.timeout).pipe(
             delay(this.letter === 'a' ? 0 : this.timeout),
             map((i) => {
-              const arr: {[p: string]: any}[] = [{id: 1}, {id: 2}, {id: 3, same: (this.letter === 'a')}];
+              const arr: { [p: string]: any }[] = [{id: 1}, {id: 2}, {id: 3, same: (this.letter === 'a')}];
               arr[0][this.letter] = i;
               arr[1][this.letter] = i;
               return arr;
-          })),
+            })),
         streamFromA: {},
         streamFromBoth: {}
       }
@@ -310,23 +298,24 @@ describe('Polkadapt', () => {
   xit('should reject ready when an adapter encounters a connection error');
 
   it('should return an Observable when an adapter API is called.', (done) => {
-    const value = (pa.run({chain: chainName}).values.successFromA as PolkadaptObservableCall)();
-    const stream = (pa.run({chain: chainName}).subscriptions.successFromA as PolkadaptObservableCall)();
+    const value = (pa.run().values.successFromA as PolkadaptObservableCall)();
+    const stream = (pa.run({observableResults: false}).subscriptions.successFromA as PolkadaptObservableCall)();
     expect(value).toBeInstanceOf(Observable);
     expect(stream).toBeInstanceOf(Observable);
+
     let count = 0;
     value.subscribe({
       complete: () => {
-        count++;
+        count += 1;
         if (count === 2) {
           done();
         }
       }
     });
-    const streamCompleted = jasmine.createSpy('streamCompleted');
-    stream.pipe(take(4)).subscribe({
+
+    stream.pipe(take(3)).subscribe({
       complete: () => {
-        count++;
+        count += 1;
         if (count === 2) {
           done();
         }
@@ -365,7 +354,7 @@ describe('Polkadapt', () => {
     });
   });
 
-  fit('should emit new values from multiple adapters if no identifiers are set, with observables', (done) => {
+  it('should emit new values from multiple adapters if no identifiers are set, with observables', (done) => {
     let count = 0;
     const destroyer = new Subject<void>();
     (pa.run({chain: chainName}).subscriptions.streamFromBoth.withoutIdentifiers as PolkadaptObservableCall)().pipe(
@@ -404,7 +393,7 @@ describe('Polkadapt', () => {
     });
   });
 
-  fit('should emit new values from multiple adapters if no identifiers are set, no observables', (done) => {
+  it('should emit new values from multiple adapters if no identifiers are set, no observables', (done) => {
     // TODO also primitives, arrays, object, or null/undefined.
     let count = 0;
     (pa.run({observableResults: false}).subscriptions.streamFromBoth.withoutIdentifiers as PolkadaptObjectCall)().pipe(
@@ -437,7 +426,7 @@ describe('Polkadapt', () => {
     });
   });
 
-  fit('should merge a static object from multiple adapters based on the identifiers, with observables', (done) => {
+  it('should merge a static object from multiple adapters based on the identifiers, with observables', (done) => {
     let count = 0;
     const destroyer = new Subject<void>();
     (pa.run().subscriptions.streamFromBoth.selfChangingProperties as PolkadaptObservableCall)().pipe(
@@ -469,7 +458,7 @@ describe('Polkadapt', () => {
     });
   });
 
-  fit('should merge a static object from multiple adapters based on the identifiers, no observables', (done) => {
+  it('should merge a static object from multiple adapters based on the identifiers, no observables', (done) => {
     let count = 0;
     (pa.run({observableResults: false}).subscriptions.streamFromBoth.selfChangingProperties as PolkadaptObjectCall)().pipe(
       take(3)
@@ -494,37 +483,41 @@ describe('Polkadapt', () => {
     });
   });
 
-  fit('should merge a static array of objects from multiple adapters based on the identifiers, with observables', (done) => {
+  it('should merge a static array of objects from multiple adapters based on the identifiers, with observables', (done) => {
     let count = 0;
+    const observables: Observable<unknown>[] = [];
+
     (pa.run().values.arrayFromBoth as PolkadaptArrayOfObservablesCall)().subscribe({
       next: mergedResult => {
         expect(Array.isArray(mergedResult)).toBeTrue();
         expect(mergedResult.length).toBe(3);
-        mergedResult.forEach((obs, i) => {
-          obs.subscribe(result => {
-            console.log('inner obs', i, result);
-            switch (count) {
-              case 0:
-                expect(result).toEqual({id: 1, a: true});
-                break;
-              case 1:
-                expect(result).toEqual({id: 2, a: false});
-                break;
-              case 2:
-                expect(result).toEqual({id: 3, isThisA: true});
-                break;
-              case 3:
-                expect(result).toEqual({id: 1, a: true, b: true});
-                break;
-              case 4:
-                expect(result).toEqual({id: 2, a: false, b: false});
-                break;
-              case 5:
-                expect(result).toEqual({id: 3, isThisA: false});
-                break;
-            }
-            count += 1;
-          });
+        mergedResult.forEach((obs) => {
+          if (observables.indexOf(obs) === -1) {
+            observables.push(obs);
+            obs.subscribe(result => {
+              switch (count) {
+                case 0:
+                  expect(result).toEqual({id: 1, a: true});
+                  break;
+                case 1:
+                  expect(result).toEqual({id: 2, a: false});
+                  break;
+                case 2:
+                  expect(result).toEqual({id: 3, isThisA: true});
+                  break;
+                case 3:
+                  expect(result).toEqual({id: 1, a: true, b: true});
+                  break;
+                case 4:
+                  expect(result).toEqual({id: 2, a: false, b: false});
+                  break;
+                case 5:
+                  expect(result).toEqual({id: 3, isThisA: false});
+                  break;
+              }
+              count += 1;
+            });
+          }
         });
       },
       error: (error: Error) => {
@@ -537,11 +530,10 @@ describe('Polkadapt', () => {
     });
   });
 
-  fit('should merge a static array of objects from multiple adapters based on the identifiers, no observables', (done) => {
+  it('should merge a static array of objects from multiple adapters based on the identifiers, no observables', (done) => {
     let count = 0;
     pa.run({observableResults: false}).values.arrayFromBoth().subscribe({
       next: result => {
-        console.log('no obs', result);
         if (count === 0) {
           expect(result).toEqual([
             {id: 1, a: true},
@@ -566,9 +558,77 @@ describe('Polkadapt', () => {
     });
   });
 
-  xit('should modify an object from a single stream of updates', () => {});
-  xit('should modify an array of multiple objects from a single stream of updates', () => {});
-  xit('should modify an array of multiple objects from multiple streams of updates', () => {});
+  it('should modify an object from a single stream of updates', (done) => {
+    let doneCount = 0;
+
+    let i = 0;
+    (pa.run({observableResults: false}).subscriptions.streamFromA.selfChangingProperties as PolkadaptObjectCall)().pipe(
+      take(5)
+    ).subscribe({
+      next: (result) => {
+        expect(result).toEqual({
+          id1: '1',
+          id2: '2',
+          i,
+          a: 'a'
+        });
+        i += 1;
+      },
+      error: (error: Error) => {
+        done.fail(error);
+      },
+      complete: () => {
+        doneCount += 1;
+        if (doneCount === 2) {
+          done();
+        }
+      }
+    });
+
+    const destroyer = new Subject<void>();
+    let ii = 0;
+    (pa.run().subscriptions.streamFromA.selfChangingProperties as PolkadaptObservableCall)().pipe(
+      takeUntil(destroyer)
+    ).subscribe({
+      next: (resultObs) => {
+        resultObs.pipe(
+          take(5)
+        ).subscribe({
+          next: (result) => {
+            expect(result).toEqual({
+              id1: '1',
+              id2: '2',
+              i: ii,
+              a: 'a'
+            });
+            ii += 1;
+          },
+          error: (error: Error) => {
+            done.fail(error);
+          },
+          complete: () => {
+            destroyer.next();
+            destroyer.complete();
+          }
+        });
+      },
+      error: (error: Error) => {
+        done.fail(error);
+      },
+      complete: () => {
+        doneCount += 1;
+        if (doneCount === 2) {
+          done();
+        }
+      }
+    });
+  });
+
+  xit('should modify an array of multiple objects from a single stream of updates', () => {
+  });
+
+  xit('should modify an array of multiple objects from multiple streams of updates', () => {
+  });
 
   it('should fail when one adapter Observable throws an Error.', (done) => {
     (pa.run({chain: chainName}).values.failureFromB as ApiCall)().subscribe({
@@ -584,11 +644,13 @@ describe('Polkadapt', () => {
   xit('should reject when one adapter throws an error.');
 
   it('should reject when one of multiple adapters rejects.', (done) => {
-    (pa.run({chain: chainName}).values.partialFailure as ApiCall)().subscribe({
-      next: () => {
-        done.fail();
+    (pa.run({observableResults: false}).values.partialFailure as ApiCall)().subscribe({
+      next: (a) => {
+        // Stream A will not fail.
+        expect(a).toEqual('a');
       },
       error: () => {
+        // stream B will fail.
         done();
       }
     });
@@ -608,131 +670,155 @@ describe('Polkadapt', () => {
   xit('should unsubscribe multiple adapters after unregister.');
   xit('should be clear which adapter threw an error.');
 
-  // it('should be able to run with a specific adapter', async () => {
-  //   expect(await (pa.run({chain: chainName, adapters: 'test adapter A'}).values.successFromA as ResultObservable)()).toEqual('a');
-  //   expect(await (pa.run({chain: chainName, adapters: ['test adapter A']}).values.successFromA as ResultObservable)()).toEqual('a');
-  //   expect(await (pa.run({chain: chainName, adapters: pa.adapters[0].instance}).values.successFromA as ResultObservable)()).toEqual('a');
-  //   expect(await (pa.run({chain: chainName, adapters: [pa.adapters[0].instance]}).values.successFromA as ResultObservable)()).toEqual('a');
-  //   expect(await (pa.run({chain: chainName, adapters: 'test adapter B'}).values.successFromB as ResultObservable)()).toEqual('b');
-  //   expect(await (pa.run({chain: chainName, adapters: pa.adapters[1].instance}).values.successFromB as ResultObservable)()).toEqual('b');
-  // });
-  //
-  // it('should be able to run with multiple specified adapters', async () => {
-  //   const result = await pa.run({chain: chainName, adapters: [pa.adapters[0].instance, 'test adapter B']}).values.successFromBoth();
-  //   expect(result).toEqual({
-  //     nested: {
-  //       conflicted: ['a', 'b'],
-  //       a: true,
-  //       b: true
-  //     }
-  //   });
-  // });
-  //
-  // it('should fail when specified adapters are not registered', async () => {
-  //   const adapterA = pa.adapters[0].instance;
-  //   pa.unregister(adapterA);
-  //
-  //   try {
-  //     await (pa.run({chain: chainName, adapters: 'test adapter A'}).values.successFromA as ResultObservable)();
-  //   } catch (e) {
-  //     expect((e as Error).message).toEqual('The requested adapters have not been registered.');
-  //   }
-  //
-  //   try {
-  //     await (pa.run({chain: chainName, adapters: adapterA}).values.successFromA as ResultObservable)();
-  //   } catch (e) {
-  //     expect((e as Error).message).toEqual('The requested adapters have not been registered.');
-  //   }
-  //
-  //   // todo include not for a specified chain
-  // });
-  //
-  // // Adapter tests.
-  // xit('should have a "name" property containing a name.');
-  // xit('should have a "chain" property containing a name.');
-  // xit('should have a "promise" property containing the Promise to the adapter API.');
-  //
-  // // Event listeners tests.
-  // it('should add a listener', () => {
-  //   const listener = jasmine.createSpy('listener', () => {
-  //   });
-  //   pa.on('readyChange', listener);
-  //   const listeners = pa.listeners('readyChange');
-  //   expect(listeners.length).toBe(1);
-  //   expect(listeners[0]).toBe(listener);
-  // });
-  //
-  // it('should emit an event', () => {
-  //   const listener = jasmine.createSpy('listener');
-  //   pa.on('readyChange', listener);
-  //   pa.emit('readyChange');
-  //   expect(listener).toHaveBeenCalled();
-  // });
-  //
-  // it('should execute listeners when event emit', () => {
-  //   const listenerA = jasmine.createSpy('listenerA');
-  //   const listenerB = jasmine.createSpy('listenerB');
-  //   pa.on('readyChange', listenerA);
-  //   pa.on('readyChange', listenerB);
-  //   expect(listenerA).toHaveBeenCalledTimes(0);
-  //   expect(listenerB).toHaveBeenCalledTimes(0);
-  //   pa.emit('readyChange', 'test1', 'test2', 'test3');
-  //   expect(listenerA).toHaveBeenCalledTimes(1);
-  //   expect(listenerA).toHaveBeenCalledWith('test1', 'test2', 'test3');
-  //   expect(listenerB).toHaveBeenCalledTimes(1);
-  //   expect(listenerB).toHaveBeenCalledWith('test1', 'test2', 'test3');
-  //   pa.emit('readyChange', 'test4');
-  //   expect(listenerA).toHaveBeenCalledTimes(2);
-  //   expect(listenerA).toHaveBeenCalledWith('test4');
-  //   expect(listenerB).toHaveBeenCalledTimes(2);
-  //   expect(listenerB).toHaveBeenCalledWith('test4');
-  // });
-  //
-  // it('should add a listener that removes itself after event emits', () => {
-  //   const listener = jasmine.createSpy('listener');
-  //   pa.once('readyChange', listener);
-  //   pa.emit('readyChange');
-  //   pa.emit('readyChange');
-  //   expect(listener).toHaveBeenCalledTimes(1);
-  // });
-  //
-  // it('should remove a listener', () => {
-  //   const listener = jasmine.createSpy('listener');
-  //   pa.on('readyChange', listener);
-  //   pa.emit('readyChange');
-  //   expect(listener).toHaveBeenCalledTimes(1);
-  //   pa.off('readyChange', listener);
-  //   pa.emit('readyChange');
-  //   expect(listener).toHaveBeenCalledTimes(1);
-  // });
-  //
-  // it('should remove all listener (per event name)', () => {
-  //   const listener = jasmine.createSpy('listener');
-  //   pa.on('readyChange', listener);
-  //   pa.emit('readyChange');
-  //   expect(listener).toHaveBeenCalledTimes(1);
-  //   pa.removeAllListeners('readyChange');
-  //   pa.emit('readyChange');
-  //   expect(listener).toHaveBeenCalledTimes(1);
-  // });
-  //
-  // it('should return all listeners registered for an event name', () => {
-  //   const listenerA = () => {
-  //   };
-  //   const listenerB = () => {
-  //   };
-  //   pa.on('readyChange', listenerA);
-  //   pa.on('readyChange', listenerB);
-  //   const listeners = pa.listeners('readyChange');
-  //   expect(listeners).toContain(listenerA);
-  //   expect(listeners).toContain(listenerB);
-  // });
-  //
-  // it('should return all event names with registered listeners', () => {
-  //   const listener = () => {
-  //   };
-  //   pa.on('readyChange', listener);
-  //   const eventNames = pa.eventNames();
-  //   expect(eventNames).toContain('readyChange');
-  // });
+  it('should be able to run with a specific adapter', (done) => {
+    zip(
+      (pa.run({chain: chainName, adapters: 'test adapter A', observableResults: false}).values.successFromA as ApiCall)(),
+      (pa.run({chain: chainName, adapters: ['test adapter A'], observableResults: false}).values.successFromA as ApiCall)(),
+      (pa.run({chain: chainName, adapters: pa.adapters[0].instance, observableResults: false}).values.successFromA as ApiCall)(),
+      (pa.run({chain: chainName, adapters: [pa.adapters[0].instance], observableResults: false}).values.successFromA as ApiCall)(),
+      (pa.run({chain: chainName, adapters: 'test adapter B', observableResults: false}).values.successFromB as ApiCall)(),
+      (pa.run({chain: chainName, adapters: pa.adapters[1].instance, observableResults: false}).values.successFromB as ApiCall)(),
+    ).subscribe((results) => {
+      expect((results as string[])[0]).toEqual('a');
+      expect((results as string[])[1]).toEqual('a');
+      expect((results as string[])[2]).toEqual('a');
+      expect((results as string[])[3]).toEqual('a');
+      expect((results as string[])[4]).toEqual('b');
+      expect((results as string[])[5]).toEqual('b');
+      done();
+    });
+  });
+
+  it('should be able to run with multiple specified adapters', (done) => {
+    pa.run({
+      chain: chainName,
+      adapters: [pa.adapters[0].instance, 'test adapter B'],
+      observableResults: false
+    }).values.objectFromBoth()
+      .pipe(skip(1))
+      .subscribe({
+        next: (result) => {
+          console.log(result);
+          expect(result).toEqual({
+            id: 1,
+            nested: {
+              conflicted: 'b',
+              a: true,
+              b: true
+            }
+          });
+        },
+        complete: () => {
+          done();
+          }
+      });
+  });
+
+  it('should fail when specified adapters are not registered', (done) => {
+    const adapterA = pa.adapters[0].instance;
+    pa.unregister(adapterA);
+
+    try {
+    (pa.run({chain: chainName, adapters: 'test adapter A'}).values.successFromA as ApiCall)().subscribe();
+    } catch (e) {
+      expect((e as Error).message).toEqual('The requested adapters have not been registered.');
+    }
+
+    try {
+    (pa.run({chain: chainName, adapters: adapterA}).values.successFromA as ApiCall)().subscribe();
+    } catch (e) {
+      expect((e as Error).message).toEqual('The requested adapters have not been registered.');
+    }
+
+    done();
+  });
+
+  // Adapter tests.
+  xit('should have a "name" property containing a name.');
+  xit('should have a "chain" property containing a name.');
+  xit('should have a "promise" property containing the Promise to the adapter API.');
+
+  // Event listeners tests.
+  it('should add a listener', () => {
+    const listener = jasmine.createSpy('listener', () => {
+    });
+    pa.on('readyChange', listener);
+    const listeners = pa.listeners('readyChange');
+    expect(listeners.length).toBe(1);
+    expect(listeners[0]).toBe(listener);
+  });
+
+  it('should emit an event', () => {
+    const listener = jasmine.createSpy('listener');
+    pa.on('readyChange', listener);
+    pa.emit('readyChange');
+    expect(listener).toHaveBeenCalled();
+  });
+
+  it('should execute listeners when event emit', () => {
+    const listenerA = jasmine.createSpy('listenerA');
+    const listenerB = jasmine.createSpy('listenerB');
+    pa.on('readyChange', listenerA);
+    pa.on('readyChange', listenerB);
+    expect(listenerA).toHaveBeenCalledTimes(0);
+    expect(listenerB).toHaveBeenCalledTimes(0);
+    pa.emit('readyChange', 'test1', 'test2', 'test3');
+    expect(listenerA).toHaveBeenCalledTimes(1);
+    expect(listenerA).toHaveBeenCalledWith('test1', 'test2', 'test3');
+    expect(listenerB).toHaveBeenCalledTimes(1);
+    expect(listenerB).toHaveBeenCalledWith('test1', 'test2', 'test3');
+    pa.emit('readyChange', 'test4');
+    expect(listenerA).toHaveBeenCalledTimes(2);
+    expect(listenerA).toHaveBeenCalledWith('test4');
+    expect(listenerB).toHaveBeenCalledTimes(2);
+    expect(listenerB).toHaveBeenCalledWith('test4');
+  });
+
+  it('should add a listener that removes itself after event emits', () => {
+    const listener = jasmine.createSpy('listener');
+    pa.once('readyChange', listener);
+    pa.emit('readyChange');
+    pa.emit('readyChange');
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it('should remove a listener', () => {
+    const listener = jasmine.createSpy('listener');
+    pa.on('readyChange', listener);
+    pa.emit('readyChange');
+    expect(listener).toHaveBeenCalledTimes(1);
+    pa.off('readyChange', listener);
+    pa.emit('readyChange');
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it('should remove all listener (per event name)', () => {
+    const listener = jasmine.createSpy('listener');
+    pa.on('readyChange', listener);
+    pa.emit('readyChange');
+    expect(listener).toHaveBeenCalledTimes(1);
+    pa.removeAllListeners('readyChange');
+    pa.emit('readyChange');
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it('should return all listeners registered for an event name', () => {
+    const listenerA = () => {
+    };
+    const listenerB = () => {
+    };
+    pa.on('readyChange', listenerA);
+    pa.on('readyChange', listenerB);
+    const listeners = pa.listeners('readyChange');
+    expect(listeners).toContain(listenerA);
+    expect(listeners).toContain(listenerB);
+  });
+
+  it('should return all event names with registered listeners', () => {
+    const listener = () => {
+    };
+    pa.on('readyChange', listener);
+    const eventNames = pa.eventNames();
+    expect(eventNames).toContain('readyChange');
+  });
 });
