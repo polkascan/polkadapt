@@ -388,7 +388,14 @@ export class Polkadapt<T> {
   ): Promise<void> {
     const candidateIdentifiers: Map<AdapterBase, string[]> = new Map();  // Filled for matched method chains.
     const candidateResultObservables: Map<AdapterBase, Observable<unknown>> = new Map();  // Filled for matched method chains.
-    const itemRegistry: Map<string, BehaviorSubject<{ [p: string]: unknown }> | unknown> = new Map();
+
+    type ItemRegistryEntry = {
+      source: BehaviorSubject<{ [p: string]: unknown }> | unknown;
+      returnObservable?: Observable<{ [p: string]: unknown }> | unknown;
+    };
+    type ItemRegistry = Map<string, ItemRegistryEntry | unknown>;
+
+    const itemRegistry: ItemRegistry = new Map();
     const registryExpirationTimeout = 5 * 60 * 1000;
 
     let candidates: PolkadaptRegisteredAdapter[] = adapters;
@@ -505,8 +512,13 @@ export class Polkadapt<T> {
                   // Also for a single item, we temporarily make an Array for it.
                   const returnValues = (isArray ? result : [result]).map((item: { [p: string]: unknown }) => {
                     const pk = identifiers.map((attr) => item[attr]).join(' ');
+                    let observable: BehaviorSubject<{ [p: string]: unknown }> | undefined;
 
-                    let observable = itemRegistry.get(pk) as BehaviorSubject<{ [p: string]: unknown }>;
+                    const itemRegistryEntry = itemRegistry.get(pk);
+                    if (itemRegistryEntry) {
+                      observable = (itemRegistryEntry as ItemRegistryEntry).source as BehaviorSubject<{ [p: string]: unknown }>;
+                    }
+
                     if (observable) {
                       // TODO Sanity check. If items are not in the same format, it cannot be merged.
                       if (augmentedResults) {
@@ -520,25 +532,31 @@ export class Polkadapt<T> {
                     } else {
                       // Create a new observable for this item.
                       observable = new BehaviorSubject(item);
-                      itemRegistry.set(pk, observable);
+                      itemRegistry.set(pk, {source: observable});
                     }
 
-                    const objObservable = observable.pipe(
-                      takeUntil(destroyer),
-                      tap({
-                        complete: () => {
-                          itemRegistry.delete(pk);
-                        }
-                      }),
-                      shareReplay(1),
-                    );
-                    objObservable.pipe(
-                      debounceTime(registryExpirationTimeout),
-                      take(1)
-                    ).subscribe(() => {
-                      observable.complete();
-                    });
-                    return objObservable;
+                    if ((itemRegistryEntry as ItemRegistryEntry)?.returnObservable) {
+                      return (itemRegistryEntry as ItemRegistryEntry).returnObservable;
+                    } else {
+                      const objObservable = observable.pipe(
+                        takeUntil(destroyer),
+                        tap({
+                          complete: () => {
+                            itemRegistry.delete(pk);
+                          }
+                        }),
+                        shareReplay(1),
+                      );
+                      itemRegistry.set(pk, {source: observable, returnObservable: objObservable});
+
+                      objObservable.pipe(
+                        debounceTime(registryExpirationTimeout),
+                        take(1)
+                      ).subscribe(() => {
+                        observable?.complete();
+                      });
+                      return objObservable;
+                    }
                   });
                   // Return a single item if it was one in the first place.
                   return isArray ? returnValues : returnValues[0];
@@ -572,33 +590,43 @@ export class Polkadapt<T> {
 
             if (observableResults) {
               // This result is not identifiable, so just return an updated Observable with the latest value.
-              let observable: BehaviorSubject<unknown> = itemRegistry.get('-') as BehaviorSubject<unknown>;
+              let observable: BehaviorSubject<unknown> | undefined;
+
+              const itemRegistryEntry = itemRegistry.get('-');
+              if (itemRegistryEntry) {
+                observable = (itemRegistryEntry as ItemRegistryEntry).source as BehaviorSubject<unknown>;
+              }
+
               if (observable) {
                 observable.next(result);
                 // Return undefined, so the Observable doesn't get emitted more than once.
                 return;
               } else {
                 observable = new BehaviorSubject<unknown>(result);
-                itemRegistry.set('-', observable);
+                itemRegistry.set('-', {source: observable});
               }
 
-              const primObservable = observable.pipe(
-                takeUntil(destroyer),
-                tap({
-                  complete: () => {
-                    console.log('primObservable complete');
-                    itemRegistry.delete('-');
-                  }
-                }),
-                shareReplay(1)
-              );
-              primObservable.pipe(
-                debounceTime(registryExpirationTimeout),
-                take(1)
-              ).subscribe(() => {
-                observable.complete();
-              });
-              return primObservable;
+              if ((itemRegistryEntry as ItemRegistryEntry)?.returnObservable) {
+                return (itemRegistryEntry as ItemRegistryEntry).returnObservable;
+              } else {
+                const primObservable = observable.pipe(
+                  takeUntil(destroyer),
+                  tap({
+                    complete: () => {
+                      itemRegistry.delete('-');
+                    }
+                  }),
+                  shareReplay(1)
+                );
+                itemRegistry.set('-', {source: observable, returnObservable: primObservable});
+                primObservable.pipe(
+                  debounceTime(registryExpirationTimeout),
+                  take(1)
+                ).subscribe(() => {
+                  observable?.complete();
+                });
+                return primObservable;
+              }
             } else {
               return result;
             }
