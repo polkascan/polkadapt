@@ -81,14 +81,13 @@ export const getBlock = (adapter: Adapter) => {
 };
 
 export const getLatestBlock = (adapter: Adapter) => {
-
-
   const fn = (): Observable<types.Block> =>
     from(adapter.apiPromise).pipe(
       switchMap(api => api.rpc.chain.getBlockHash()),
       switchMap(blockHash => getBlock(adapter)(blockHash.toString()))
     );
   fn.identifiers = identifiers;
+  return fn;
 };
 
 export const subscribeNewBlock = (adapter: Adapter) => {
