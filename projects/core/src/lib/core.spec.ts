@@ -17,7 +17,7 @@
  */
 
 import { AdapterBase, Polkadapt } from './core';
-import { delay, interval, map, Observable, of, skip, Subject, take, takeUntil, throwError, zip } from 'rxjs';
+import { delay, interval, map, merge, Observable, of, skip, Subject, switchMap, take, takeUntil, throwError, zip } from 'rxjs';
 
 type ApiCall = (() => Observable<unknown>) & { identifiers?: string[] };
 type PolkadaptObservableCall = () => Observable<Observable<unknown>>;
@@ -35,7 +35,8 @@ type TestApi = {
   };
   subscriptions: {
     newObjectFromBoth: ApiCall;
-    newArrayFromBoth: ApiCall;
+    newArrayFromBothIdentified: ApiCall;
+    newArrayFromBothUnidentified: ApiCall;
     successFromA?: ApiCall;
     failureFromB?: ApiCall;
     partialFailure?: ApiCall;
@@ -64,6 +65,14 @@ class TestAdapterBase extends AdapterBase {
 
   constructor() {
     super(chainName);
+    const newArrayFromBoth = interval(this.timeout).pipe(
+      delay(this.letter === 'a' ? 0 : 50),
+      map((i) => {
+        const arr: {[p: string]: any}[] = [{id: i + 1}, {id: i + 2}, {id: i + 3, nested: {isThisA: (this.letter === 'a')}}];
+        arr[0][this.letter] = i;
+        arr[1][this.letter] = i;
+        return arr;
+    }));
     this.api = {
       values: {
         objectFromBoth: () => {
@@ -77,7 +86,7 @@ class TestAdapterBase extends AdapterBase {
           return of(obj);
         },
         arrayFromBoth: () => {
-          const arr: { [p: string]: any }[] = [{id: 1}, {id: 2}, {id: 3, isThisA: (this.letter === 'a')}];
+          const arr: { [p: string]: any }[] = [{id: 1}, {id: 2}, {id: 3, nested: {isThisA: (this.letter === 'a')}}];
           arr[0][this.letter] = true;
           arr[1][this.letter] = false;
           return of(arr).pipe(delay(this.letter === 'a' ? 0 : this.timeout));
@@ -85,6 +94,7 @@ class TestAdapterBase extends AdapterBase {
       },
       subscriptions: {
         newObjectFromBoth: () => interval(this.timeout).pipe(
+          delay(this.letter === 'a' ? 0 : 50),
           map(i => {
             const obj = {
               id: i,
@@ -96,21 +106,15 @@ class TestAdapterBase extends AdapterBase {
             return obj;
           })
         ),
-        newArrayFromBoth: () =>
-          interval(this.timeout).pipe(
-            delay(this.letter === 'a' ? 0 : this.timeout),
-            map((i) => {
-              const arr: { [p: string]: any }[] = [{id: 1}, {id: 2}, {id: 3, same: (this.letter === 'a')}];
-              arr[0][this.letter] = i;
-              arr[1][this.letter] = i;
-              return arr;
-            })),
+        newArrayFromBothIdentified: () => newArrayFromBoth,
+        newArrayFromBothUnidentified: () => newArrayFromBoth,
         streamFromA: {},
         streamFromBoth: {}
       }
     };
     this.api.values.objectFromBoth.identifiers = ['id'];
     this.api.values.arrayFromBoth.identifiers = ['id'];
+    this.api.subscriptions.newArrayFromBothIdentified.identifiers = ['id'];
     this.promise = Promise.resolve(this.api);
   }
 
@@ -166,7 +170,7 @@ class TestAdapterA extends TestAdapterBase {
 class TestAdapterB extends TestAdapterBase {
   name = 'test adapter B';
   letter = 'b';
-  timeout = 150;
+  timeout = 100;
 
   constructor() {
     super();
@@ -174,6 +178,7 @@ class TestAdapterB extends TestAdapterBase {
     this.api.values.failureFromB = () => throwError(() => new Error('Whatever'));
     this.api.values.partialFailure = this.api.values.failureFromB;
     this.api.subscriptions.failureFromB = () => interval(this.timeout).pipe(
+      delay(50),
       map(i => {
         if (i === 4) {
           throw new Error('Error!');
@@ -184,7 +189,7 @@ class TestAdapterB extends TestAdapterBase {
     this.api.subscriptions.partialFailure = this.api.subscriptions.failureFromB;
 
     const streamB = interval(this.timeout).pipe(
-      delay(this.timeout / 2),
+      delay(50),
       map(i => ({id1: '1', id2: '2', i, b: 'b'}))
     );
     const streamBFn = () => streamB;
@@ -194,7 +199,7 @@ class TestAdapterB extends TestAdapterBase {
     this.api.subscriptions.streamFromBoth.identifiersFailure = () => streamB;
 
     const streamBIncreasing = () => interval(this.timeout).pipe(
-      delay(this.timeout / 2),
+      delay(50),
       map(i => ({id: Math.floor(i / 4), i, b: 'b'}))
     );
     streamBIncreasing.identifiers = ['id'];
@@ -369,13 +374,13 @@ describe('Polkadapt', () => {
               expect(result).toEqual({id1: '1', id2: '2', i: 0, a: 'a'});
               break;
             case 1:
-              expect(result).toEqual({id1: '1', id2: '2', i: 1, a: 'a'});
-              break;
-            case 2:
               expect(result).toEqual({id1: '1', id2: '2', i: 0, b: 'b'});
               break;
+            case 2:
+              expect(result).toEqual({id1: '1', id2: '2', i: 1, a: 'a'});
+              break;
             case 3:
-              expect(result).toEqual({id1: '1', id2: '2', i: 2, a: 'a'});
+              expect(result).toEqual({id1: '1', id2: '2', i: 1, b: 'b'});
               destroyer.next();
               destroyer.complete();
               break;
@@ -405,13 +410,13 @@ describe('Polkadapt', () => {
             expect(result).toEqual({id1: '1', id2: '2', i: 0, a: 'a'});
             break;
           case 1:
-            expect(result).toEqual({id1: '1', id2: '2', i: 1, a: 'a'});
-            break;
-          case 2:
             expect(result).toEqual({id1: '1', id2: '2', i: 0, b: 'b'});
             break;
+          case 2:
+            expect(result).toEqual({id1: '1', id2: '2', i: 1, a: 'a'});
+            break;
           case 3:
-            expect(result).toEqual({id1: '1', id2: '2', i: 2, a: 'a'});
+            expect(result).toEqual({id1: '1', id2: '2', i: 1, b: 'b'});
             break;
         }
         count += 1;
@@ -439,9 +444,9 @@ describe('Polkadapt', () => {
           if (count === 0) {
             expect(result).toEqual({id1: '1', id2: '2', i: 0, a: 'a'});
           } else if (count === 1) {
-            expect(result).toEqual({id1: '1', id2: '2', i: 1, a: 'a'});
-          } else {
             expect(result).toEqual({id1: '1', id2: '2', i: 0, a: 'a', b: 'b'});
+          } else {
+            expect(result).toEqual({id1: '1', id2: '2', i: 1, a: 'a', b: 'b'});
             destroyer.next();
             destroyer.complete();
           }
@@ -467,9 +472,9 @@ describe('Polkadapt', () => {
         if (count === 0) {
           expect(result).toEqual({id1: '1', id2: '2', i: 0, a: 'a'});
         } else if (count === 1) {
-          expect(result).toEqual({id1: '1', id2: '2', i: 1, a: 'a'});
-        } else {
           expect(result).toEqual({id1: '1', id2: '2', i: 0, a: 'a', b: 'b'});
+        } else {
+          expect(result).toEqual({id1: '1', id2: '2', i: 1, a: 'a', b: 'b'});
         }
         count++;
       },
@@ -503,7 +508,7 @@ describe('Polkadapt', () => {
                   expect(result).toEqual({id: 2, a: false});
                   break;
                 case 2:
-                  expect(result).toEqual({id: 3, isThisA: true});
+                  expect(result).toEqual({id: 3, nested: {isThisA: true}});
                   break;
                 case 3:
                   expect(result).toEqual({id: 1, a: true, b: true});
@@ -512,7 +517,7 @@ describe('Polkadapt', () => {
                   expect(result).toEqual({id: 2, a: false, b: false});
                   break;
                 case 5:
-                  expect(result).toEqual({id: 3, isThisA: false});
+                  expect(result).toEqual({id: 3, nested: {isThisA: false}});
                   break;
               }
               count += 1;
@@ -538,13 +543,13 @@ describe('Polkadapt', () => {
           expect(result).toEqual([
             {id: 1, a: true},
             {id: 2, a: false},
-            {id: 3, isThisA: true},
+            {id: 3, nested: {isThisA: true}},
           ]);
         } else if (count === 1) {
           expect(result).toEqual([
             {id: 1, a: true, b: true},
             {id: 2, a: false, b: false},
-            {id: 3, isThisA: false},
+            {id: 3, nested: {isThisA: false}},
           ]);
         }
         count++;
@@ -553,6 +558,7 @@ describe('Polkadapt', () => {
         done.fail(error);
       },
       complete: () => {
+        expect(count).toBe(2);
         done();
       }
     });
@@ -624,10 +630,153 @@ describe('Polkadapt', () => {
     });
   });
 
-  xit('should modify an array of multiple objects from a single stream of updates', () => {
+  it('should replace a dynamic array of multiple unidentified objects from multiple streams of updates', (done) => {
+    let count = 0;
+    const destroyer = new Subject<void>();
+    (pa.run().subscriptions.newArrayFromBothUnidentified as PolkadaptObservableCall)().pipe(
+      takeUntil(destroyer)
+    ).subscribe({
+      next: newResult => {
+        newResult.pipe(
+          take(6)
+        ).subscribe(result => {
+          switch (count) {
+            case 0:
+              expect(result).toEqual([
+                {id: 1, a: 0},
+                {id: 2, a: 0},
+                {id: 3, nested: {isThisA: true}}
+              ]);
+              break;
+            case 1:
+              expect(result).toEqual([
+                {id: 1, b: 0},
+                {id: 2, b: 0},
+                {id: 3, nested: {isThisA: false}}
+              ]);
+              break;
+            case 2:
+              expect(result).toEqual([
+                {id: 2, a: 1},
+                {id: 3, a: 1},
+                {id: 4, nested: {isThisA: true}}
+              ]);
+              break;
+            case 3:
+              expect(result).toEqual([
+                {id: 2, b: 1},
+                {id: 3, b: 1},
+                {id: 4, nested: {isThisA: false}}
+              ]);
+              break;
+            case 4:
+              expect(result).toEqual([
+                {id: 3, a: 2},
+                {id: 4, a: 2},
+                {id: 5, nested: {isThisA: true}}
+              ]);
+              break;
+            case 5:
+              expect(result).toEqual([
+                {id: 3, b: 2},
+                {id: 4, b: 2},
+                {id: 5, nested: {isThisA: false}}
+              ]);
+              destroyer.next();
+              destroyer.complete();
+              break;
+          }
+          count += 1;
+        });
+      },
+      error: (error: Error) => {
+        done.fail(error);
+      },
+      complete: () => {
+        expect(count).toBe(5);
+        done();
+      }
+    });
   });
 
-  xit('should modify an array of multiple objects from multiple streams of updates', () => {
+  it('should modify a dynamic array of multiple identified objects from multiple streams of updates, with observables', (done) => {
+    let count = 0;
+    const destroyer = new Subject<void>();
+    const objObservables = new Set<Observable<unknown>>();
+    (pa.run().subscriptions.newArrayFromBothIdentified as PolkadaptArrayOfObservablesCall)().pipe(
+      takeUntil(destroyer),
+    ).subscribe({
+      next: mergedResult => {
+        expect(Array.isArray(mergedResult)).toBeTrue();
+        expect(mergedResult.length).toBe(3);
+        for (const obs of mergedResult) {
+          obs.pipe(
+            take(1),
+            takeUntil(destroyer)
+          ).subscribe(result => {
+            switch (count) {
+              case 0:
+                expect(result).toEqual({id: 1, a: 0});
+                break;
+              case 1:
+                expect(result).toEqual({id: 2, a: 0});
+                break;
+              case 2:
+                expect(result).toEqual({id: 3, nested: {isThisA: true}});
+                break;
+              case 3:
+                expect(result).toEqual({id: 1, a: 0, b: 0});
+                break;
+              case 4:
+                expect(result).toEqual({id: 2, a: 0, b: 0});
+                break;
+              case 5:
+                expect(result).toEqual({id: 3, nested: {isThisA: false}});
+                break;
+              case 6:
+                expect(result).toEqual({id: 2, a: 1, b: 0});
+                break;
+              case 7:
+                expect(result).toEqual({id: 3, a: 1, nested: {isThisA: false}});
+                break;
+              case 8:
+                expect(result).toEqual({id: 4, nested: {isThisA: true}});
+                break;
+              case 9:
+                expect(result).toEqual({id: 2, a: 1, b: 1});
+                break;
+              case 10:
+                expect(result).toEqual({id: 3, a: 1, b: 1, nested: {isThisA: false}});
+                break;
+              case 11:
+                expect(result).toEqual({id: 4, nested: {isThisA: false}});
+                break;
+              case 12:
+                expect(result).toEqual({id: 3, a: 2, b: 1 , nested: {isThisA: false}});
+                break;
+              case 13:
+                expect(result).toEqual({id: 4, a: 2, nested: {isThisA: false}});
+                break;
+              case 14:
+                expect(result).toEqual({id: 5, nested: {isThisA: true}});
+                destroyer.next();
+                destroyer.complete();
+                break;
+            }
+            count += 1;
+          });
+          objObservables.add(obs);
+        }
+      },
+      error: (error: Error) => {
+        done.fail(error);
+      },
+      complete: () => {
+        expect(count).toBe(14);
+        expect(objObservables.size).toBe(4);
+        done();
+      }
+    });
   });
 
   it('should fail when one adapter Observable throws an Error.', (done) => {
