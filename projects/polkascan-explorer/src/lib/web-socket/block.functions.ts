@@ -47,9 +47,10 @@ const genericBlockFields = [
   'complete'
 ];
 
+const identifiers = ['number'];
 
-export const getBlock = (adapter: Adapter) =>
-  (hashOrNumber: string | number): Observable<types.Block> => {
+export const getBlock = (adapter: Adapter) => {
+  const fn = (hashOrNumber: string | number): Observable<types.Block> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] getBlock: Websocket unavailable.');
     }
@@ -85,7 +86,9 @@ export const getBlock = (adapter: Adapter) =>
 
     return subject.pipe(take(1));
   };
-
+  fn.identifiers = identifiers;
+  return fn;
+};
 
 const getBlocksFn = (adapter: Adapter, direction?: 'from' | 'until') =>
   async (hashOrNumber?: string | number,
@@ -129,8 +132,8 @@ const getBlocksFn = (adapter: Adapter, direction?: 'from' | 'until') =>
   };
 
 
-export const getLatestBlock = (adapter: Adapter) =>
-  (): Observable<types.Block> => {
+export const getLatestBlock = (adapter: Adapter) => {
+  const fn = (): Observable<types.Block> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
@@ -154,6 +157,9 @@ export const getLatestBlock = (adapter: Adapter) =>
 
     return subject.pipe(take(1));
   };
+  fn.identifiers = identifiers;
+  return fn;
+};
 
 
 export const getBlocks = (adapter: Adapter) =>
@@ -167,8 +173,8 @@ export const getBlocksFrom = (adapter: Adapter) => getBlocksFn(adapter, 'from');
 export const getBlocksUntil = (adapter: Adapter) => getBlocksFn(adapter, 'until');
 
 
-export const subscribeNewBlock = (adapter: Adapter) =>
-  (): Observable<types.Block> => {
+export const subscribeNewBlock = (adapter: Adapter) => {
+  const fn = (): Observable<types.Block> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
@@ -187,3 +193,6 @@ export const subscribeNewBlock = (adapter: Adapter) =>
       })
     );
   };
+  fn.identifiers = identifiers;
+  return fn;
+};
