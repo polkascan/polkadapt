@@ -173,9 +173,11 @@ export const createSharedObservable = <T>(adapter: Adapter, query: string): Obse
   };
 
   const shared = source.pipe(
-    shareReplay({
-      bufferSize: 1,
-      refCount: true
+    share({
+      connector: () => new ReplaySubject(1),
+      resetOnError: true,
+      resetOnComplete: true,
+      resetOnRefCountZero: true
     }),
     tap({
       subscribe: () => {
