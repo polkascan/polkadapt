@@ -17,9 +17,9 @@
  */
 
 
-import { defer, Observable, publish, refCount, ReplaySubject, share, shareReplay, tap } from 'rxjs';
-import { finalize } from 'rxjs/operators';
+import { Observable, ReplaySubject, share, shareReplay, tap } from 'rxjs';
 import { Adapter } from '../polkascan-explorer';
+import * as pst from '../polkascan-explorer.types';
 
 export const isBlockHash = (hash: unknown): hash is string => isString(hash) && hash.startsWith('0x');
 
@@ -131,6 +131,8 @@ export const generateSubscriptionQuery = (name: string,
 
 export const createSharedObservable = <T>(adapter: Adapter, query: string): Observable<T> => {
 
+  // TODO CHECK THAT THE SOURCE OBSERVABLE IS COMPLETED WHEN SUBSCRIPTIONS DROP TO 0.
+
   if (!adapter) {
     throw new Error('[PolkascanAdapter]: Could not generate observable, adapter not present.');
   }
@@ -139,7 +141,7 @@ export const createSharedObservable = <T>(adapter: Adapter, query: string): Obse
     throw new Error('[PolkascanAdapter]: Could not generate observable, query not present.');
   }
 
-  let counter = 0;
+  let subscriptionCounter = 0;
   let unsubscribeFn: (() => void) | null = null;
   const source = new ReplaySubject<T>(1);
 
@@ -148,7 +150,7 @@ export const createSharedObservable = <T>(adapter: Adapter, query: string): Obse
   };
 
   const subscriber = () => {
-    if (counter === 0) {
+    if (subscriptionCounter === 0) {
       if (adapter && adapter.socket) {
         adapter.socket.createSubscription(query, emitResult).then(
           (unsubFn) => {
@@ -162,7 +164,7 @@ export const createSharedObservable = <T>(adapter: Adapter, query: string): Obse
   };
 
   const unsubscriber = () => {
-    if (counter === 0) {
+    if (subscriptionCounter === 0) {
       if (unsubscribeFn) {
         unsubscribeFn();
       }
@@ -178,14 +180,145 @@ export const createSharedObservable = <T>(adapter: Adapter, query: string): Obse
     tap({
       subscribe: () => {
         subscriber();
-        counter++;
+        subscriptionCounter += 1;
       },
       unsubscribe: () => {
-        counter--;
+        subscriptionCounter -= 1;
         unsubscriber();
+      }
+    })
+  );
+
+  return shared;
+};
+
+
+export const createSharedListResponseObservable = <T>(
+  adapter: Adapter,
+  name: string,
+  fields?: string[],
+  filters?: string[],
+  identifiers?: string[],
+  pageSize?: number): Observable<T[]> => {
+
+  if (!adapter) {
+    throw new Error('[PolkascanAdapter]: Could not generate observable, adapter not present.');
+  }
+
+  let objectList: T[] = [];
+  let listAtEnd = false;
+
+  let pageNext: string | undefined;
+  let blockLimitCount: number | undefined;
+  let blockLimitOffset: number | undefined;
+  let subscriptionCounter = 0;
+
+  const source = new ReplaySubject<T[]>(1);
+
+  const emitResult = () => {
+    source.next(objectList);
+  };
+
+  const generateObjectList = (objects: T[]) => {
+    if (identifiers && identifiers.length) {
+      objectList = [...objectList, ...objects];
+
+      if (objectList.length > (pageSize as number)) {
+        // Remove items beyond the pageSize.
+        objectList.length = (pageSize as number);
+        listAtEnd = true;
+      }
+    }
+  };
+
+  const loadNextItems = () => {
+    if (adapter && adapter.socket && !listAtEnd) {
+      if (subscriptionCounter === 0) {
+        // No one is listening.
+        return;
+      }
+
+      if (adapter && adapter.socket) {
+        let query: string | undefined;
+
+        if (pageNext) {
+          query = generateObjectsListQuery(name, fields, filters, pageSize, pageNext, blockLimitOffset, blockLimitCount);
+        } else if (blockLimitOffset && blockLimitCount) {
+          const nextBlockLimitOffset = Math.max(0, blockLimitOffset - blockLimitCount);
+          if (nextBlockLimitOffset > 0) {
+            query = generateObjectsListQuery(name, fields, filters, pageSize, undefined, nextBlockLimitOffset, blockLimitCount);
+          } else {
+            // Shouldn't be able to load more. Return.
+            return;
+          }
+        }
+
+        if (!query) {
+          // Generate the first query.
+          query = generateObjectsListQuery(name, fields, filters, pageSize, undefined, blockLimitOffset, blockLimitCount);
+        }
+
+        // Start querying results.
+        (adapter.socket.query(query) as Promise<{ [name: string]: pst.ListResponse<T> }>).then(
+          (response) => {
+            if (!listAtEnd && subscriptionCounter > 0) {
+              const pageInfo = response[name]?.pageInfo;
+              pageNext = pageInfo?.pageNext;
+              blockLimitCount = pageInfo?.blockLimitCount;
+              blockLimitOffset = pageInfo?.blockLimitOffset;
+
+              if (pageNext) {
+                listAtEnd = false;
+              } else if (blockLimitOffset && blockLimitCount) {
+                blockLimitOffset = blockLimitOffset - blockLimitCount;
+                listAtEnd = blockLimitOffset <= 0;
+              } else {
+                listAtEnd = false;
+              }
+
+              const objects = response[name].objects;
+              if (objects) {
+                generateObjectList(objects);
+                emitResult();
+              }
+
+              if (listAtEnd) {
+                source.complete();
+              } else if (subscriptionCounter > 0) {
+                // Still items left. Go on with filling the list.
+                if (objectList.length < (pageSize as number)) {
+                  loadNextItems();
+                }
+              }
+            }
+          },
+          (e: Error) => {
+            source.error(e);
+            throw e;
+          }
+        );
+      }
+    }
+  };
+
+
+  const shared = source.pipe(
+    share({
+      connector: () => new ReplaySubject(1),
+      resetOnError: true,
+      resetOnComplete: true,
+      resetOnRefCountZero: true
+    }),
+    tap({
+      subscribe: () => {
+        subscriptionCounter += 1;
+        if (subscriptionCounter === 1) {
+          loadNextItems();
+        }
       },
-      finalize: () => {
-      }   // TODO, stop subscription on websocket if finalized??
+      unsubscribe: () => {
+        subscriptionCounter -= 1;
+      },
     })
   );
 

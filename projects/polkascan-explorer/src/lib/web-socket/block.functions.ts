@@ -21,6 +21,7 @@ import { Adapter } from '../polkascan-explorer';
 import * as pst from '../polkascan-explorer.types';
 import { types } from '@polkadapt/core';
 import {
+  createSharedListResponseObservable,
   createSharedObservable,
   generateObjectQuery,
   generateObjectsListQuery,
@@ -91,12 +92,9 @@ export const getBlock = (adapter: Adapter) => {
 };
 
 const getBlocksFn = (adapter: Adapter, direction?: 'from' | 'until') =>
-  async (hashOrNumber?: string | number,
-         pageSize?: number,
-         pageKey?: string,
-         blockLimitOffset?: number,
-         blockLimitCount?: number
-  ): Promise<pst.ListResponse<pst.Block>> => {
+  (hashOrNumber?: string | number,
+   pageSize?: number
+  ): Observable<pst.Block[]> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
@@ -121,14 +119,7 @@ const getBlocksFn = (adapter: Adapter, direction?: 'from' | 'until') =>
       }
     }
 
-    const query = generateObjectsListQuery('getBlocks', genericBlockFields, filters, pageSize, pageKey, blockLimitOffset, blockLimitCount);
-    const result = await adapter.socket.query(query) as { getBlocks: pst.ListResponse<pst.Block> };
-    const blocks: pst.Block[] = result.getBlocks.objects;
-    if (isArray(blocks)) {
-      return result.getBlocks;
-    } else {
-      throw new Error(`[PolkascanExplorerAdapter] getBlocks: Returned response is invalid.`);
-    }
+    return createSharedListResponseObservable<pst.Block>(adapter, 'getBlocks', genericBlockFields, filters, identifiers, pageSize);
   };
 
 
@@ -162,15 +153,27 @@ export const getLatestBlock = (adapter: Adapter) => {
 };
 
 
-export const getBlocks = (adapter: Adapter) =>
-  (pageSize?: number, pageKey?: string, blockLimitOffset?: number, blockLimitCount?: number) =>
-    getBlocksFn(adapter)(undefined, pageSize, pageKey, blockLimitOffset, blockLimitCount);
+export const getBlocks = (adapter: Adapter) => {
+  const fn = (pageSize?: number) =>
+    getBlocksFn(adapter)(undefined, pageSize);
+  fn.identifiers = identifiers;
+  return fn;
+};
+
+export const getBlocksFrom = (adapter: Adapter) => {
+  const fn = (hashOrNumber: string | number, pageSize?: number) =>
+    getBlocksFn(adapter, 'from')(hashOrNumber, pageSize);
+  fn.identifiers = identifiers;
+  return fn;
+};
 
 
-export const getBlocksFrom = (adapter: Adapter) => getBlocksFn(adapter, 'from');
-
-
-export const getBlocksUntil = (adapter: Adapter) => getBlocksFn(adapter, 'until');
+export const getBlocksUntil = (adapter: Adapter) => {
+  const fn = (hashOrNumber: string | number, pageSize?: number) =>
+    getBlocksFn(adapter, 'until')(hashOrNumber, pageSize);
+  fn.identifiers = identifiers;
+  return fn;
+};
 
 
 export const subscribeNewBlock = (adapter: Adapter) => {

@@ -56,20 +56,6 @@ import { Observable } from 'rxjs';
 export type Api = {
   polkascan: {
     chain: {
-      getBlocks: (pageSize?: number, pageKey?: string, blockLimitOffset?: number, blockLimitCount?: number) =>
-        Promise<pst.ListResponse<pst.Block>>;
-      getBlocksFrom: (hashOrNumber: string | number,
-                      pageSize?: number,
-                      pageKey?: string,
-                      blockLimitOffset?: number,
-                      blockLimitCount?: number) =>
-        Promise<pst.ListResponse<pst.Block>>;
-      getBlocksUntil: (hashOrNumber: string | number,
-                       pageSize?: number,
-                       pageKey?: string,
-                       blockLimitOffset?: number,
-                       blockLimitCount?: number) =>
-        Promise<pst.ListResponse<pst.Block>>;
       getEvent: (blockNumber: number, eventIdx: number) =>
         Promise<pst.Event>;
       getEvents: (filters?: EventsFilters, pageSize?: number, pageKey?: string, blockLimitOffset?: number, blockLimitCount?: number) =>
@@ -77,15 +63,15 @@ export type Api = {
       subscribeNewEvent: (filtersOrCallback: ((event: pst.Event) => void) | EventsFilters, callback?: (event: pst.Event) => void) =>
         Promise<() => void>;
       getEventsByAccount: (accountId: string,
-                            filters?: AccountEventsFilters,
-                            pageSize?: number,
-                            pageKey?: string,
-                            blockLimitOffset?: number,
-                            blockLimitCount?: number) =>
+                           filters?: AccountEventsFilters,
+                           pageSize?: number,
+                           pageKey?: string,
+                           blockLimitOffset?: number,
+                           blockLimitCount?: number) =>
         Promise<pst.ListResponse<pst.AccountEvent>>;
       subscribeNewEventByAccount: (accountId: string,
-                                    filtersOrCallback: ((event: pst.AccountEvent) => void) | AccountEventsFilters,
-                                    callback?: (event: pst.AccountEvent) => void) =>
+                                   filtersOrCallback: ((event: pst.AccountEvent) => void) | AccountEventsFilters,
+                                   callback?: (event: pst.AccountEvent) => void) =>
         Promise<() => void>;
       getExtrinsic: (blockNumber: number, eventIdx: number) =>
         Promise<pst.Extrinsic>;
@@ -149,6 +135,9 @@ export type Api = {
   getBlock: (hash: string) => Observable<types.Block>;
   getLatestBlock: () => Observable<types.Block>;
   subscribeNewBlock: () => Observable<types.Block>;
+  getBlocks: (pageSize?: number) => Observable<types.Block[]>;
+  getBlocksFrom: (hashOrNumber: string | number, pageSize?: number) => Observable<types.Block[]>;
+  getBlocksUntil: (hashOrNumber: string | number, pageSize?: number) => Observable<types.Block[]>;
 };
 
 export interface Config {
@@ -176,9 +165,6 @@ export class Adapter extends AdapterBase {
       resolve({
         polkascan: {
           chain: {
-            getBlocks: getBlocks(this),
-            getBlocksFrom: getBlocksFrom(this),
-            getBlocksUntil: getBlocksUntil(this),
             getEvent: getEvent(this),
             getEvents: getEvents(this),
             subscribeNewEvent: subscribeNewEvent(this),
@@ -215,7 +201,10 @@ export class Adapter extends AdapterBase {
         },
         getBlock: getBlock(this),
         getLatestBlock: getLatestBlock(this),
-        subscribeNewBlock: subscribeNewBlock(this)
+        subscribeNewBlock: subscribeNewBlock(this),
+        getBlocks: getBlocks(this),
+        getBlocksFrom: getBlocksFrom(this),
+        getBlocksUntil: getBlocksUntil(this)
       });
     });
   }
