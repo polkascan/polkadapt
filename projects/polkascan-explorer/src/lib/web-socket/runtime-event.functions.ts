@@ -19,7 +19,15 @@
 
 import { Adapter } from '../polkascan-explorer';
 import * as pst from '../polkascan-explorer.types';
-import { generateObjectQuery, generateObjectsListQuery, isArray, isNumber, isObject, isString } from './helpers';
+import { types } from '@polkadapt/core';
+import {
+  createObjectObservable,
+  createObjectsListObservable,
+  generateObjectQuery,
+  isNumber,
+  isString
+} from './helpers';
+import { Observable } from 'rxjs';
 
 const runtimeEventFields: (keyof pst.RuntimeEvent)[] = [
   'specName',
@@ -32,8 +40,11 @@ const runtimeEventFields: (keyof pst.RuntimeEvent)[] = [
   'countAttributes'
 ];
 
-export const getRuntimeEvent = (adapter: Adapter) =>
-  async (specName: string, specVersion: number, pallet: string, eventName: string): Promise<pst.RuntimeEvent> => {
+const identifiers = ['specName', 'specVersion', 'pallet', 'eventName', 'palletEventIdx'];
+
+
+export const getRuntimeEvent = (adapter: Adapter) => {
+  const fn = (specName: string, specVersion: number, pallet: string, eventName: string): Observable<types.RuntimeEvent> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
@@ -53,20 +64,16 @@ export const getRuntimeEvent = (adapter: Adapter) =>
     }
 
     const query = generateObjectQuery('getRuntimeEvent', runtimeEventFields, filters);
-
-    const result = await adapter.socket.query(query) as { getRuntimeEvent: pst.RuntimeEvent };
-    const runtimeEvent = result.getRuntimeEvent;
-    if (runtimeEvent === null || isObject(runtimeEvent)) {
-      return runtimeEvent;
-    } else {
-      throw new Error(`[PolkascanExplorerAdapter] getRuntimeEvent: Returned response is invalid.`);
-    }
+    return createObjectObservable<pst.RuntimeEvent>(adapter, 'getRuntimeEvent', query);
   };
+  fn.identifiers = identifiers;
+  return fn;
+};
 
 
-export const getRuntimeEvents = (adapter: Adapter) =>
-  async (
-    specName: string, specVersion: number, pallet?: string): Promise<pst.ListResponse<pst.RuntimeEvent>> => {
+export const getRuntimeEvents = (adapter: Adapter) => {
+  const fn = (
+    specName: string, specVersion: number, pallet?: string): Observable<types.RuntimeEvent[]> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
@@ -85,14 +92,8 @@ export const getRuntimeEvents = (adapter: Adapter) =>
       );
     }
 
-    const query = generateObjectsListQuery('getRuntimeEvents', runtimeEventFields, filters);
-
-    const result = await adapter.socket.query(query) as { getRuntimeEvents: pst.ListResponse<pst.RuntimeEvent> };
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    const RuntimeEvents = result.getRuntimeEvents.objects;
-    if (isArray(RuntimeEvents)) {
-      return result.getRuntimeEvents;
-    } else {
-      throw new Error(`[PolkascanExplorerAdapter] getRuntimeEvents: Returned response is invalid.`);
-    }
+    return createObjectsListObservable<pst.RuntimeEvent>(adapter, 'getRuntimeEvents', runtimeEventFields, filters, identifiers);
   };
+  fn.identifiers = identifiers;
+  return fn;
+};

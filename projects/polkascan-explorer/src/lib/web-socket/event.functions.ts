@@ -19,18 +19,21 @@
 
 import { Adapter } from '../polkascan-explorer';
 import * as pst from '../polkascan-explorer.types';
+import { types } from '@polkadapt/core';
 import {
+  createObjectObservable,
+  createObjectsListObservable,
+  createSubscriptionObservable,
   generateObjectQuery,
-  generateObjectsListQuery,
   generateSubscriptionQuery,
-  isArray, isDate,
+  isDate,
   isDefined,
-  isFunction,
   isNumber,
   isObject,
   isPositiveNumber,
   isString
 } from './helpers';
+import { Observable } from 'rxjs';
 
 const genericEventFields = [
   'blockNumber',
@@ -60,43 +63,43 @@ export interface EventsFilters {
   blockRangeEnd?: number;
 }
 
+const identifiers = ['blockNumber', 'eventIdx'];
 
-export const getEvent = (adapter: Adapter) => async (blockNumber: number, eventIdx: number): Promise<pst.Event> => {
-  if (!adapter.socket) {
-    throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
-  }
+export const getEvent = (adapter: Adapter) => {
+  const fn = (blockNumber: number, eventIdx: number): Observable<types.Event> => {
+    if (!adapter.socket) {
+      throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
+    }
 
-  const filters: string[] = [];
+    const filters: string[] = [];
 
-  if (!isDefined(blockNumber)) {
-    throw new Error('[PolkascanExplorerAdapter] getEvent: Provide a block number (number).');
-  }
+    if (!isDefined(blockNumber)) {
+      throw new Error('[PolkascanExplorerAdapter] getEvent: Provide a block number (number).');
+    }
 
-  if (!isDefined(eventIdx)) {
-    throw new Error('[PolkascanExplorerAdapter] getEvent: Provide an eventIdx (number).');
-  }
+    if (!isDefined(eventIdx)) {
+      throw new Error('[PolkascanExplorerAdapter] getEvent: Provide an eventIdx (number).');
+    }
 
-  if (isPositiveNumber(blockNumber)) {
-    filters.push(`blockNumber: ${blockNumber}`);
-  } else {
-    throw new Error('[PolkascanExplorerAdapter] getEvent: Provided block number must be a positive number.');
-  }
+    if (isPositiveNumber(blockNumber)) {
+      filters.push(`blockNumber: ${blockNumber}`);
+    } else {
+      throw new Error('[PolkascanExplorerAdapter] getEvent: Provided block number must be a positive number.');
+    }
 
-  if (isPositiveNumber(eventIdx)) {
-    filters.push(`eventIdx: ${eventIdx}`);
-  } else {
-    throw new Error('[PolkascanExplorerAdapter] getEvent: Provided eventIdx must be a positive number.');
-  }
+    if (isPositiveNumber(eventIdx)) {
+      filters.push(`eventIdx: ${eventIdx}`);
+    } else {
+      throw new Error('[PolkascanExplorerAdapter] getEvent: Provided eventIdx must be a positive number.');
+    }
 
-  const query = generateObjectQuery('getEvent', genericEventFields, filters);
-  const result = await adapter.socket.query(query) as { getEvent: pst.Event };
-  const event = result.getEvent;
-  if (event === null || isObject(event)) {
-    return event;
-  } else {
-    throw new Error(`[PolkascanExplorerAdapter] getEvent: Returned response is invalid.`);
-  }
+    const query = generateObjectQuery('getEvent', genericEventFields, filters);
+    return createObjectObservable<pst.Event>(adapter, 'getEvent', query);
+  };
+  fn.identifiers = identifiers;
+  return fn;
 };
+
 
 
 const createEventsFilters = (eventsFilters?: EventsFilters): string[] => {
@@ -216,57 +219,34 @@ const createEventsFilters = (eventsFilters?: EventsFilters): string[] => {
 };
 
 
-export const getEvents = (adapter: Adapter) =>
-  async (eventsFilters?: EventsFilters,
-         pageSize?: number,
-         pageKey?: string,
-         blockLimitOffset?: number,
-         blockLimitCount?: number): Promise<pst.ListResponse<pst.Event>> => {
+export const getEvents = (adapter: Adapter) => {
+  const fn = (eventsFilters?: EventsFilters, pageSize?: number): Observable<types.Event[]> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
     const filters: string[] = createEventsFilters(eventsFilters);
-    const query = generateObjectsListQuery('getEvents',
-      genericEventFields, filters, pageSize, pageKey, blockLimitOffset, blockLimitCount
-    );
-    const result = await adapter.socket.query(query) as { getEvents: pst.ListResponse<pst.Event> };
-    const events = result.getEvents.objects;
-
-    if (isArray(events)) {
-      return result.getEvents;
-    } else {
-      throw new Error(`[PolkascanExplorerAdapter] getEvents: Returned response is invalid.`);
-    }
+    return createObjectsListObservable<pst.Event>(adapter, 'getEvents', genericEventFields, filters, identifiers, pageSize);
   };
+  fn.identifiers = identifiers;
+  return fn;
+};
 
 
-export const subscribeNewEvent = (adapter: Adapter) =>
-  async (...args: (((event: pst.Event) => void) | EventsFilters | undefined)[]): Promise<() => void> => {
+export const subscribeNewEvent = (adapter: Adapter) => {
+  const fn = (eventsFilters?: EventsFilters): Observable<types.Event> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
-    const callback = args.find((arg) => isFunction(arg)) as (undefined | ((event: pst.Event) => void));
-    if (!callback) {
-      throw new Error(`[PolkascanExplorerAdapter] subscribeNewEvent: No callback function is provided.`);
-    }
-
     let filters: string[] = [];
-    if (isObject(args[0])) {
-      filters = createEventsFilters(args[0] as EventsFilters);
+    if (isObject(eventsFilters)) {
+      filters = createEventsFilters(eventsFilters);
     }
 
     const query = generateSubscriptionQuery('subscribeNewEvent', genericEventFields, filters);
-    // return the unsubscribe function.
-    return await adapter.socket.createSubscription(query, (result: { subscribeNewEvent: pst.Event }) => {
-      try {
-        const event = result.subscribeNewEvent;
-        if (isObject(event)) {
-          callback(event);
-        }
-      } catch (e) {
-        // Ignore.
-      }
-    });
+    return createSubscriptionObservable<pst.Event>(adapter, 'subscribeNewEvent', query);
   };
+  fn.identifiers = identifiers;
+  return fn;
+};

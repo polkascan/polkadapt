@@ -19,7 +19,16 @@
 
 import { Adapter } from '../polkascan-explorer';
 import * as pst from '../polkascan-explorer.types';
-import { generateObjectQuery, generateObjectsListQuery, isArray, isNumber, isObject, isString } from './helpers';
+import { types } from '@polkadapt/core';
+import {
+  createObjectObservable,
+  createObjectsListObservable,
+  generateObjectQuery,
+  isNumber,
+  isObject,
+  isString
+} from './helpers';
+import { map, Observable } from 'rxjs';
 
 const runtimeFields: (keyof pst.Runtime)[] = [
   'specName',
@@ -38,8 +47,10 @@ const runtimeFields: (keyof pst.Runtime)[] = [
 ];
 
 
-export const getRuntime = (adapter: Adapter) =>
-  async (specName: string, specVersion: number): Promise<pst.Runtime> => {
+const identifiers = ['specName', 'specVersion'];
+
+export const getRuntime = (adapter: Adapter) => {
+  const fn = (specName: string, specVersion: number): Observable<types.Runtime> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
@@ -54,55 +65,48 @@ export const getRuntime = (adapter: Adapter) =>
     }
 
     const query = generateObjectQuery('getRuntime', runtimeFields, filters);
-
-    const result = await adapter.socket.query(query) as { getRuntime: pst.Runtime };
-    const runtime = result.getRuntime;
-    if (runtime === null || isObject(runtime)) {
-      if (runtime) {
-        runtime.specVersion = parseInt(runtime.specVersion as unknown as string, 10);  // TODO hack
-      }
-      return runtime;
-    } else {
-      throw new Error(`[PolkascanExplorerAdapter] getRuntime: Returned response is invalid.`);
-    }
+    return createObjectObservable<pst.Runtime>(adapter, 'getRuntime', query).pipe(
+      map((r: pst.Runtime) => { // TODO remove if specVersion returns as number.
+        if (isObject(r)) {
+          r.specVersion = parseInt(r.specVersion as unknown as string, 10);  // TODO hack
+        }
+        return r;
+      })
+    );
   };
+  fn.identifiers = identifiers;
+  return fn;
+};
 
-
-export const getLatestRuntime = (adapter: Adapter) =>
-  async (): Promise<pst.Runtime> => {
+export const getLatestRuntime = (adapter: Adapter) => {
+  const fn = (): Observable<types.Runtime> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
     const query = generateObjectQuery('getLatestRuntime', runtimeFields, []);
-    const result = await adapter.socket.query(query) as { getLatestRuntime: pst.Runtime };
-    const runtime = result.getLatestRuntime;
-    if (runtime === null || isObject(runtime)) {
-      if (runtime) {
-        runtime.specVersion = parseInt(runtime.specVersion as unknown as string, 10);  // TODO hack
-      }
-      return runtime;
-    } else {
-      throw new Error(`[PolkascanExplorerAdapter] getRuntime: Returned response is invalid.`);
-    }
+    return createObjectObservable<pst.Runtime>(adapter, 'getLatestRuntime', query).pipe(
+      map((r: pst.Runtime) => { // TODO remove if specVersion returns as number.
+        if (isObject(r)) {
+          r.specVersion = parseInt(r.specVersion as unknown as string, 10);  // TODO hack
+        }
+        return r;
+      })
+    );
   };
+  fn.identifiers = identifiers;
+  return fn;
+};
 
 
-export const getRuntimes = (adapter: Adapter) =>
-  async (pageSize?: number,
-         pageKey?: string,
-         blockLimitOffset?: number,
-         blockLimitCount?: number): Promise<pst.ListResponse<pst.Runtime>> => {
+export const getRuntimes = (adapter: Adapter) => {
+  const fn = (pageSize?: number): Observable<types.Runtime[]> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
-    const query = generateObjectsListQuery('getRuntimes', runtimeFields, [], pageSize, pageKey, blockLimitOffset, blockLimitCount);
-    const result = await adapter.socket.query(query) as { getRuntimes: pst.ListResponse<pst.Runtime> };
-    const runtimes = result.getRuntimes.objects;
-    if (isArray(runtimes)) {
-      return result.getRuntimes;
-    } else {
-      throw new Error(`[PolkascanExplorerAdapter] getRuntimes: Returned response is invalid.`);
-    }
+    return createObjectsListObservable<pst.Runtime>(adapter, 'getRuntimes', runtimeFields, undefined, identifiers, pageSize);
   };
+  fn.identifiers = identifiers;
+  return fn;
+};

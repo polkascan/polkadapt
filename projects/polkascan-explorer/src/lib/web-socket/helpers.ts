@@ -17,7 +17,7 @@
  */
 
 
-import { Observable, ReplaySubject, share, shareReplay, tap } from 'rxjs';
+import { map, Observable, ReplaySubject, share, shareReplay, take, tap } from 'rxjs';
 import { Adapter } from '../polkascan-explorer';
 import * as pst from '../polkascan-explorer.types';
 
@@ -129,9 +129,49 @@ export const generateSubscriptionQuery = (name: string,
                                           filters?: string[]) => generateQuery(name, fields, filters, true);
 
 
-export const createSharedObservable = <T>(adapter: Adapter, query: string): Observable<T> => {
+export const createObjectObservable = <T>(adapter: Adapter, name: string, query: string): Observable<T> => {
+  if (!adapter) {
+    throw new Error('[PolkascanAdapter]: Could not generate observable, adapter not present.');
+  }
 
-  // TODO CHECK THAT THE SOURCE OBSERVABLE IS COMPLETED WHEN SUBSCRIPTIONS DROP TO 0.
+  if (!query) {
+    throw new Error('[PolkascanAdapter]: Could not generate observable, query not present.');
+  }
+
+  if (!adapter.socket) {
+    throw new Error('[PolkascanAdapter]: Could not generate observable, socket has not initialised in the adapter.');
+  }
+
+  const subject = new ReplaySubject<{[name: string]: T}>(1);
+  const promise = adapter.socket.query(query) as Promise<{ [name: string]: T }>;
+
+  promise.then(
+    (response) => {
+      subject.next(response);
+    },
+    (reason) => {
+      subject.error(reason);
+    });
+
+  return subject.pipe(
+    map((result) => {
+      if (result[name] || result[name] === 'null') {
+        return result[name];
+      } else {
+        throw new Error(`[PolkascanExplorerAdapter] ${name}: Returned response is invalid.`);
+      }
+    }),
+    take(1),
+    share({
+      connector: () => new ReplaySubject(1),
+      resetOnError: true,
+      resetOnComplete: true,
+      resetOnRefCountZero: true
+    })
+  );
+};
+
+export const createSubscriptionObservable = <T>(adapter: Adapter, name: string, query: string): Observable<T> => {
 
   if (!adapter) {
     throw new Error('[PolkascanAdapter]: Could not generate observable, adapter not present.');
@@ -143,9 +183,9 @@ export const createSharedObservable = <T>(adapter: Adapter, query: string): Obse
 
   let subscriptionCounter = 0;
   let unsubscribeFn: (() => void) | null = null;
-  const source = new ReplaySubject<T>(1);
+  const source = new ReplaySubject<{ [name: string]: T }>(1);
 
-  const emitResult = (response: T) => {
+  const emitResult = (response: { [name: string]: T }) => {
     source.next(response);
   };
 
@@ -173,6 +213,13 @@ export const createSharedObservable = <T>(adapter: Adapter, query: string): Obse
   };
 
   const shared = source.pipe(
+    map((result) => {
+      if (isObject(result[name]) || result[name] === null) {
+        return result[name];
+      } else {
+        throw new Error(`[PolkascanExplorerAdapter] ${name} Returned response is invalid.`);
+      }
+    }),
     share({
       connector: () => new ReplaySubject(1),
       resetOnError: true,
@@ -195,13 +242,14 @@ export const createSharedObservable = <T>(adapter: Adapter, query: string): Obse
 };
 
 
-export const createSharedListResponseObservable = <T>(
+export const createObjectsListObservable = <T>(
   adapter: Adapter,
   name: string,
   fields?: string[],
   filters?: string[],
   identifiers?: string[],
-  pageSize?: number): Observable<T[]> => {
+  pageSize?: number,
+  blockLimitOffset?: number): Observable<T[]> => {
 
   if (!adapter) {
     throw new Error('[PolkascanAdapter]: Could not generate observable, adapter not present.');
@@ -212,7 +260,6 @@ export const createSharedListResponseObservable = <T>(
 
   let pageNext: string | undefined;
   let blockLimitCount: number | undefined;
-  let blockLimitOffset: number | undefined;
   let subscriptionCounter = 0;
 
   const source = new ReplaySubject<T[]>(1);

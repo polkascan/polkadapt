@@ -19,9 +19,19 @@
 
 import { Adapter } from '../polkascan-explorer';
 import * as pst from '../polkascan-explorer.types';
+import { types } from '@polkadapt/core';
 import {
-  generateObjectQuery, generateObjectsListQuery, generateSubscriptionQuery, isArray, isDefined, isFunction, isObject, isPositiveNumber
+  createObjectObservable, createObjectsListObservable, createSubscriptionObservable,
+  generateObjectQuery,
+  generateObjectsListQuery,
+  generateSubscriptionQuery,
+  isArray,
+  isDefined,
+  isFunction,
+  isObject,
+  isPositiveNumber
 } from './helpers';
+import { filter, Observable } from 'rxjs';
 
 const genericLogFields = [
   'blockNumber',
@@ -36,9 +46,10 @@ const genericLogFields = [
   'complete'
 ];
 
+const identifiers = ['blockNumber', 'logIdx'];
 
-export const getLog = (adapter: Adapter) =>
-  async (blockNumber: number, logIdx: number): Promise<pst.Log> => {
+export const getLog = (adapter: Adapter) => {
+  const fn = (blockNumber: number, logIdx: number): Observable<types.Log> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
@@ -66,57 +77,37 @@ export const getLog = (adapter: Adapter) =>
     }
 
     const query = generateObjectQuery('getLog', genericLogFields, filters);
-
-    const result = await adapter.socket.query(query) as { getLog: pst.Log };
-    const log = result.getLog;
-    if (log === null || isObject(log)) {
-      return log;
-    } else {
-      throw new Error(`[PolkascanExplorerAdapter] getLog: Returned response is invalid.`);
-    }
+    return createObjectObservable<pst.Log>(adapter, 'getLog', query);
   };
+  fn.identifiers = identifiers;
+  return fn;
+};
 
 
-export const getLogs = (adapter: Adapter) =>
-  async (pageSize?: number, pageKey?: string, blockLimitOffset?: number, blockLimitCount?: number): Promise<pst.ListResponse<pst.Log>> => {
+export const getLogs = (adapter: Adapter) => {
+  const fn = (pageSize?: number): Observable<types.Log[]> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
-    const query = generateObjectsListQuery('getLogs', genericLogFields, undefined, pageSize, pageKey, blockLimitOffset, blockLimitCount);
-    const result = await adapter.socket.query(query) as { getLogs: pst.ListResponse<pst.Log> };
-    const logs: pst.Log[] = result.getLogs.objects;
-
-    if (isArray(logs)) {
-      return result.getLogs;
-    } else {
-      throw new Error(`[PolkascanExplorerAdapter] getLogs: Returned response is invalid.`);
-    }
+    return createObjectsListObservable<types.Log>(adapter, 'getLogs', genericLogFields, undefined, identifiers, pageSize);
   };
+  fn.identifiers = identifiers;
+  return fn;
+};
 
 
-export const subscribeNewLog = (adapter: Adapter) =>
-  async (...args: ((log: pst.Log) => void)[]): Promise<() => void> => {
+export const subscribeNewLog = (adapter: Adapter) => {
+  const fn = (): Observable<types.Log> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
-    }
-
-    const callback = args.find((arg) => isFunction(arg));
-    if (!callback) {
-      throw new Error(`[PolkascanExplorerAdapter] subscribeNewLog: No callback function is provided.`);
     }
 
     const query = generateSubscriptionQuery('subscribeNewLog', genericLogFields);
-
-    // return the unsubscribe function.
-    return await adapter.socket.createSubscription(query, (result: { subscribeNewLog: pst.Log }) => {
-      try {
-        const log = result.subscribeNewLog;
-        if (isObject(log)) {
-          callback(log);
-        }
-      } catch (e) {
-        // Ignore.
-      }
-    });
+    return createSubscriptionObservable<pst.Log>(adapter, 'subscribeNewLog', query).pipe(
+      filter((l) => isObject(l))
+    );
   };
+  fn.identifiers = fn;
+  return fn;
+};

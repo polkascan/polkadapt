@@ -19,7 +19,17 @@
 
 import { Adapter } from '../polkascan-explorer';
 import * as pst from '../polkascan-explorer.types';
-import { generateObjectQuery, generateObjectsListQuery, isArray, isNumber, isObject, isString } from './helpers';
+import { types } from '@polkadapt/core';
+import {
+  createObjectObservable, createObjectsListObservable,
+  generateObjectQuery,
+  generateObjectsListQuery,
+  isArray,
+  isNumber,
+  isObject,
+  isString
+} from './helpers';
+import { Observable } from 'rxjs';
 
 const runtimeCallFields: (keyof pst.RuntimeCall)[] = [
   'specName',
@@ -32,9 +42,11 @@ const runtimeCallFields: (keyof pst.RuntimeCall)[] = [
   'countArguments'
 ];
 
+const identifiers = ['specName', 'specVersion', 'pallet', 'callName'];
 
-export const getRuntimeCall = (adapter: Adapter) =>
-  async (specName: string, specVersion: number, pallet: string, callName: string): Promise<pst.RuntimeCall> => {
+
+export const getRuntimeCall = (adapter: Adapter) => {
+  const fn = (specName: string, specVersion: number, pallet: string, callName: string): Observable<types.RuntimeCall> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
@@ -54,19 +66,14 @@ export const getRuntimeCall = (adapter: Adapter) =>
     }
 
     const query = generateObjectQuery('getRuntimeCall', runtimeCallFields, filters);
-
-    const result = await adapter.socket.query(query) as { getRuntimeCall: pst.RuntimeCall };
-    const runtimeCall = result.getRuntimeCall;
-    if (runtimeCall === null || isObject(runtimeCall)) {
-      return runtimeCall;
-    } else {
-      throw new Error(`[PolkascanExplorerAdapter] getRuntimeCall: Returned response is invalid.`);
-    }
+    return createObjectObservable<pst.RuntimeCall>(adapter, 'getRuntimeCall', query);
   };
+  fn.identifiers = identifiers;
+  return fn;
+};
 
-
-export const getRuntimeCalls = (adapter: Adapter) =>
-  async (specName: string, specVersion: number, pallet?: string): Promise<pst.ListResponse<pst.RuntimeCall>> => {
+export const getRuntimeCalls = (adapter: Adapter) => {
+  const fn = (specName: string, specVersion: number, pallet?: string): Observable<types.RuntimeCall[]> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
@@ -85,13 +92,8 @@ export const getRuntimeCalls = (adapter: Adapter) =>
       );
     }
 
-    const query = generateObjectsListQuery('getRuntimeCalls', runtimeCallFields, filters);
-
-    const result = await adapter.socket.query(query) as { getRuntimeCalls: pst.ListResponse<pst.RuntimeCall> };
-    const runtimeCalls = result.getRuntimeCalls.objects;
-    if (isArray(runtimeCalls)) {
-      return result.getRuntimeCalls;
-    } else {
-      throw new Error(`[PolkascanExplorerAdapter] getRuntimeCalls: Returned response is invalid.`);
-    }
+    return createObjectsListObservable<pst.RuntimeCall>(adapter, 'getRuntimeCalls', runtimeCallFields, filters, identifiers);
   };
+  fn.identifiers = identifiers;
+  return fn;
+};

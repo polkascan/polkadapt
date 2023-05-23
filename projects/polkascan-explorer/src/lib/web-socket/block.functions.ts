@@ -21,18 +21,16 @@ import { Adapter } from '../polkascan-explorer';
 import * as pst from '../polkascan-explorer.types';
 import { types } from '@polkadapt/core';
 import {
-  createSharedListResponseObservable,
-  createSharedObservable,
+  createObjectObservable,
+  createObjectsListObservable,
+  createSubscriptionObservable,
   generateObjectQuery,
-  generateObjectsListQuery,
   generateSubscriptionQuery,
-  isArray,
   isBlockHash,
-  isFunction,
   isObject,
   isPositiveNumber
 } from './helpers';
-import { map, Observable, ReplaySubject, Subject, take } from 'rxjs';
+import { map, Observable, ReplaySubject, take } from 'rxjs';
 
 const genericBlockFields = [
   'number',
@@ -66,26 +64,16 @@ export const getBlock = (adapter: Adapter) => {
       throw new Error('[PolkascanExplorerAdapter] getBlock: Provide a block hash (string) or block number (number).');
     }
 
-    const subject = new ReplaySubject<types.Block>(1);
     const query = generateObjectQuery('getBlock', genericBlockFields, filters);
-    const promise = adapter.socket.query(query) as Promise<{ getBlock: pst.Block | null }>;
-
-    promise.then(
-      (response) => {
-        const block = response.getBlock;
-        if (block === null) {
-          subject.error(new Error(`[PolkascanExplorerAdapter] getBlock: Block not found.`));
-        } else if (isObject(block)) {
-          subject.next(block as types.Block);
+    return createObjectObservable<pst.Block>(adapter, 'getBlock', query).pipe(
+      map((block) => {
+        if (isObject(block)) {
+          return block;
         } else {
-          subject.error(new Error(`[PolkascanExplorerAdapter] getBlock: Returned response is invalid.`));
+          throw new Error(`[PolkascanExplorerAdapter] 'GetBlock': Block not found.`);
         }
-      },
-      (reason) => {
-        subject.error(reason);
-      });
-
-    return subject.pipe(take(1));
+      })
+    );
   };
   fn.identifiers = identifiers;
   return fn;
@@ -119,7 +107,7 @@ const getBlocksFn = (adapter: Adapter, direction?: 'from' | 'until') =>
       }
     }
 
-    return createSharedListResponseObservable<pst.Block>(adapter, 'getBlocks', genericBlockFields, filters, identifiers, pageSize);
+    return createObjectsListObservable<pst.Block>(adapter, 'getBlocks', genericBlockFields, filters, identifiers, pageSize);
   };
 
 
@@ -129,24 +117,16 @@ export const getLatestBlock = (adapter: Adapter) => {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
-    const subject = new ReplaySubject<types.Block>(1);
     const query = generateObjectQuery('getLatestBlock', genericBlockFields, []);
-    const promise = adapter.socket.query(query) as Promise<{ getLatestBlock: pst.Block }>;
-
-    promise.then(
-      (response) => {
-        const block = response.getLatestBlock;
+    return createObjectObservable<pst.Block>(adapter, 'getLatestBlock', query).pipe(
+      map((block) => {
         if (isObject(block)) {
-          subject.next(block as types.Block);
+          return block;
         } else {
-          subject.error(`[PolkascanExplorerAdapter] getLatestBlock: Returned response is invalid.`);
+          throw new Error(`[PolkascanExplorerAdapter] 'getLatestBlock': Object not found.`);
         }
-      },
-      (reason) => {
-        subject.error(reason);
-      });
-
-    return subject.pipe(take(1));
+      })
+    );
   };
   fn.identifiers = identifiers;
   return fn;
@@ -183,18 +163,7 @@ export const subscribeNewBlock = (adapter: Adapter) => {
     }
 
     const query = generateSubscriptionQuery('subscribeNewBlock', genericBlockFields);
-
-    const observable = createSharedObservable<{ subscribeNewBlock: pst.Block }>(adapter, query);
-    return observable.pipe(
-      map((result) => {
-        const block: types.Block = result.subscribeNewBlock;
-        if (isObject(block)) {
-          return block;
-        } else {
-          throw new Error('[PolkascanExplorerAdapter] subscribeNewBlock Returned response is invalid.');
-        }
-      })
-    );
+    return createSubscriptionObservable<pst.Block>(adapter, 'subscribeNewBlock', query);
   };
   fn.identifiers = identifiers;
   return fn;

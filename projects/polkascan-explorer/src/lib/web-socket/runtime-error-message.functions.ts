@@ -19,7 +19,15 @@
 
 import { Adapter } from '../polkascan-explorer';
 import * as pst from '../polkascan-explorer.types';
-import { generateObjectQuery, generateObjectsListQuery, isArray, isNumber, isObject, isString } from './helpers';
+import { types } from '@polkadapt/core';
+import {
+  createObjectObservable,
+  createObjectsListObservable,
+  generateObjectQuery,
+  isNumber,
+  isString
+} from './helpers';
+import { Observable } from 'rxjs';
 
 const runtimeErrorMessageFields: (keyof pst.RuntimeErrorMessage)[] = [
   'specName',
@@ -31,8 +39,11 @@ const runtimeErrorMessageFields: (keyof pst.RuntimeErrorMessage)[] = [
   'documentation'
 ];
 
-export const getRuntimeErrorMessage = (adapter: Adapter) =>
-  async (specName: string, specVersion: number, pallet: string, errorName: string): Promise<pst.RuntimeErrorMessage> => {
+const identifiers = ['specName', 'specVersion', 'pallet', 'errorName', 'palletIdx'];
+
+
+export const getRuntimeErrorMessage = (adapter: Adapter) => {
+  const fn = (specName: string, specVersion: number, pallet: string, errorName: string): Observable<types.RuntimeErrorMessage> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
@@ -52,20 +63,14 @@ export const getRuntimeErrorMessage = (adapter: Adapter) =>
     }
 
     const query = generateObjectQuery('getRuntimeErrorMessage', runtimeErrorMessageFields, filters);
-
-    const result = await adapter.socket.query(query) as { getRuntimeErrorMessage: pst.RuntimeErrorMessage };
-    const runtimeErrorMessage = result.getRuntimeErrorMessage;
-    if (runtimeErrorMessage === null || isObject(runtimeErrorMessage)) {
-      return runtimeErrorMessage;
-    } else {
-      throw new Error(`[PolkascanExplorerAdapter] getRuntimeErrorMessage: Returned response is invalid.`);
-    }
+    return createObjectObservable<pst.RuntimeErrorMessage>(adapter, 'getRuntimeErrorMessage', query);
   };
+  fn.identifiers = identifiers;
+  return fn;
+};
 
-
-export const getRuntimeErrorMessages = (adapter: Adapter) =>
-  async (
-    specName: string, specVersion: number, pallet?: string): Promise<pst.ListResponse<pst.RuntimeErrorMessage>> => {
+export const getRuntimeErrorMessages = (adapter: Adapter) => {
+  const fn = (specName: string, specVersion: number, pallet?: string): Observable<types.RuntimeErrorMessage[]> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
@@ -85,14 +90,9 @@ export const getRuntimeErrorMessages = (adapter: Adapter) =>
       );
     }
 
-    const query = generateObjectsListQuery('getRuntimeErrorMessages', runtimeErrorMessageFields, filters);
-
-    const result = await adapter.socket.query(query) as { getRuntimeErrorMessages: pst.ListResponse<pst.RuntimeErrorMessage> };
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    const RuntimeErrorMessages = result.getRuntimeErrorMessages.objects;
-    if (isArray(RuntimeErrorMessages)) {
-      return result.getRuntimeErrorMessages;
-    } else {
-      throw new Error(`[PolkascanExplorerAdapter] getRuntimeErrorMessages: Returned response is invalid.`);
-    }
+    return createObjectsListObservable<pst.RuntimeErrorMessage>(adapter,
+      'getRuntimeErrorMessages', runtimeErrorMessageFields, filters, identifiers);
   };
+  fn.identifiers = identifiers;
+  return fn;
+};
