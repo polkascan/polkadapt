@@ -466,7 +466,9 @@ export class Polkadapt<T> {
       Array.from(candidateCalls.entries()).forEach(([adapter, value], index) => {
         candidateIdentifiers.set(adapter, (value as FunctionWithIdentifiers).identifiers);
         if (index === 0) {
-          identifiers = (value as FunctionWithIdentifiers).identifiers || [];
+          identifiers = Array.isArray((value as FunctionWithIdentifiers).identifiers)
+            ? (value as FunctionWithIdentifiers).identifiers
+            : [];
           flattenedIdentifiers = identifiers.slice().sort().join();
         } else if (flattenedIdentifiers !== ((value as FunctionWithIdentifiers).identifiers || []).slice().sort().join()) {
           resultObservable.error(new Error('Identifiers do not match between adapter functions.'));

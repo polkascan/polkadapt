@@ -105,7 +105,7 @@ export const getRuntimes = (adapter: Adapter) => {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
-    return createObjectsListObservable<pst.Runtime>(adapter, 'getRuntimes', runtimeFields, undefined, identifiers, pageSize);
+    return createObjectsListObservable<pst.Runtime>(adapter, 'getRuntimes', runtimeFields, undefined, identifiers, pageSize, undefined);
   };
   fn.identifiers = identifiers;
   return fn;

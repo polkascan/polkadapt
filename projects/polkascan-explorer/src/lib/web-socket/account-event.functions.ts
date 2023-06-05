@@ -185,7 +185,16 @@ export const getEventsByAccount = (adapter: Adapter) => {
 
     const filters: string[] = createEventsByAccountFilters(accountEventsFilters);
     filters.push(`accountId: "${accountId}"`);
-    return createObjectsListObservable<pst.AccountEvent>(adapter, 'getEventsByAccount', genericEventFields, filters, identifiers, pageSize);
+    const blockLimitOffset = accountEventsFilters && accountEventsFilters.blockRangeEnd ? accountEventsFilters.blockRangeEnd : undefined;
+    return createObjectsListObservable<pst.AccountEvent>(
+      adapter,
+      'getEventsByAccount',
+      genericEventFields,
+      filters,
+      identifiers,
+      pageSize,
+      blockLimitOffset
+    );
   };
   fn.identifiers = identifiers;
   return fn;

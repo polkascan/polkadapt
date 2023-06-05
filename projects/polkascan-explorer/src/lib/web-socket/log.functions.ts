@@ -21,13 +21,12 @@ import { Adapter } from '../polkascan-explorer';
 import * as pst from '../polkascan-explorer.types';
 import { types } from '@polkadapt/core';
 import {
-  createObjectObservable, createObjectsListObservable, createSubscriptionObservable,
+  createObjectObservable,
+  createObjectsListObservable,
+  createSubscriptionObservable,
   generateObjectQuery,
-  generateObjectsListQuery,
   generateSubscriptionQuery,
-  isArray,
   isDefined,
-  isFunction,
   isObject,
   isPositiveNumber
 } from './helpers';
@@ -45,6 +44,11 @@ const genericLogFields = [
   'specVersion',
   'complete'
 ];
+
+export interface LogsFilters {
+  blockRangeEnd?: number;
+}
+
 
 const identifiers = ['blockNumber', 'logIdx'];
 
@@ -85,12 +89,13 @@ export const getLog = (adapter: Adapter) => {
 
 
 export const getLogs = (adapter: Adapter) => {
-  const fn = (pageSize?: number): Observable<types.Log[]> => {
+  const fn = (logFilters?: LogsFilters, pageSize?: number): Observable<types.Log[]> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
-    return createObjectsListObservable<types.Log>(adapter, 'getLogs', genericLogFields, undefined, identifiers, pageSize);
+    const blockLimitOffset = logFilters && logFilters.blockRangeEnd ? logFilters.blockRangeEnd : undefined;
+    return createObjectsListObservable<types.Log>(adapter, 'getLogs', genericLogFields, undefined, identifiers, pageSize, blockLimitOffset);
   };
   fn.identifiers = identifiers;
   return fn;

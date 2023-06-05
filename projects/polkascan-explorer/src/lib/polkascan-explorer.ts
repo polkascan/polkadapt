@@ -33,7 +33,7 @@ import {
   getExtrinsics,
   subscribeNewExtrinsic
 } from './web-socket/extrinsic.functions';
-import { getLog, getLogs, subscribeNewLog } from './web-socket/log.functions';
+import { getLog, getLogs, LogsFilters, subscribeNewLog } from './web-socket/log.functions';
 import { getLatestRuntime, getRuntime, getRuntimes } from './web-socket/runtime.functions';
 import { getRuntimeCall, getRuntimeCalls } from './web-socket/runtime-call.functions';
 import { getRuntimeCallArguments } from './web-socket/runtime-call-argument.functions';
@@ -85,7 +85,7 @@ export type Api = {
     Observable<types.Extrinsic>;
   getLog: (blockNumber: number, logIdx: number) =>
     Observable<types.Log>;
-  getLogs: (pageSize?: number) =>
+  getLogs: (filters?: LogsFilters, pageSize?: number) =>
     Observable<types.Log[]>;
   subscribeNewLog: () =>
     Observable<types.Log>;

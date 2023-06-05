@@ -101,7 +101,6 @@ export const getEvent = (adapter: Adapter) => {
 };
 
 
-
 const createEventsFilters = (eventsFilters?: EventsFilters): string[] => {
   const filters: string[] = [];
 
@@ -226,7 +225,16 @@ export const getEvents = (adapter: Adapter) => {
     }
 
     const filters: string[] = createEventsFilters(eventsFilters);
-    return createObjectsListObservable<pst.Event>(adapter, 'getEvents', genericEventFields, filters, identifiers, pageSize);
+    const blockLimitOffset = eventsFilters && eventsFilters.blockRangeEnd ? eventsFilters.blockRangeEnd : undefined;
+    return createObjectsListObservable<pst.Event>(
+      adapter,
+      'getEvents',
+      genericEventFields,
+      filters,
+      identifiers,
+      pageSize,
+      blockLimitOffset
+    );
   };
   fn.identifiers = identifiers;
   return fn;

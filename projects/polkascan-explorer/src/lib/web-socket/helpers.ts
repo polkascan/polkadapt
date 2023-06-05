@@ -319,10 +319,9 @@ export const createObjectsListObservable = <T>(
               if (pageNext) {
                 listAtEnd = false;
               } else if (blockLimitOffset && blockLimitCount) {
-                blockLimitOffset = blockLimitOffset - blockLimitCount;
-                listAtEnd = blockLimitOffset <= 0;
+                listAtEnd = (blockLimitOffset - blockLimitCount) <= 0;
               } else {
-                listAtEnd = false;
+                listAtEnd = true;
               }
 
               const objects = response[name].objects;

@@ -251,7 +251,16 @@ export const getExtrinsics = (adapter: Adapter) => {
     }
 
     const filters: string[] = createExtrinsicsFilters(extrinsicsFilters);
-    return createObjectsListObservable<types.Extrinsic>(adapter, 'getExtrinsics', genericExtrinsicFields, filters, identifiers, pageSize);
+    const blockLimitOffset = extrinsicsFilters && extrinsicsFilters.blockRangeEnd ? extrinsicsFilters.blockRangeEnd : undefined;
+    return createObjectsListObservable<types.Extrinsic>(
+      adapter,
+      'getExtrinsics',
+      genericExtrinsicFields,
+      filters,
+      identifiers,
+      pageSize,
+      blockLimitOffset
+    );
   };
   fn.identifiers = identifiers;
   return fn;
