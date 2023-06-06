@@ -155,7 +155,7 @@ export const createObjectObservable = <T>(adapter: Adapter, name: string, query:
 
   return subject.pipe(
     map((result) => {
-      if (result[name] || result[name] === 'null') {
+      if (result[name] || result[name] === null) {
         return result[name];
       } else {
         throw new Error(`[PolkascanExplorerAdapter] ${name}: Returned response is invalid.`);

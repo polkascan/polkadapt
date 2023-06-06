@@ -16,6 +16,10 @@
  * limitations under the License.
  */
 
+import { Option, U8aFixed, Vec } from '@polkadot/types-codec';
+import { ITuple } from '@polkadot/types-codec/types';
+import { Data } from '@polkadot/types';
+
 export type Block = {
   // eslint-disable-next-line id-blacklist
   number: number;
@@ -30,3 +34,15 @@ export type Block = {
   extrinsics: any[];  // TODO EXTRINSIC
   events: any[];  // TODO EVENT
 };
+
+export type Account = {
+  id: string;
+  nonce: number;
+  data: {
+    free: number;
+    reserved: number;
+    miscFrozen: number;
+    feeFrozen: number;
+  };
+};
+

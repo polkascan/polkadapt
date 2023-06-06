@@ -493,10 +493,16 @@ export class Polkadapt<T> {
         merge(...Array.from(candidateResultObservables.values())).pipe(
           takeUntil(destroyer),
           map((result) => {
+            if (result === null) {
+              // No results were returned.
+              return null;
+            }
+
             // Here we process the actual result values that are coming from multiple sources.
             if (identifiers && identifiers.length) {
               const isObject = typeof result === 'object';
               const isArray = Array.isArray(result);
+
 
               if (isObject) {
                 // Make sure result has properties for all identifiers.

@@ -17,9 +17,9 @@
  */
 
 import { types } from '@polkadapt/core';
-import { BlockHash, BlockNumber, EventRecord, Header, SignedBlock } from '@polkadot/types/interfaces';
+import { BlockHash, BlockNumber, EventRecord } from '@polkadot/types/interfaces';
 import { Vec } from '@polkadot/types';
-import { Observable, of, from, map, switchMap, combineLatestWith } from 'rxjs';
+import { combineLatestWith, from, map, Observable, of, switchMap } from 'rxjs';
 import { Adapter } from '../substrate-rpc';
 
 const identifiers = ['number'];

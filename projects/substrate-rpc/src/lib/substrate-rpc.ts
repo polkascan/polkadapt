@@ -17,16 +17,29 @@
  */
 
 import { ApiRx, WsProvider } from '@polkadot/api';
-import { AdapterBase } from '@polkadapt/core';
+import { AdapterBase, types } from '@polkadapt/core';
 import { ApiOptions } from '@polkadot/api/types';
-import { types } from '@polkadapt/core';
 import { catchError, Observable } from 'rxjs';
 import { getBlock, getLatestBlock, subscribeNewBlock } from './web-socket/block.functions';
+import {
+  getAccount,
+  getAccountIdFromIndex, getAccountChildrenIds,
+  getIdentity,
+  getIndexFromAccountId,
+  getAccountParentId, getChildAccountName
+} from './web-socket/account.functions';
 
 export type Api = {
   subscribeNewBlock: () => Observable<types.Block>;
   getBlock: (hashOrNumber: string | number) => Observable<types.Block>;
   getLatestBlock: () => Observable<types.Block>;
+  getAccountIdFromIndex: (index: number) => Observable<string | null>;
+  getAccount: (accountId: string) => Observable<types.Account>;
+  getIndexFromAccountId: (accountId: string) => Observable<number | null>;
+  getIdentity: (accountId: string) => Observable<any>;  // TODO Fix Typing
+  getAccountParentId: (accountId: string) => Observable<string | null>;
+  getAccountChildrenIds: (accountId: string) => Observable<string[]>;
+  getChildAccountName: (accountId: string) => Observable<string | null>;
 };
 
 export interface Config {
@@ -73,7 +86,14 @@ export class Adapter extends AdapterBase {
     this.promise = Promise.resolve({
       getBlock: getBlock(this),
       getLatestBlock: getLatestBlock(this),
-      subscribeNewBlock: subscribeNewBlock(this)
+      subscribeNewBlock: subscribeNewBlock(this),
+      getAccountIdFromIndex: getAccountIdFromIndex(this),
+      getAccount: getAccount(this),
+      getIndexFromAccountId: getIndexFromAccountId(this),
+      getIdentity: getIdentity(this),
+      getAccountParentId: getAccountParentId(this),
+      getAccountChildrenIds: getAccountChildrenIds(this),
+      getChildAccountName: getChildAccountName(this)
     });
   }
 
