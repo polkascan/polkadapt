@@ -16,9 +16,16 @@
  * limitations under the License.
  */
 
-import { Option, U8aFixed, Vec } from '@polkadot/types-codec';
-import { ITuple } from '@polkadot/types-codec/types';
-import { Data } from '@polkadot/types';
+import { BN } from '@polkadot/util';
+
+export type Header = {
+  // eslint-disable-next-line id-blacklist
+  number: number;
+  parentHash: string;
+  stateRoot: string;
+  extrinsicsRoot: string;
+};
+
 
 export type Block = {
   // eslint-disable-next-line id-blacklist
@@ -37,12 +44,53 @@ export type Block = {
 
 export type Account = {
   id: string;
-  nonce: number;
+  nonce?: number;
   data: {
-    free: number;
-    reserved: number;
-    miscFrozen: number;
-    feeFrozen: number;
+    free?: BN;
+    reserved?: BN;
+    miscFrozen?: BN;
+    feeFrozen?: BN;
   };
+};
+
+type AccountJudgement = {
+  isUnknown: boolean;
+  isFeePaid: boolean;
+  asFeePaid: BN;
+  isReasonable: boolean;
+  isKnownGood: boolean;
+  isOutOfDate: boolean;
+  isLowQuality: boolean;
+  isErroneous: boolean;
+  type: 'Unknown' | 'FeePaid' | 'Reasonable' | 'KnownGood' | 'OutOfDate' | 'LowQuality' | 'Erroneous';
+};
+
+export type AccountIdentity = {
+  display?: string;
+  displayParent?: string;
+  email?: string;
+  image?: string;
+  legal?: string;
+  other?: Record<string, string>;
+  parent?: string;
+  pgp?: string;
+  riot?: string;
+  twitter?: string;
+  web?: string;
+  judgements: [number, AccountJudgement][];
+};
+
+export type AccountInformation = {
+  accountId?: string;
+  accountIndex?: number;
+  identity: AccountIdentity;
+  nickname?: string;
+};
+
+export type AccountFlags = {
+  isCouncil: boolean;
+  isSociety: boolean;
+  isSudo: boolean;
+  isTechCommittee: boolean;
 };
 

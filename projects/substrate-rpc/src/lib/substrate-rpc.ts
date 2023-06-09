@@ -20,26 +20,48 @@ import { ApiRx, WsProvider } from '@polkadot/api';
 import { AdapterBase, types } from '@polkadapt/core';
 import { ApiOptions } from '@polkadot/api/types';
 import { catchError, Observable } from 'rxjs';
-import { getBlock, getLatestBlock, subscribeNewBlock } from './web-socket/block.functions';
+import {
+  getBlock,
+  getBlockHash,
+  getHeader,
+  getTimestamp,
+  getFinalizedHead,
+  getLatestBlock,
+  subscribeNewBlock
+} from './web-socket/block.functions';
 import {
   getAccount,
-  getAccountIdFromIndex, getAccountChildrenIds,
+  getAccountBalances,
+  getAccountChildrenIds,
+  getAccountFlags,
+  getAccountIdFromIndex,
+  getAccountInformation,
+  getAccountParentId,
+  getAccountStaking,
+  getChildAccountName,
   getIdentity,
-  getIndexFromAccountId,
-  getAccountParentId, getChildAccountName
+  getIndexFromAccountId
 } from './web-socket/account.functions';
 
 export type Api = {
   subscribeNewBlock: () => Observable<types.Block>;
   getBlock: (hashOrNumber: string | number) => Observable<types.Block>;
   getLatestBlock: () => Observable<types.Block>;
+  getBlockHash: (blockNumber: number) => Observable<string>;
+  getFinalizedHead: () => Observable<string>;
+  getHeader: (hashOrNumber: string | number) => Observable<types.Header>;
+  getTimestamp: (hashOrNumber?: number | string) => Observable<number>;
   getAccountIdFromIndex: (index: number) => Observable<string | null>;
-  getAccount: (accountId: string) => Observable<types.Account>;
+  getAccount: (accountId: string, blockHash?: string) => Observable<types.Account>;
   getIndexFromAccountId: (accountId: string) => Observable<number | null>;
-  getIdentity: (accountId: string) => Observable<any>;  // TODO Fix Typing
+  getIdentity: (accountId: string) => Observable<types.AccountIdentity>;
   getAccountParentId: (accountId: string) => Observable<string | null>;
   getAccountChildrenIds: (accountId: string) => Observable<string[]>;
   getChildAccountName: (accountId: string) => Observable<string | null>;
+  getAccountInformation: (accountId: string) => Observable<types.AccountInformation>;
+  getAccountFlags: (accountId: string) => Observable<types.AccountFlags>;
+  getAccountBalances: (accountId: string) => Observable<any>;  // TODO Fix typing
+  getAccountStaking: (accountId: string) => Observable<any>;  // TODO Fix typing
 };
 
 export interface Config {
@@ -87,13 +109,21 @@ export class Adapter extends AdapterBase {
       getBlock: getBlock(this),
       getLatestBlock: getLatestBlock(this),
       subscribeNewBlock: subscribeNewBlock(this),
-      getAccountIdFromIndex: getAccountIdFromIndex(this),
+      getBlockHash: getBlockHash(this),
+      getFinalizedHead: getFinalizedHead(this),
+      getHeader: getHeader(this),
+      getTimestamp: getTimestamp(this),
       getAccount: getAccount(this),
+      getAccountIdFromIndex: getAccountIdFromIndex(this),
       getIndexFromAccountId: getIndexFromAccountId(this),
       getIdentity: getIdentity(this),
       getAccountParentId: getAccountParentId(this),
       getAccountChildrenIds: getAccountChildrenIds(this),
-      getChildAccountName: getChildAccountName(this)
+      getChildAccountName: getChildAccountName(this),
+      getAccountInformation: getAccountInformation(this),
+      getAccountFlags: getAccountFlags(this),
+      getAccountBalances: getAccountBalances(this),
+      getAccountStaking: getAccountStaking(this)
     });
   }
 

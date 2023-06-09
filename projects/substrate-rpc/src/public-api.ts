@@ -25,8 +25,11 @@ import type * as types from './lib/substrate-rpc.types';
 
 /* eslint-disable @typescript-eslint/no-empty-interface */
 declare module '@polkadapt/core/augmented-types' {
+    interface Header extends types.Header {}
     interface Block extends types.Block {}
-
     interface Account extends types.Account {}
+    interface AccountIdentity extends types.AccountIdentity {}
+    interface AccountInformation extends types.AccountInformation {}
+    interface AccountFlags extends types.AccountFlags {}
 }
 export * as types from './lib/substrate-rpc.types';

@@ -172,19 +172,19 @@ const createEventsByAccountFilters = (accountEventsFilters?: AccountEventsFilter
 
 
 export const getEventsByAccount = (adapter: Adapter) => {
-  const fn = (accountId: string,
+  const fn = (accountIdHex: string,
          accountEventsFilters?: AccountEventsFilters,
          pageSize?: number): Observable<types.AccountEvent[]> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
-    if (!isDefined(accountId)) {
+    if (!isDefined(accountIdHex)) {
       throw new Error('[PolkascanExplorerAdapter] getEventsByAccount: Provide an accountId (string).');
     }
 
     const filters: string[] = createEventsByAccountFilters(accountEventsFilters);
-    filters.push(`accountId: "${accountId}"`);
+    filters.push(`accountId: "${accountIdHex}"`);
     const blockLimitOffset = accountEventsFilters && accountEventsFilters.blockRangeEnd ? accountEventsFilters.blockRangeEnd : undefined;
     return createObjectsListObservable<pst.AccountEvent>(
       adapter,
@@ -202,24 +202,24 @@ export const getEventsByAccount = (adapter: Adapter) => {
 
 
 export const subscribeNewEventByAccount = (adapter: Adapter) => {
-  const fn = (accountId: string, accountEventfilters?: AccountEventsFilters): Observable<types.AccountEvent> => {
+  const fn = (accountIdHex: string, accountEventfilters?: AccountEventsFilters): Observable<types.AccountEvent> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
-    if (!isDefined(accountId)) {
+    if (!isDefined(accountIdHex)) {
       throw new Error('[PolkascanExplorerAdapter] subscribeNewEventByAccount: Provide an accountId (string).');
     }
 
-    if (!isString(accountId)) {
+    if (!isString(accountIdHex)) {
       throw new Error('[PolkascanExplorerAdapter] subscribeNewEventByAccount: Provided accountId must be a string.');
     }
 
     let filters: string[] = [];
-    filters.push(`accountId: "${accountId}"`);
     if (isObject(accountEventfilters)) {
       filters = createEventsByAccountFilters(accountEventfilters);
     }
+    filters.push(`accountId: "${accountIdHex}"`);
 
     const query = generateSubscriptionQuery('subscribeNewEventByAccount', genericEventFields, filters);
     return createSubscriptionObservable<pst.AccountEvent>(adapter, 'subscribeNewEventByAccount', query).pipe(

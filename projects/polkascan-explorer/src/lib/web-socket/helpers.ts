@@ -272,7 +272,7 @@ export const createObjectsListObservable = <T>(
     if (identifiers && identifiers.length) {
       objectList = [...objectList, ...objects];
 
-      if (objectList.length > (pageSize as number)) {
+      if (objectList.length >= (pageSize as number)) {
         // Remove items beyond the pageSize.
         objectList.length = (pageSize as number);
         listAtEnd = true;

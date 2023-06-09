@@ -70,11 +70,11 @@ export type Api = {
     Observable<types.Event[]>;
   subscribeNewEvent: (filters?: EventsFilters) =>
     Observable<types.Event>;
-  getEventsByAccount: (accountId: string,
+  getEventsByAccount: (accountIdHex: string,
                        filters?: AccountEventsFilters,
                        pageSize?: number) =>
     Observable<types.AccountEvent[]>;
-  subscribeNewEventByAccount: (accountId: string,
+  subscribeNewEventByAccount: (accountIdHex: string,
                                filters?: AccountEventsFilters) =>
     Observable<types.AccountEvent>;
   getExtrinsic: (blockNumber: number, eventIdx: number) =>
