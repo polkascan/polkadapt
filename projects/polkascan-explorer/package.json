@@ -1,6 +1,6 @@
 {
   "name": "@polkadapt/polkascan-explorer",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "license": "Apache-2.0",
   "author": "Polkascan Foundation <info@polkascan.org>",
   "description": "PolkADAPT plug-in to fetch data from the Polkascan Explorer API.",
@@ -12,7 +12,7 @@
     "url": "https://github.com/polkascan/polkadapt.git"
   },
   "peerDependencies": {
-    "@polkadapt/core": "1.0.0",
+    "@polkadapt/core": "2.0.0",
     "rxjs": "~7.8.0"
   },
   "dependencies": {},

@@ -1,6 +1,6 @@
 {
   "name": "@polkadapt/core",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "license": "Apache-2.0",
   "author": "Polkascan Foundation <info@polkascan.org>",
   "description": "Core library of PolkADAPT, a pluggable framework for heterogeneous data retrieval and augmentation.",

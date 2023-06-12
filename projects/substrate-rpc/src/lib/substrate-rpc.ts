@@ -1,7 +1,7 @@
 /*
  * PolkADAPT
  *
- * Copyright 2020-2022 Polkascan Foundation (NL)
+ * Copyright 2020-2023 Polkascan Foundation (NL)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -85,8 +85,9 @@ export class Adapter extends AdapterBase {
   config: Config;
   promise: Promise<Api>;
   apiPromise: Promise<ApiRx>;
+  api: Api;
   private resolvePromise: ((api: ApiRx) => void) | undefined;
-  private api: ApiRx | undefined;
+  private proxyApi: ApiRx | undefined;
   private unproxiedApi: ApiRx | undefined;
   private isConnected: Promise<boolean> = Promise.resolve(false);
   private resolveConnected: ((v: boolean) => void) | undefined;
@@ -105,7 +106,7 @@ export class Adapter extends AdapterBase {
     // Create the initial Promise to expose to PolkADAPT Core.
     this.apiPromise = this.createPromise();
 
-    this.promise = Promise.resolve({
+    this.api = {
       getBlock: getBlock(this),
       getLatestBlock: getLatestBlock(this),
       subscribeNewBlock: subscribeNewBlock(this),
@@ -124,29 +125,29 @@ export class Adapter extends AdapterBase {
       getAccountFlags: getAccountFlags(this),
       getAccountBalances: getAccountBalances(this),
       getAccountStaking: getAccountStaking(this)
-    });
+    };
   }
 
-  get isReady(): Promise<boolean> {
-    return new Promise<boolean>((resolve, reject) => {
-      this.isConnected.then(connected => {
-        if (!connected) {
-          throw new Error('[SubstrateRPCAdapter] Could not check readiness, adapter is not connected');
-        }
-        if (this.unproxiedApi) {
-          this.unproxiedApi.isReady.pipe(
-            catchError(e => { reject(e); throw e; })
-          ).subscribe(() => {
-            resolve(true);
-          });
-        } else {
-          throw new Error('[SubstrateRPCAdapter] Could not check readiness, no apiPromise available');
-        }
-      }, e => {
-        reject(e);
-      });
-    });
-  }
+  // get isReady(): Promise<boolean> {
+  //   return new Promise<boolean>((resolve, reject) => {
+  //     this.isConnected.then(connected => {
+  //       if (!connected) {
+  //         throw new Error('[SubstrateRPCAdapter] Could not check readiness, adapter is not connected');
+  //       }
+  //       if (this.unproxiedApi) {
+  //         this.unproxiedApi.isReady.pipe(
+  //           catchError(e => { reject(e); throw e; })
+  //         ).subscribe(() => {
+  //           resolve(true);
+  //         });
+  //       } else {
+  //         throw new Error('[SubstrateRPCAdapter] Could not check readiness, no apiPromise available');
+  //       }
+  //     }, e => {
+  //       reject(e);
+  //     });
+  //   });
+  // }
 
   resolveActiveCall(nonce: string, result: unknown): void {
     const aCall: ActiveCall = this.activeCalls[nonce];
@@ -192,7 +193,7 @@ export class Adapter extends AdapterBase {
       this.createApi().then(api => {
         this.unproxiedApi = api;
         // Set up a Proxy, so we can hijack the API.
-        this.api = new Proxy(this.unproxiedApi, {
+        this.proxyApi = new Proxy(this.unproxiedApi, {
           get: (target, p: string) =>
             this.createFollowUpProxy(target, (target as { [K: string]: any })[p], [p])
         });
@@ -202,7 +203,7 @@ export class Adapter extends AdapterBase {
           this.dispatchEvent('connected', {providerUrl: this.config.providerUrl});
           resolve(v);
         };
-        // If the ws 'connected' event fired *before* this.api was set, we can now resolve the promises.
+        // If the ws 'connected' event fired *before* this.proxyApi was set, we can now resolve the promises.
         if (this.wsConnected) {
           this.resolveCombined();
         }
@@ -229,7 +230,7 @@ export class Adapter extends AdapterBase {
     // Wait for isConnected to resolve, either being true or false.
     if (this.unproxiedApi) {
       await this.unproxiedApi.disconnect();
-      this.api = undefined;
+      this.proxyApi = undefined;
       this.unproxiedApi = undefined;
     }
     this.isConnected = Promise.resolve(false);
@@ -371,13 +372,13 @@ export class Adapter extends AdapterBase {
   }
 
   private resolveCombined() {
-    if (this.wsConnected && this.api) {
+    if (this.wsConnected && this.proxyApi) {
       if (this.resolvePromise) {
         // Resolve the unresolved Promise.
-        this.resolvePromise(this.api);
+        this.resolvePromise(this.proxyApi);
       } else {
         // This is a new connection. We can just replace the Promise with an already resolved one.
-        this.apiPromise = Promise.resolve(this.api);
+        this.apiPromise = Promise.resolve(this.proxyApi);
       }
       if (this.resolveConnected) {
         this.resolveConnected(true);
@@ -452,8 +453,8 @@ export class Adapter extends AdapterBase {
 
   private handleWsConnected() {
     this.wsConnected = true;
-    if (this.api) {
-      // Connection has been established *after* this.api was set. Resolve the promises.
+    if (this.proxyApi) {
+      // Connection has been established *after* this.proxyApi was set. Resolve the promises.
       this.resolveCombined();
     }
   }

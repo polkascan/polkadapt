@@ -1,8 +1,7 @@
 /*
-/*
  * PolkADAPT
  *
- * Copyright 2020-2022 Polkascan Foundation (NL)
+ * Copyright 2020-2023 Polkascan Foundation (NL)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,32 +23,34 @@ import {
   map,
   merge,
   Observable,
-  of,
-  ReplaySubject, share,
   shareReplay,
-  Subject, Subscription, take, takeUntil, tap, timer
+  Subject, take, takeUntil, tap
 } from 'rxjs';
 import { deepMerge } from './helpers';
-
-export enum PolkadaptEventNames {
-  readyChange = 'readyChange'
-}
-
-export type AdapterPromise = Promise<any>;
 
 type PolkadaptRegisteredAdapter = {
   instance: AdapterBase;
 };
-type PolkadaptRunConfigConverter = (results: any) => any;
-type PolkadaptRunConfigStrategy = 'merge' | 'combineLatest';
-type PolkadaptRunConfigAdapters = (AdapterBase | string) | (AdapterBase | string)[];
 
-export interface PolkadaptRunConfig {
+type PolkadaptRunParamAdapters = (AdapterBase | string) | (AdapterBase | string)[];
+
+export interface PolkadaptRunOptions {
   chain?: string;
-  adapters?: PolkadaptRunConfigAdapters;
+  adapters?: PolkadaptRunParamAdapters;
   augment?: boolean;
   observableResults?: boolean;
 }
+
+export type PolkadaptRunArgument = string | PolkadaptRunOptions;
+
+export type AdapterApiCallWithIdentifiers<A extends any[] = any[], T = any> = {
+  (...args: A): Observable<T>;
+  identifiers?: string[];
+};
+
+export type AdapterApi = {
+  [name: string]: AdapterApiCallWithIdentifiers | AdapterApi;
+};
 
 type CallContext = {
   path: string[];
@@ -57,10 +58,6 @@ type CallContext = {
   callArgs: unknown[];
 };
 
-type FunctionWithIdentifiers = {
-  (arg: unknown): unknown;
-  identifiers: string[];
-};
 
 //
 // Polkadapt class
@@ -83,9 +80,6 @@ type FunctionWithIdentifiers = {
 export class Polkadapt<T> {
   public adapters: PolkadaptRegisteredAdapter[] = [];
 
-  private eventListeners: { [eventName: string]: ((...args: unknown[]) => unknown)[] } = {};
-
-
   // Registers adapters in the polkadapt instance.
   // usage:      pa.register(adapter1, adapter2)
   register(...adapters: AdapterBase[]): void {
@@ -96,12 +90,6 @@ export class Polkadapt<T> {
         adapter.connect();
       }
     }
-    this.emit('readyChange', false);
-    this.ready().then(() => {
-      this.emit('readyChange', true);
-    }, e => {
-      throw e;
-    });
   }
 
 
@@ -119,31 +107,9 @@ export class Polkadapt<T> {
     }
   }
 
-
-  // Check if all adapter instances have connected with their hosts before allowing executing data retrieval calls.
-  // usage:      await pa.ready()    or    pa.ready().then(() => {})
-  async ready(adapters?: PolkadaptRegisteredAdapter[]): Promise<boolean> {
-    adapters = adapters || this.adapters;
-
-    if (this.adapters.length === 0) {
-      throw new Error(
-        'No registered adapter instances in this Polkadapt instance. Please create adapter instances and ' +
-        'register them by calling register(...adapters) on the Polkadapt instance.'
-      );
-    }
-
-    // Wait for all adapters to have been created.
-    await Promise.all(adapters.map(a => a.instance.promise));
-
-    // Wait until all connections are initialized.
-    await Promise.all(adapters.map(a => a.instance.isReady));
-    return true;
-  }
-
-
   // Run is the entrypoint for the application that starts the method chain and will return a result or create a subscription triggering
   // a passed through callback.
-  run(config?: PolkadaptRunConfig | string): T {
+  run(config?: PolkadaptRunArgument): T {
     let chain: string | undefined;
     let adapters: PolkadaptRegisteredAdapter[] = [];
     let augmentedResults = true;
@@ -182,141 +148,8 @@ export class Polkadapt<T> {
       }
     }
 
-    const converter = (results: { [p: string]: unknown }[]): any => {
-      // This is the default converter of the candidate results.
-      // By using a recursive Proxy we can (fake) deep merge the result objects.
-      if (results.every((r) => typeof r === 'object')) {
-        const createResultProxy = (candidateObjects: { [p: string]: unknown }[]): unknown => {
-          const target: { [k: string]: any } = {};
-          candidateObjects.forEach(o => {
-            for (const prop in o) {
-              if (!target[prop]) {
-                target[prop] = {};
-              }
-            }
-          });
-          return new Proxy(target, {
-            get: (obj, prop: string) => {
-              // Create an Array of all results that contain the property name.
-              const matches: { [p: string]: unknown }[] = [];
-              candidateObjects.forEach(o => {
-                if (prop in o) {
-                  matches.push(o);
-                }
-              });
-              if (matches.length === 0) {
-                // This property was not found on the result objects.
-                return;
-              }
-              // If there's only one result object that contains the property name, return the property value.
-              if (matches.length === 1) {
-                if (typeof matches[0][prop] === 'function') {
-                  return (matches[0][prop] as (...args: unknown[]) => unknown).bind(matches[0]);
-                }
-                return matches[0][prop];
-              }
-              // If all property values are objects, we have to (recursively) proxy these objects as well.
-              const propValues = matches.map(o => o[prop]);
-              if (propValues.every(v => typeof v === 'object')) {
-                return createResultProxy(propValues as { [p: string]: unknown }[]);
-              }
-              // The property values cannot be merged, e.g. one is an object and the other is an Array or primitive.
-              // In this case we return an Array containing the separate results.
-              return propValues;
-            }
-          });
-        };
-        return createResultProxy(results);
-      } else {
-        return results;
-      }
-    };
-
     return this.createCallPathProxy(chain, adapters, augmentedResults, observableResults) as T;
   }
-
-
-  // Polkadapt has an eventEmitter like event broadcast implementation to listen to events broadcasted from polkadapts internals.
-  // It is not a native EventEmitter and it is not meant to be one.
-
-  // Add listener function.
-  addEventListener(eventName: string, listener: (...args: unknown[]) => any): void {
-    if (!this.eventListeners[eventName]) {
-      this.eventListeners[eventName] = [];
-    }
-    this.eventListeners[eventName].push(listener);
-  }
-
-  on(eventName: string, listener: (...args: unknown[]) => any): void {
-    this.addEventListener(eventName, listener);
-  }
-
-  // Remove listener for a specific event.
-  removeListener(eventName: string, listener: (...args: unknown[]) => any): void {
-    if (this.eventListeners[eventName] !== undefined) {
-      let index = -1;
-      this.eventListeners[eventName].forEach((regFn, i) => {
-        if (regFn === listener) {
-          index = i;
-        }
-      });
-      if (index !== -1) {
-        this.eventListeners[eventName].splice(index, 1);
-      }
-    }
-  }
-
-  off(eventName: string, listener: (...args: unknown[]) => any): void {
-    this.removeListener(eventName, listener);
-  }
-
-  // Remove all listeners for a specific event.
-  removeAllListeners(eventName: string): void {
-    delete this.eventListeners[eventName];
-  }
-
-
-  // Add listener that triggers only once and then removes itself.
-  once(eventName: string, listener: (...args: unknown[]) => any): void {
-    const onceListener = (...args: unknown[]) => {
-      listener(...args);
-      this.off(eventName, onceListener);
-    };
-    this.on(eventName, onceListener);
-  }
-
-
-  // Trigger handler function on event.
-  emit(eventName: string, ...args: unknown[]): boolean {
-    if (this.eventListeners[eventName] && this.eventListeners[eventName].length) {
-      this.eventListeners[eventName].forEach((listener) => listener(...args));
-      return true;
-    }
-    return false;
-  }
-
-
-  // Get a list of all event names with active listeners.
-  eventNames(): string[] {
-    const eventNames: string[] = [];
-    Object.keys(this.eventListeners).forEach((key) => {
-      if (this.eventListeners[key] && this.eventListeners[key].length) {
-        eventNames.push(key);
-      }
-    });
-    return eventNames;
-  }
-
-
-  // Return all listeners registered on an event.
-  listeners(eventName: string): ((...args: unknown[]) => any)[] {
-    if (this.eventListeners[eventName] && this.eventListeners[eventName].length) {
-      return this.eventListeners[eventName];
-    } else {
-      return [];
-    }
-  }
-
 
   // Generate the proxy object that will return an Observable when the property is being called.
   private createCallPathProxy(chain: string | undefined,
@@ -374,19 +207,20 @@ export class Polkadapt<T> {
 
     // Asynchronously handle the path, whether it's been called, and which arguments were used. The resultObservable
     // will emit the values eventually.
-    void this.processCallAsync(chain, adapters, context, resultObservable, destroyer, augmentedResults, observableResults);
+    setTimeout(() => {
+      this.processCallAsync(chain, adapters, context, resultObservable, destroyer, augmentedResults, observableResults);
+    }, 0);
     return proxy;
   }
 
-  private async processCallAsync(chain: string | undefined,
+  private processCallAsync(chain: string | undefined,
                                  adapters: PolkadaptRegisteredAdapter[],
                                  context: CallContext,
                                  resultObservable: Subject<unknown>,
                                  destroyer: Subject<void>,
                                  augmentedResults: boolean,
                                  observableResults: boolean
-  ): Promise<void> {
-    const candidateIdentifiers: Map<AdapterBase, string[]> = new Map();  // Filled for matched method chains.
+  ): void {
     const candidateResultObservables: Map<AdapterBase, Observable<unknown>> = new Map();  // Filled for matched method chains.
 
     type ItemRegistryEntry = {
@@ -423,32 +257,25 @@ export class Polkadapt<T> {
     // Only use adapter instances for this chain.
     candidates = candidates.filter(a => !a.instance.chain || a.instance.chain === chain);
 
-    try {
-      await this.ready(candidates);
-    } catch (e) {
-      resultObservable.error(e);
-      return;
-    }
-
     // Array of matching items that contain functionality at the end of the call path.
-    const candidateCalls: Map<AdapterBase, unknown> = new Map();
+    const candidateCalls: Map<AdapterBase, AdapterApiCallWithIdentifiers> = new Map();
     // (items can be function or primitive or object)
 
     // Walk the call path for every adapter.
     for (const c of candidates) {
-      let item = await c.instance.promise as { [p: string]: unknown };   /// TODO ???
+      let item: AdapterApi | AdapterApiCallWithIdentifiers = c.instance.api;
       let pathFailed = false;
 
       for (const prop of context.path) {
         if (prop in item) {
-          item = item[prop] as { [p: string]: unknown };
+          item = item[prop] as AdapterApi;
         } else {
           pathFailed = true;
         }
       }
 
-      if (!pathFailed) {
-        candidateCalls.set(c.instance, item);
+      if (!pathFailed && typeof item === 'function') {
+        candidateCalls.set(c.instance, item as AdapterApiCallWithIdentifiers);
       }
     }
 
@@ -463,14 +290,11 @@ export class Polkadapt<T> {
       let identifiers: string[];
       let flattenedIdentifiers: string;
 
-      Array.from(candidateCalls.entries()).forEach(([adapter, value], index) => {
-        candidateIdentifiers.set(adapter, (value as FunctionWithIdentifiers).identifiers);
+      Array.from(candidateCalls.values()).forEach((call, index) => {
         if (index === 0) {
-          identifiers = Array.isArray((value as FunctionWithIdentifiers).identifiers)
-            ? (value as FunctionWithIdentifiers).identifiers
-            : [];
+          identifiers = Array.isArray(call.identifiers) ? call.identifiers : [];
           flattenedIdentifiers = identifiers.slice().sort().join();
-        } else if (flattenedIdentifiers !== ((value as FunctionWithIdentifiers).identifiers || []).slice().sort().join()) {
+        } else if (flattenedIdentifiers !== (call.identifiers || []).slice().sort().join()) {
           resultObservable.error(new Error('Identifiers do not match between adapter functions.'));
           return;
         }
@@ -478,7 +302,7 @@ export class Polkadapt<T> {
 
       candidateCalls.forEach((call, adapter) => {
         try {
-          const result = (call as (...args: unknown[]) => Observable<unknown>)(...context.callArgs);
+          const result = call(...context.callArgs);
           candidateResultObservables.set(adapter, result);
         } catch (e) {
           // This candidate is not a function.
@@ -502,7 +326,6 @@ export class Polkadapt<T> {
             if (identifiers && identifiers.length) {
               const isObject = typeof result === 'object';
               const isArray = Array.isArray(result);
-
 
               if (isObject) {
                 // Make sure result has properties for all identifiers.
@@ -652,7 +475,7 @@ export class Polkadapt<T> {
 export abstract class AdapterBase {
   chain: string;
   abstract name: string;
-  abstract promise: AdapterPromise | undefined;
+  abstract api: AdapterApi;
 
   protected constructor(chain: string) {
     this.chain = chain;
@@ -662,9 +485,12 @@ export abstract class AdapterBase {
     return `${this.name}.${this.chain}`;
   }
 
-  abstract get isReady(): Promise<boolean>;
+  connect(): void {
+    // This is called as soon as it's registered. You may implement this for your own purposes, e.g. initialization.
+    // We don't wait for anything coming out of this, however.
+  }
 
-  abstract connect(): void;
-
-  abstract disconnect(): void;
+  disconnect(): void {
+    // This is called when it's unregistered. You may implement this if you want your adapter to disconnect or clean up.
+  }
 }

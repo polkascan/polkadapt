@@ -1,7 +1,7 @@
 /*
  * PolkADAPT
  *
- * Copyright 2020-2022 Polkascan Foundation (NL)
+ * Copyright 2020-2023 Polkascan Foundation (NL)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -138,9 +138,9 @@ export interface Config {
 
 export class Adapter extends AdapterBase {
   name = 'polkascan-explorer';
-  promise: Promise<Api> | undefined;
   socket: PolkascanExplorerWebSocket | undefined;
   config: Config;
+  api: Api;
 
   constructor(config: Config) {
     super(config.chain);
@@ -150,46 +150,44 @@ export class Adapter extends AdapterBase {
       this.socket = new PolkascanExplorerWebSocket(this.config.wsEndpoint, config.chain);
     }
 
-    this.promise = new Promise((resolve) => {
-      resolve({
-        getBlock: getBlock(this),
-        getLatestBlock: getLatestBlock(this),
-        subscribeNewBlock: subscribeNewBlock(this),
-        getBlocks: getBlocks(this),
-        getBlocksFrom: getBlocksFrom(this),
-        getBlocksUntil: getBlocksUntil(this),
-        getEvent: getEvent(this),
-        getEvents: getEvents(this),
-        subscribeNewEvent: subscribeNewEvent(this),
-        getEventsByAccount: getEventsByAccount(this),
-        subscribeNewEventByAccount: subscribeNewEventByAccount(this),
-        getExtrinsic: getExtrinsic(this),
-        getExtrinsics: getExtrinsics(this),
-        subscribeNewExtrinsic: subscribeNewExtrinsic(this),
-        getLog: getLog(this),
-        getLogs: getLogs(this),
-        subscribeNewLog: subscribeNewLog(this),
-        getTaggedAccount: getTaggedAccount(this),
-        getTaggedAccounts: getTaggedAccounts(this),
-        getLatestRuntime: getLatestRuntime(this),
-        getRuntime: getRuntime(this),
-        getRuntimes: getRuntimes(this),
-        getRuntimeCall: getRuntimeCall(this),
-        getRuntimeCalls: getRuntimeCalls(this),
-        getRuntimeCallArguments: getRuntimeCallArguments(this),
-        getRuntimeConstant: getRuntimeConstant(this),
-        getRuntimeConstants: getRuntimeConstants(this),
-        getRuntimeErrorMessage: getRuntimeErrorMessage(this),
-        getRuntimeErrorMessages: getRuntimeErrorMessages(this),
-        getRuntimeEvent: getRuntimeEvent(this),
-        getRuntimeEvents: getRuntimeEvents(this),
-        getRuntimeEventAttributes: getRuntimeEventAttributes(this),
-        getRuntimePallet: getRuntimePallet(this),
-        getRuntimePallets: getRuntimePallets(this),
-        getRuntimeStorage: getRuntimeStorage(this),
-        getRuntimeStorages: getRuntimeStorages(this),
-      });
-    });
+    this.api = {
+      getBlock: getBlock(this),
+      getLatestBlock: getLatestBlock(this),
+      subscribeNewBlock: subscribeNewBlock(this),
+      getBlocks: getBlocks(this),
+      getBlocksFrom: getBlocksFrom(this),
+      getBlocksUntil: getBlocksUntil(this),
+      getEvent: getEvent(this),
+      getEvents: getEvents(this),
+      subscribeNewEvent: subscribeNewEvent(this),
+      getEventsByAccount: getEventsByAccount(this),
+      subscribeNewEventByAccount: subscribeNewEventByAccount(this),
+      getExtrinsic: getExtrinsic(this),
+      getExtrinsics: getExtrinsics(this),
+      subscribeNewExtrinsic: subscribeNewExtrinsic(this),
+      getLog: getLog(this),
+      getLogs: getLogs(this),
+      subscribeNewLog: subscribeNewLog(this),
+      getTaggedAccount: getTaggedAccount(this),
+      getTaggedAccounts: getTaggedAccounts(this),
+      getLatestRuntime: getLatestRuntime(this),
+      getRuntime: getRuntime(this),
+      getRuntimes: getRuntimes(this),
+      getRuntimeCall: getRuntimeCall(this),
+      getRuntimeCalls: getRuntimeCalls(this),
+      getRuntimeCallArguments: getRuntimeCallArguments(this),
+      getRuntimeConstant: getRuntimeConstant(this),
+      getRuntimeConstants: getRuntimeConstants(this),
+      getRuntimeErrorMessage: getRuntimeErrorMessage(this),
+      getRuntimeErrorMessages: getRuntimeErrorMessages(this),
+      getRuntimeEvent: getRuntimeEvent(this),
+      getRuntimeEvents: getRuntimeEvents(this),
+      getRuntimeEventAttributes: getRuntimeEventAttributes(this),
+      getRuntimePallet: getRuntimePallet(this),
+      getRuntimePallets: getRuntimePallets(this),
+      getRuntimeStorage: getRuntimeStorage(this),
+      getRuntimeStorages: getRuntimeStorages(this),
+    };
   }
 
 

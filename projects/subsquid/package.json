@@ -1,21 +1,23 @@
 {
-  "name": "@polkadapt/coingecko",
-  "version": "2.0.0",
+  "name": "@polkadapt/subsquid",
+  "version": "1.0.0",
   "license": "Apache-2.0",
   "author": "Polkascan Foundation <info@polkascan.org>",
-  "description": "PolkADAPT plug-in to fetch pricing data from CoinGecko.",
+  "description": "PolkADAPT plug-in to fetch data from the Subsquid APIs.",
   "bugs": "https://github.com/polkascan/polkadapt/issues",
-  "homepage": "https://github.com/polkascan/polkadapt/tree/main/projects/coingecko#readme",
+  "homepage": "https://github.com/polkascan/polkadapt/tree/main/projects/subsquid#readme",
   "repository": {
-    "directory": "projects/coingecko",
+    "directory": "projects/subsquid",
     "type": "git",
     "url": "https://github.com/polkascan/polkadapt.git"
   },
   "peerDependencies": {
-    "@polkadapt/core": "2.0.0"
+    "@polkadapt/core": "2.0.0",
+    "rxjs": "~7.8.0"
   },
   "dependencies": {},
   "devDependencies": {
     "@polkadapt/core": "file:../../dist/core"
-  }
+  },
+  "sideEffects": false
 }
