@@ -214,12 +214,12 @@ export class Polkadapt<T> {
   }
 
   private processCallAsync(chain: string | undefined,
-                                 adapters: PolkadaptRegisteredAdapter[],
-                                 context: CallContext,
-                                 resultObservable: Subject<unknown>,
-                                 destroyer: Subject<void>,
-                                 augmentedResults: boolean,
-                                 observableResults: boolean
+                           adapters: PolkadaptRegisteredAdapter[],
+                           context: CallContext,
+                           resultObservable: Subject<unknown>,
+                           destroyer: Subject<void>,
+                           augmentedResults: boolean,
+                           observableResults: boolean
   ): void {
     const candidateResultObservables: Map<AdapterBase, Observable<unknown>> = new Map();  // Filled for matched method chains.
 
@@ -334,7 +334,7 @@ export class Polkadapt<T> {
                     resultObservable.error(new Error('Identifiers not set in at least one object'));
                     return;
                   }
-                } else if (!identifiers.every(attr => Object.keys(result as object).includes(attr))) {
+                } else if (!identifiers.every(attr => Object.keys(result).includes(attr))) {
                   resultObservable.error(new Error('Identifiers not set in object'));
                   return;
                 }
@@ -347,7 +347,9 @@ export class Polkadapt<T> {
 
                     const itemRegistryEntry = itemRegistry.get(pk);
                     if (itemRegistryEntry) {
-                      observable = (itemRegistryEntry as ItemRegistryEntry).source as BehaviorSubject<{ [p: string]: unknown }>;
+                      observable = (itemRegistryEntry as ItemRegistryEntry).source as BehaviorSubject<{
+                        [p: string]: unknown;
+                      }>;
                     }
 
                     if (observable) {
@@ -383,8 +385,10 @@ export class Polkadapt<T> {
                       objObservable.pipe(
                         debounceTime(registryExpirationTimeout),
                         take(1)
-                      ).subscribe(() => {
-                        observable?.complete();
+                      ).subscribe({
+                        next: () => {
+                          observable?.complete();
+                        }
                       });
                       return objObservable;
                     }
@@ -453,8 +457,10 @@ export class Polkadapt<T> {
                 primObservable.pipe(
                   debounceTime(registryExpirationTimeout),
                   take(1)
-                ).subscribe(() => {
-                  observable?.complete();
+                ).subscribe({
+                  next: () => {
+                    observable?.complete();
+                  }
                 });
                 return primObservable;
               }
@@ -463,7 +469,11 @@ export class Polkadapt<T> {
             }
           }),
           filter(r => typeof r !== 'undefined')
-        ).subscribe(resultObservable);
+        ).subscribe({
+          next: (v) => resultObservable.next(v),
+          error: (e) => resultObservable.error(e),
+          complete: () => resultObservable.complete()
+        });
       }
     } else {
       resultObservable.error(new Error('End of call path, but it was not called.'));

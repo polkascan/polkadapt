@@ -67,11 +67,14 @@ class TestAdapterBase extends AdapterBase {
     const newArrayFromBoth = interval(this.timeout).pipe(
       delay(this.letter === 'a' ? 0 : 50),
       map((i) => {
-        const arr: {[p: string]: any}[] = [{id: i + 1}, {id: i + 2}, {id: i + 3, nested: {isThisA: (this.letter === 'a')}}];
+        const arr: { [p: string]: any }[] = [{id: i + 1}, {id: i + 2}, {
+          id: i + 3,
+          nested: {isThisA: (this.letter === 'a')}
+        }];
         arr[0][this.letter] = i;
         arr[1][this.letter] = i;
         return arr;
-    }));
+      }));
     this.api = {
       values: {
         objectFromBoth: () => {
@@ -306,24 +309,26 @@ describe('Polkadapt', () => {
       next: newResult => {
         newResult.pipe(
           take(4)
-        ).subscribe(result => {
-          switch (count) {
-            case 0:
-              expect(result).toEqual({id1: '1', id2: '2', i: 0, a: 'a'});
-              break;
-            case 1:
-              expect(result).toEqual({id1: '1', id2: '2', i: 0, b: 'b'});
-              break;
-            case 2:
-              expect(result).toEqual({id1: '1', id2: '2', i: 1, a: 'a'});
-              break;
-            case 3:
-              expect(result).toEqual({id1: '1', id2: '2', i: 1, b: 'b'});
-              destroyer.next();
-              destroyer.complete();
-              break;
+        ).subscribe({
+          next: (result) => {
+            switch (count) {
+              case 0:
+                expect(result).toEqual({id1: '1', id2: '2', i: 0, a: 'a'});
+                break;
+              case 1:
+                expect(result).toEqual({id1: '1', id2: '2', i: 0, b: 'b'});
+                break;
+              case 2:
+                expect(result).toEqual({id1: '1', id2: '2', i: 1, a: 'a'});
+                break;
+              case 3:
+                expect(result).toEqual({id1: '1', id2: '2', i: 1, b: 'b'});
+                destroyer.next();
+                destroyer.complete();
+                break;
+            }
+            count += 1;
           }
-          count += 1;
         });
       },
       error: (error: Error) => {
@@ -378,17 +383,19 @@ describe('Polkadapt', () => {
       next: mergedResult => {
         mergedResult.pipe(
           take(3)
-        ).subscribe(result => {
-          if (count === 0) {
-            expect(result).toEqual({id1: '1', id2: '2', i: 0, a: 'a'});
-          } else if (count === 1) {
-            expect(result).toEqual({id1: '1', id2: '2', i: 0, a: 'a', b: 'b'});
-          } else {
-            expect(result).toEqual({id1: '1', id2: '2', i: 1, a: 'a', b: 'b'});
-            destroyer.next();
-            destroyer.complete();
+        ).subscribe({
+          next: (result) => {
+            if (count === 0) {
+              expect(result).toEqual({id1: '1', id2: '2', i: 0, a: 'a'});
+            } else if (count === 1) {
+              expect(result).toEqual({id1: '1', id2: '2', i: 0, a: 'a', b: 'b'});
+            } else {
+              expect(result).toEqual({id1: '1', id2: '2', i: 1, a: 'a', b: 'b'});
+              destroyer.next();
+              destroyer.complete();
+            }
+            count += 1;
           }
-          count += 1;
         });
       },
       error: (error: Error) => {
@@ -437,29 +444,32 @@ describe('Polkadapt', () => {
         mergedResult.forEach((obs) => {
           if (observables.indexOf(obs) === -1) {
             observables.push(obs);
-            obs.subscribe(result => {
-              switch (count) {
-                case 0:
-                  expect(result).toEqual({id: 1, a: true});
-                  break;
-                case 1:
-                  expect(result).toEqual({id: 2, a: false});
-                  break;
-                case 2:
-                  expect(result).toEqual({id: 3, nested: {isThisA: true}});
-                  break;
-                case 3:
-                  expect(result).toEqual({id: 1, a: true, b: true});
-                  break;
-                case 4:
-                  expect(result).toEqual({id: 2, a: false, b: false});
-                  break;
-                case 5:
-                  expect(result).toEqual({id: 3, nested: {isThisA: false}});
-                  break;
+            obs.subscribe({
+                next: (result) => {
+                  switch (count) {
+                    case 0:
+                      expect(result).toEqual({id: 1, a: true});
+                      break;
+                    case 1:
+                      expect(result).toEqual({id: 2, a: false});
+                      break;
+                    case 2:
+                      expect(result).toEqual({id: 3, nested: {isThisA: true}});
+                      break;
+                    case 3:
+                      expect(result).toEqual({id: 1, a: true, b: true});
+                      break;
+                    case 4:
+                      expect(result).toEqual({id: 2, a: false, b: false});
+                      break;
+                    case 5:
+                      expect(result).toEqual({id: 3, nested: {isThisA: false}});
+                      break;
+                  }
+                  count += 1;
+                }
               }
-              count += 1;
-            });
+            );
           }
         });
       },
@@ -577,54 +587,56 @@ describe('Polkadapt', () => {
       next: newResult => {
         newResult.pipe(
           take(6)
-        ).subscribe(result => {
-          switch (count) {
-            case 0:
-              expect(result).toEqual([
-                {id: 1, a: 0},
-                {id: 2, a: 0},
-                {id: 3, nested: {isThisA: true}}
-              ]);
-              break;
-            case 1:
-              expect(result).toEqual([
-                {id: 1, b: 0},
-                {id: 2, b: 0},
-                {id: 3, nested: {isThisA: false}}
-              ]);
-              break;
-            case 2:
-              expect(result).toEqual([
-                {id: 2, a: 1},
-                {id: 3, a: 1},
-                {id: 4, nested: {isThisA: true}}
-              ]);
-              break;
-            case 3:
-              expect(result).toEqual([
-                {id: 2, b: 1},
-                {id: 3, b: 1},
-                {id: 4, nested: {isThisA: false}}
-              ]);
-              break;
-            case 4:
-              expect(result).toEqual([
-                {id: 3, a: 2},
-                {id: 4, a: 2},
-                {id: 5, nested: {isThisA: true}}
-              ]);
-              break;
-            case 5:
-              expect(result).toEqual([
-                {id: 3, b: 2},
-                {id: 4, b: 2},
-                {id: 5, nested: {isThisA: false}}
-              ]);
-              destroyer.next();
-              destroyer.complete();
-              break;
+        ).subscribe({
+          next: (result) => {
+            switch (count) {
+              case 0:
+                expect(result).toEqual([
+                  {id: 1, a: 0},
+                  {id: 2, a: 0},
+                  {id: 3, nested: {isThisA: true}}
+                ]);
+                break;
+              case 1:
+                expect(result).toEqual([
+                  {id: 1, b: 0},
+                  {id: 2, b: 0},
+                  {id: 3, nested: {isThisA: false}}
+                ]);
+                break;
+              case 2:
+                expect(result).toEqual([
+                  {id: 2, a: 1},
+                  {id: 3, a: 1},
+                  {id: 4, nested: {isThisA: true}}
+                ]);
+                break;
+              case 3:
+                expect(result).toEqual([
+                  {id: 2, b: 1},
+                  {id: 3, b: 1},
+                  {id: 4, nested: {isThisA: false}}
+                ]);
+                break;
+              case 4:
+                expect(result).toEqual([
+                  {id: 3, a: 2},
+                  {id: 4, a: 2},
+                  {id: 5, nested: {isThisA: true}}
+                ]);
+                break;
+              case 5:
+                expect(result).toEqual([
+                  {id: 3, b: 2},
+                  {id: 4, b: 2},
+                  {id: 5, nested: {isThisA: false}}
+                ]);
+                destroyer.next();
+                destroyer.complete();
+                break;
+            }
+            count += 1;
           }
-          count += 1;
         });
       },
       error: (error: Error) => {
@@ -690,7 +702,7 @@ describe('Polkadapt', () => {
                 expect(result).toEqual({id: 4, nested: {isThisA: false}});
                 break;
               case 12:
-                expect(result).toEqual({id: 3, a: 2, b: 1 , nested: {isThisA: false}});
+                expect(result).toEqual({id: 3, a: 2, b: 1, nested: {isThisA: false}});
                 break;
               case 13:
                 expect(result).toEqual({id: 4, a: 2, nested: {isThisA: false}});
@@ -851,12 +863,36 @@ describe('Polkadapt', () => {
 
   it('should be able to run with a specific adapter', done => {
     zip(
-      (pa.run({chain: chainName, adapters: 'test adapter A', observableResults: false}).values.successFromA as ApiCall)(),
-      (pa.run({chain: chainName, adapters: ['test adapter A'], observableResults: false}).values.successFromA as ApiCall)(),
-      (pa.run({chain: chainName, adapters: pa.adapters[0].instance, observableResults: false}).values.successFromA as ApiCall)(),
-      (pa.run({chain: chainName, adapters: [pa.adapters[0].instance], observableResults: false}).values.successFromA as ApiCall)(),
-      (pa.run({chain: chainName, adapters: 'test adapter B', observableResults: false}).values.successFromB as ApiCall)(),
-      (pa.run({chain: chainName, adapters: pa.adapters[1].instance, observableResults: false}).values.successFromB as ApiCall)(),
+      (pa.run({
+        chain: chainName,
+        adapters: 'test adapter A',
+        observableResults: false
+      }).values.successFromA as ApiCall)(),
+      (pa.run({
+        chain: chainName,
+        adapters: ['test adapter A'],
+        observableResults: false
+      }).values.successFromA as ApiCall)(),
+      (pa.run({
+        chain: chainName,
+        adapters: pa.adapters[0].instance,
+        observableResults: false
+      }).values.successFromA as ApiCall)(),
+      (pa.run({
+        chain: chainName,
+        adapters: [pa.adapters[0].instance],
+        observableResults: false
+      }).values.successFromA as ApiCall)(),
+      (pa.run({
+        chain: chainName,
+        adapters: 'test adapter B',
+        observableResults: false
+      }).values.successFromB as ApiCall)(),
+      (pa.run({
+        chain: chainName,
+        adapters: pa.adapters[1].instance,
+        observableResults: false
+      }).values.successFromB as ApiCall)(),
     ).subscribe((results) => {
       expect((results as string[])[0]).toEqual('a');
       expect((results as string[])[1]).toEqual('a');
@@ -888,7 +924,7 @@ describe('Polkadapt', () => {
         },
         complete: () => {
           done();
-          }
+        }
       });
   });
 
@@ -897,13 +933,13 @@ describe('Polkadapt', () => {
     pa.unregister(adapterA);
 
     try {
-    (pa.run({chain: chainName, adapters: 'test adapter A'}).values.successFromA as ApiCall)().subscribe();
+      (pa.run({chain: chainName, adapters: 'test adapter A'}).values.successFromA as ApiCall)().subscribe();
     } catch (e) {
       expect((e as Error).message).toEqual('The requested adapters have not been registered.');
     }
 
     try {
-    (pa.run({chain: chainName, adapters: adapterA}).values.successFromA as ApiCall)().subscribe();
+      (pa.run({chain: chainName, adapters: adapterA}).values.successFromA as ApiCall)().subscribe();
     } catch (e) {
       expect((e as Error).message).toEqual('The requested adapters have not been registered.');
     }

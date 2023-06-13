@@ -18,6 +18,17 @@
 
 import { BN } from '@polkadot/util';
 
+
+export type ChainProperties = {
+  chainSS58: number | null;
+  chainDecimals: number[] | null;
+  chainTokens: string[] | null;
+  systemName: string | null;
+  specName: string | null;
+  systemVersion: string | null;
+  blockTime: number | null;
+};
+
 export type Header = {
   // eslint-disable-next-line id-blacklist
   number: number;
@@ -25,7 +36,6 @@ export type Header = {
   stateRoot: string;
   extrinsicsRoot: string;
 };
-
 
 export type Block = {
   // eslint-disable-next-line id-blacklist

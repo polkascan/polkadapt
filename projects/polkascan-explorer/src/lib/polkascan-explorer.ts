@@ -191,52 +191,6 @@ export class Adapter extends AdapterBase {
   }
 
 
-  get isReady(): Promise<boolean> {
-    return new Promise<boolean>((resolve, reject) => {
-      let timeout: number;
-
-      if (!this.socket) {
-        resolve(true);
-
-      } else if (this.socket.websocketReady) {
-        resolve(true);
-
-      } else {
-        const readyCallback = (ready: boolean) => {
-          clearTimeout(timeout);
-          if (ready) {
-            removeListeners();
-            resolve(true);
-          }
-        };
-
-        const closeCallback = () => {
-          clearTimeout(timeout);
-          removeListeners();
-          reject('PolkascanExplorer websocket connection closed.');
-        };
-
-        const removeListeners = () => {
-          // Remove listeners after error or readyChange.
-          if (this.socket) {
-            this.socket.off('readyChange', readyCallback);
-            this.socket.off('close', closeCallback);
-          }
-        };
-
-        // Subscribe to the websockets readyChange or error.
-        this.socket.on('readyChange', readyCallback);
-        this.socket.on('close', closeCallback);
-
-        timeout = setTimeout(() => {
-          removeListeners();
-          reject('PolkascanExplorer websocket connection timed out.');
-        }, 10000) as unknown as number;
-      }
-    });
-  }
-
-
   connect(): void {
     if (this.config.wsEndpoint) {
       if (this.socket) {

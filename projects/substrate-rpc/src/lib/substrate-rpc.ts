@@ -1,7 +1,7 @@
 /*
  * PolkADAPT
  *
- * Copyright 2020-2023 Polkascan Foundation (NL)
+ * Copyright 2020-2022 Polkascan Foundation (NL)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,8 +42,10 @@ import {
   getIdentity,
   getIndexFromAccountId
 } from './web-socket/account.functions';
+import { getChainProperties } from './web-socket/chain.functions';
 
 export type Api = {
+  getChainProperties: () => Observable<types.ChainProperties>;
   subscribeNewBlock: () => Observable<types.Block>;
   getBlock: (hashOrNumber: string | number) => Observable<types.Block>;
   getLatestBlock: () => Observable<types.Block>;
@@ -107,6 +109,7 @@ export class Adapter extends AdapterBase {
     this.apiPromise = this.createPromise();
 
     this.api = {
+      getChainProperties: getChainProperties(this),
       getBlock: getBlock(this),
       getLatestBlock: getLatestBlock(this),
       subscribeNewBlock: subscribeNewBlock(this),
@@ -127,27 +130,6 @@ export class Adapter extends AdapterBase {
       getAccountStaking: getAccountStaking(this)
     };
   }
-
-  // get isReady(): Promise<boolean> {
-  //   return new Promise<boolean>((resolve, reject) => {
-  //     this.isConnected.then(connected => {
-  //       if (!connected) {
-  //         throw new Error('[SubstrateRPCAdapter] Could not check readiness, adapter is not connected');
-  //       }
-  //       if (this.unproxiedApi) {
-  //         this.unproxiedApi.isReady.pipe(
-  //           catchError(e => { reject(e); throw e; })
-  //         ).subscribe(() => {
-  //           resolve(true);
-  //         });
-  //       } else {
-  //         throw new Error('[SubstrateRPCAdapter] Could not check readiness, no apiPromise available');
-  //       }
-  //     }, e => {
-  //       reject(e);
-  //     });
-  //   });
-  // }
 
   resolveActiveCall(nonce: string, result: unknown): void {
     const aCall: ActiveCall = this.activeCalls[nonce];

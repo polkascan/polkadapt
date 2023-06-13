@@ -169,12 +169,24 @@ export const getHeader = (adapter: Adapter) =>
     from(adapter.apiPromise).pipe(
       switchMap((api) => {
         let blockHash: Observable<BlockHash> | null = null;
-        if (typeof hashOrNumber === 'string' && hashOrNumber.length > 0) {
-          blockHash = of(api.registry.createType('BlockHash', hashOrNumber) as unknown as BlockHash);
-        }
-        if (Number.isInteger(hashOrNumber)) {
+
+        const createBlockHashObservable = () => {
           const blockNumber: BlockNumber = api.registry.createType('BlockNumber', hashOrNumber);
           blockHash = api.rpc.chain.getBlockHash(blockNumber);
+        };
+
+        if (Number.isInteger(hashOrNumber)) {
+          createBlockHashObservable();
+        }
+
+        if (typeof hashOrNumber === 'string' && hashOrNumber.length > 0) {
+          if (`${Number.parseInt(hashOrNumber, 10)}` === hashOrNumber) {
+            // String is probably a blockNumber, not a hash.
+            createBlockHashObservable();
+          } else {
+            // String is probably a hash. Generate a blockhash observable.
+            blockHash = of(api.registry.createType('BlockHash', hashOrNumber) as unknown as BlockHash);
+          }
         }
         if (blockHash) {
           return blockHash.pipe(
