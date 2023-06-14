@@ -269,6 +269,7 @@ export class PolkascanExplorerWebSocket {
 
       if (this.websocketReady) {
         this.webSocket.send(message as string);
+        resolve();
         return;
       }
 
@@ -287,6 +288,7 @@ export class PolkascanExplorerWebSocket {
 
           if (this.webSocket) {
             this.webSocket.send(message as string);
+            resolve();
           }
         }
       };
