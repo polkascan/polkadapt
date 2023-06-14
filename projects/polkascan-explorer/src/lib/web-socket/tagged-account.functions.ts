@@ -24,8 +24,6 @@ import {
   createObjectObservable,
   createObjectsListObservable,
   generateObjectQuery,
-  generateObjectsListQuery,
-  isArray,
   isString
 } from './helpers';
 import { Observable } from 'rxjs';

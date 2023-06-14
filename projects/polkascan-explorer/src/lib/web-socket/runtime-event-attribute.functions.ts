@@ -20,7 +20,7 @@
 import { Adapter } from '../polkascan-explorer';
 import * as pst from '../polkascan-explorer.types';
 import { types } from '@polkadapt/core';
-import { createObjectsListObservable, generateObjectsListQuery, isArray, isNumber, isString } from './helpers';
+import { createObjectsListObservable, isNumber, isString } from './helpers';
 import { Observable } from 'rxjs';
 
 const runtimeEventAttributeFields: (keyof pst.RuntimeEventAttribute)[] = [

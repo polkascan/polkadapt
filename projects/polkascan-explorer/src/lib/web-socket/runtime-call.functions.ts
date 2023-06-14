@@ -23,10 +23,7 @@ import { types } from '@polkadapt/core';
 import {
   createObjectObservable, createObjectsListObservable,
   generateObjectQuery,
-  generateObjectsListQuery,
-  isArray,
   isNumber,
-  isObject,
   isString
 } from './helpers';
 import { Observable } from 'rxjs';

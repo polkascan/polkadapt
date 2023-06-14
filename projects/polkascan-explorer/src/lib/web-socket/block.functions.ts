@@ -30,7 +30,7 @@ import {
   isObject,
   isPositiveNumber
 } from './helpers';
-import { map, Observable, ReplaySubject, take } from 'rxjs';
+import { map, Observable } from 'rxjs';
 
 const genericBlockFields = [
   'number',

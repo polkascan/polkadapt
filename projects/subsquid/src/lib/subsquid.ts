@@ -18,7 +18,7 @@
 
 import { AdapterBase, AdapterApiCallWithIdentifiers, types } from '@polkadapt/core';
 import * as st from './subsquid.types';
-import { map, merge, Observable, switchMap } from 'rxjs';
+import { map, merge, Observable, switchMap, tap } from 'rxjs';
 import { fromFetch } from 'rxjs/internal/observable/dom/fetch';
 
 export type Api = {
@@ -29,7 +29,10 @@ export type Api = {
 export type Config = {
   chain: string;
   archiveUrl: string;
+  explorerUrl: string;
   giantSquidExplorerUrl: string;
+  giantSquidMainUrl: string;
+  balancesUrl: string;
 };
 
 type CreateQueryArgs = [contentType: string, fields: Fields, where?: Where, orderBy?: string, limit?: number, offset?: number];
@@ -71,8 +74,8 @@ export class Adapter extends AdapterBase {
   name = 'subsquid';
   config: Config;
   api: Api = {
-    getBlock: (hashOrNumber) => this.getBlocksBase(1, hashOrNumber).pipe(map(blocks => blocks[0])),
-    getBlocks: (pageSize?) => this.getBlocksBase(pageSize)
+    getBlock: (hashOrNumber) => this.getBlocksBase(1, hashOrNumber).pipe(map(blocks => blocks[0]), tap({next: (v => console.log(v))})),
+    getBlocks: (pageSize?) => this.getBlocksBase(pageSize).pipe(tap({next: (v => console.log(v))}))
   };
 
   constructor(config: Config) {
@@ -108,7 +111,8 @@ export class Adapter extends AdapterBase {
           datetime: block.timestamp,
           authorAccountId: block.validator,
           specName: block.spec.specName,
-          specVersion: block.spec.specVersion
+          specVersion: block.spec.specVersion,
+          complete: 1
         })))
       ),
       this.queryGSExplorer<GSExplorerBlockInput>(
@@ -146,7 +150,7 @@ export class Adapter extends AdapterBase {
     if (where || orderBy && orderBy.length > 0 || limit && limit > 0 || offset && offset > 0) {
       const args: string[] = [];
       if (where) {
-        args.push(JSON.stringify(where).replace(/"([^"]+)":/g, '$1:'));
+        args.push(`where:${JSON.stringify(where).replace(/"([^"]+)":/g, '$1:')}`);
       }
       if (orderBy) {
         args.push(`orderBy:${orderBy}`);
@@ -175,7 +179,7 @@ export class Adapter extends AdapterBase {
       method: 'POST',
       // eslint-disable-next-line @typescript-eslint/naming-convention
       headers: {'Content-Type': 'application/json'},
-      body: `{"query":"${query}"}`
+      body: JSON.stringify({query})
     }).pipe(
       switchMap(response => {
         if (response.ok) {

@@ -43,6 +43,14 @@ export interface PolkadaptRunOptions {
 
 export type PolkadaptRunArgument = string | PolkadaptRunOptions;
 
+export type RecursiveObservableWrapper<T> = {
+  [K in keyof T]: T[K] extends (...args: any[]) => Observable<infer A extends any[]> ?
+    (A extends Array<infer R> ? (...args: Parameters<T[K]>) => Observable<Observable<R>[]> : never) :
+    T[K] extends (...args: any[]) => Observable<infer R> ?
+      (...args: Parameters<T[K]>) => Observable<Observable<R>> :
+    RecursiveObservableWrapper<T[K]>;
+};
+
 export type AdapterApiCallWithIdentifiers<A extends any[] = any[], T = any> = {
   (...args: A): Observable<T>;
   identifiers?: string[];
@@ -109,7 +117,7 @@ export class Polkadapt<T> {
 
   // Run is the entrypoint for the application that starts the method chain and will return a result or create a subscription triggering
   // a passed through callback.
-  run(config?: PolkadaptRunArgument): T {
+  run<P extends PolkadaptRunArgument>(config?: P): P extends {observableResults: false} ? T : RecursiveObservableWrapper<T> {
     let chain: string | undefined;
     let adapters: PolkadaptRegisteredAdapter[] = [];
     let augmentedResults = true;
@@ -148,7 +156,8 @@ export class Polkadapt<T> {
       }
     }
 
-    return this.createCallPathProxy(chain, adapters, augmentedResults, observableResults) as T;
+    return this.createCallPathProxy(chain, adapters, augmentedResults, observableResults
+    ) as P extends {observableResults: false} ? T : RecursiveObservableWrapper<T>;
   }
 
   // Generate the proxy object that will return an Observable when the property is being called.
@@ -156,7 +165,7 @@ export class Polkadapt<T> {
                               adapters: PolkadaptRegisteredAdapter[],
                               augmentedResults: boolean,
                               observableResults: boolean
-  ): () => void {
+  ) {
     const context: CallContext = {
       path: [],  // Contains the mirroring path of the method chain.
       called: false,  // Called will be true if the method chain is executed.

@@ -275,7 +275,7 @@ export class PolkascanExplorerWebSocket {
 
       const readyTimeout = window.setTimeout(() => {
         removeListeners();
-        console.error('[PolkascanExplorerAdapter] Websocket connection timed out.')
+        console.error('[PolkascanExplorerAdapter] Websocket connection timed out.');
         reject();
       }, timeoutAmount);
 

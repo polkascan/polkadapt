@@ -22,12 +22,9 @@ import * as pst from '../polkascan-explorer.types';
 import { types } from '@polkadapt/core';
 import {
   createObjectsListObservable, createSubscriptionObservable,
-  generateObjectsListQuery,
   generateSubscriptionQuery,
-  isArray,
   isDate,
   isDefined,
-  isFunction,
   isObject,
   isPositiveNumber,
   isString

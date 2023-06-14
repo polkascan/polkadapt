@@ -38,6 +38,7 @@ export type ArchiveBlockOutput = {
   authorAccountId: string | null;
   specName: string;
   specVersion: number;
+  complete: number;
 };
 
 export type GSExplorerBlockOutput = {

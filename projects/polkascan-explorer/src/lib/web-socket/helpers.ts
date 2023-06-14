@@ -17,7 +17,7 @@
  */
 
 
-import { map, Observable, ReplaySubject, share, shareReplay, take, tap } from 'rxjs';
+import { map, Observable, ReplaySubject, share, take, tap } from 'rxjs';
 import { Adapter } from '../polkascan-explorer';
 import * as pst from '../polkascan-explorer.types';
 

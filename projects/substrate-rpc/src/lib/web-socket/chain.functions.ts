@@ -25,8 +25,8 @@ import { ApiRx } from '@polkadot/api';
 export const getChainProperties = (adapter: Adapter) =>
   (): Observable<types.ChainProperties> =>
     from(adapter.apiPromise).pipe(
-      switchMap((api: ApiRx) => {
-        return combineLatest([
+      switchMap((api: ApiRx) =>
+        combineLatest([
           of(api.registry.chainSS58 as number).pipe(
             catchError(() => of(null))
           ),
@@ -56,8 +56,8 @@ export const getChainProperties = (adapter: Adapter) =>
             catchError(() => of(null))
           ),
           of(api)
-        ]);
-      }),
+        ])
+      ),
       switchMap((properties) => {
         if (!properties[0] || !properties[1] || !properties[2]) {
           return combineLatest([
@@ -85,16 +85,15 @@ export const getChainProperties = (adapter: Adapter) =>
           return of(properties);
         }
       }),
-      map(([chainSS58, chainDecimals, chainTokens, systemName, specName, systemVersion, blockTime, api]) => {
-          return {
-            chainSS58,
-            chainDecimals,
-            chainTokens,
-            systemName,
-            specName,
-            systemVersion,
-            blockTime
-          } as types.ChainProperties;
-        }
+      map(([chainSS58, chainDecimals, chainTokens, systemName, specName, systemVersion, blockTime]) =>
+        ({
+          chainSS58,
+          chainDecimals,
+          chainTokens,
+          systemName,
+          specName,
+          systemVersion,
+          blockTime
+        })
       )
     );

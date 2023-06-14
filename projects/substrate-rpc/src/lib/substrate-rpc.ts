@@ -19,7 +19,7 @@
 import { ApiRx, WsProvider } from '@polkadot/api';
 import { AdapterBase, types } from '@polkadapt/core';
 import { ApiOptions } from '@polkadot/api/types';
-import { catchError, Observable } from 'rxjs';
+import { Observable } from 'rxjs';
 import {
   getBlock,
   getBlockHash,

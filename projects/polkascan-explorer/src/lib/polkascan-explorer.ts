@@ -52,7 +52,7 @@ import {
 import { Observable } from 'rxjs';
 
 export type Api = {
-  getBlock: (hash: string) =>
+  getBlock: (hashOrNumber: string | number) =>
     Observable<types.Block>;
   getLatestBlock: () =>
     Observable<types.Block>;
