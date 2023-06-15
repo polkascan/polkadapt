@@ -1,5 +1,5 @@
 import { types } from '@polkadapt/core';
-import { map, merge, Observable } from 'rxjs';
+import { map, merge, Observable, switchMap, take } from 'rxjs';
 import * as st from '../subsquid.types';
 import { Adapter, Where } from '../subsquid';
 
@@ -24,16 +24,34 @@ export type GSExplorerBlockInput = {
   eventsCount: number;
 }[];
 
+const identifiers = ['number'];
 
-export const getBlocksBase = (adapter: Adapter, pageSize?: number, hashOrNumber?: string | number): Observable<types.Block[]> => {
+export const getBlocksBase = (
+  adapter: Adapter,
+  pageSize?: number,
+  hashOrNumber?: string | number,
+  fromNumber?: string | number,
+  untilNumber?: string | number): Observable<types.Block[]> => {
   const contentType = 'blocks';
   const orderBy = 'id_DESC';
+
   let where: Where | undefined;
   if (typeof hashOrNumber !== 'undefined') {
     const whereKey = (typeof hashOrNumber === 'string' && hashOrNumber.startsWith('0x')) ? 'hash_eq' : 'height_eq';
     where = {};
     where[whereKey] = hashOrNumber;
   }
+
+  if (typeof fromNumber !== 'undefined') {
+    where = {};
+    where['height_gte'] = fromNumber;
+  }
+
+  if (typeof untilNumber !== 'undefined') {
+    where = {};
+    where['height_lte'] = untilNumber;
+  }
+
   return merge(
     adapter.queryArchive<ArchiveBlockInput>(
       contentType,
@@ -74,13 +92,56 @@ export const getBlocksBase = (adapter: Adapter, pageSize?: number, hashOrNumber?
   );
 };
 
-export const getBlock = (adapter: Adapter) =>
-  (hashOrNumber: string | number) =>
+export const getBlock = (adapter: Adapter) => {
+  const fn = (hashOrNumber: string | number) =>
     getBlocksBase(adapter, 1, hashOrNumber).pipe(
       map(blocks => blocks[0])
     );
+  fn.identifiers = identifiers;
+  return fn;
+};
 
-
-export const getBlocks = (adapter: Adapter) =>
-  (pageSize?: number) =>
+export const getBlocks = (adapter: Adapter) => {
+  const fn = (pageSize?: number) =>
     getBlocksBase(adapter, pageSize);
+  fn.identifiers = identifiers;
+  return fn;
+};
+
+export const getBlocksFrom = (adapter: Adapter) => {
+  const fn = (hashOrNumber: string | number, pageSize?: number) =>
+    // Find number for block hash;
+    getBlocksBase(adapter, 1, hashOrNumber).pipe(
+      take(1),
+      map((blocks) => {
+        if (blocks[0]) {
+          return blocks[0];
+        }
+        throw new Error('[Subsquid adapter] getBlocksFrom :Could not find block.');
+      }),
+      switchMap((block) =>
+        getBlocksBase(adapter, pageSize, undefined, block.number)
+      )
+    );
+  fn.identifiers = identifiers;
+  return fn;
+};
+
+export const getBlocksUntil = (adapter: Adapter) => {
+  const fn = (hashOrNumber: string | number, pageSize?: number) =>
+    getBlocksBase(adapter, 1, hashOrNumber).pipe(
+      take(1),
+      map((blocks) => {
+        if (blocks[0]) {
+          return blocks[0];
+        }
+        throw new Error('[Subsquid adapter] getBlocksUntil :Could not find block.');
+      }),
+      switchMap((block) =>
+        getBlocksBase(adapter, pageSize, undefined, undefined, block.number)
+      )
+    );
+    // Find number for block hash;
+  fn.identifiers = identifiers;
+  return fn;
+};

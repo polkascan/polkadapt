@@ -24,12 +24,9 @@ import { catchError, combineLatest, from, map, Observable, of, switchMap, throwE
 import { bool, Data, Option, U32 } from '@polkadot/types';
 import { ITuple } from '@polkadot/types-codec/types';
 import { u128, Vec } from '@polkadot/types-codec';
-import { u8aToString } from '@polkadot/util';
-import { BN } from '@polkadot/util';
-
+import { BN, u8aToString } from '@polkadot/util';
 
 const accountIdentifiers: string[] = ['id'];
-
 
 export const getAccountIdFromIndex = (adapter: Adapter) =>
   (index: number): Observable<string | null> => {

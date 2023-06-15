@@ -18,7 +18,7 @@
 
 import { types } from '@polkadapt/core';
 import { Adapter } from '../substrate-rpc';
-import { catchError, combineLatest, from, map, Observable, of, switchMap, take, tap } from 'rxjs';
+import { catchError, combineLatest, from, map, Observable, of, switchMap, take } from 'rxjs';
 import { ApiRx } from '@polkadot/api';
 
 
