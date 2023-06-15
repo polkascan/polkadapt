@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+import { BalancesChainInfoInput } from './queries/chain.functions';
+
 export type ListResponse<T> = {
   objects: T[];
   pageInfo?: {
@@ -49,8 +51,29 @@ export type GSExplorerBlockOutput = {
   countEvents: number;
 };
 
-export type Block = Partial<ArchiveBlockOutput & GSExplorerBlockOutput>;
 
+export type ExplorerChainInfoOutput = {
+  chainSS58: number;
+  chainDecimals: number[];
+  chainTokens: string[] ;
+  name: string;
+};
+
+export type BalancesChainInfoOutput = {
+  chainSS58: number;
+  chainDecimals: number[];
+  chainTokens: string[] ;
+  name: string;
+  displayName: string;
+};
+
+export type ArchiveChainInfoOutput = {
+  specName: string | null;
+};
+
+export type ChainProperties = Partial<ExplorerChainInfoOutput & BalancesChainInfoOutput & ArchiveChainInfoOutput>;
+
+export type Block = Partial<ArchiveBlockOutput & GSExplorerBlockOutput>;
 
 export type Event = {
   blockNumber: number;  // PK
@@ -60,7 +83,6 @@ export type Event = {
   eventModule: string | null;
   eventName: string | null;
 };
-
 
 export type Extrinsic = {
   blockNumber: number;  // PK

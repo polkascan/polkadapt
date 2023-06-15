@@ -16,14 +16,16 @@
  * limitations under the License.
  */
 
-import { AdapterBase, AdapterApiCallWithIdentifiers, types } from '@polkadapt/core';
-import * as st from './subsquid.types';
-import { map, merge, Observable, switchMap, tap } from 'rxjs';
+import { AdapterApiCallWithIdentifiers, AdapterBase, types } from '@polkadapt/core';
+import { map, Observable, switchMap } from 'rxjs';
 import { fromFetch } from 'rxjs/internal/observable/dom/fetch';
+import { getBlock, getBlocks } from './queries/block.functions';
+import { getChainProperties } from './queries/chain.functions';
 
 export type Api = {
   getBlocks: AdapterApiCallWithIdentifiers<[pageSize?: number], types.Block[]>;
   getBlock: AdapterApiCallWithIdentifiers<[hashOrNumber: string | number], types.Block>;
+  getChainProperties: AdapterApiCallWithIdentifiers<[], types.ChainProperties>;
 };
 
 export type Config = {
@@ -37,46 +39,27 @@ export type Config = {
 
 type CreateQueryArgs = [contentType: string, fields: Fields, where?: Where, orderBy?: string, limit?: number, offset?: number];
 
-type Fields = (string | {[field: string]: Fields})[];
+type Fields = (string | { [field: string]: Fields })[];
 
-type Where = {
+export type Where = {
   [field: string]: string | number | Where;
 };
 
 type RequestResult<T> = {
   'data': {
-    [contentType: string]: T[];
+    [contentType: string]: T;
   };
-};
-
-export type ArchiveBlockInput = {
-  extrinsicsRoot: string;
-  hash: string;
-  height: number;
-  parentHash: string;
-  spec: {
-    specName: string;
-    specVersion: number;
-  };
-  stateRoot: string;
-  timestamp: string;
-  validator: string;
-};
-
-export type GSExplorerBlockInput = {
-  height: number;
-  extrinsicsCount: number;
-  callsCount: number;
-  eventsCount: number;
 };
 
 export class Adapter extends AdapterBase {
   name = 'subsquid';
   config: Config;
   api: Api = {
-    getBlock: (hashOrNumber) => this.getBlocksBase(1, hashOrNumber).pipe(map(blocks => blocks[0]), tap({next: (v => console.log(v))})),
-    getBlocks: (pageSize?) => this.getBlocksBase(pageSize).pipe(tap({next: (v => console.log(v))}))
+    getChainProperties: getChainProperties(this),
+    getBlock: getBlock(this),
+    getBlocks: getBlocks(this)
   };
+
 
   constructor(config: Config) {
     super(config.chain);
@@ -84,53 +67,24 @@ export class Adapter extends AdapterBase {
     this.api.getBlocks.identifiers = this.api.getBlock.identifiers = ['number'];
   }
 
-  private getBlocksBase(pageSize?: number, hashOrNumber?: string | number): Observable<types.Block[]> {
-    const contentType = 'blocks';
-    const orderBy = 'id_DESC';
-    let where: Where | undefined;
-    if (typeof hashOrNumber !== 'undefined') {
-      const whereKey = (typeof hashOrNumber === 'string' && hashOrNumber.startsWith('0x')) ? 'hash_eq' : 'height_eq';
-      where = {};
-      where[whereKey] = hashOrNumber;
-    }
-    return merge(
-      this.queryArchive<ArchiveBlockInput>(
-        contentType,
-        ['extrinsicsRoot', 'hash', 'height', 'parentHash', {spec: ['specName', 'specVersion']}, 'stateRoot', 'timestamp', 'validator'],
-        where,
-        orderBy,
-        pageSize
-      ).pipe(
-        map(blocks => blocks.map<st.ArchiveBlockOutput>(block => ({
-          // eslint-disable-next-line id-blacklist
-          number: block.height,
-          hash: block.hash,
-          parentHash: block.parentHash,
-          stateRoot: block.stateRoot,
-          extrinsicsRoot: block.extrinsicsRoot,
-          datetime: block.timestamp,
-          authorAccountId: block.validator,
-          specName: block.spec.specName,
-          specVersion: block.spec.specVersion,
-          complete: 1
-        })))
-      ),
-      this.queryGSExplorer<GSExplorerBlockInput>(
-        contentType,
-        ['height', 'callsCount', 'eventsCount', 'extrinsicsCount'],
-        where,
-        orderBy,
-        pageSize
-      ).pipe(
-        map(blocks => blocks.map<st.GSExplorerBlockOutput>(block => ({
-          // eslint-disable-next-line id-blacklist
-          number: block.height,
-          countCalls: block.callsCount,
-          countEvents: block.eventsCount,
-          countExtrinsics: block.extrinsicsCount
-        })))
-      )
-    );
+  queryArchive<T>(...args: CreateQueryArgs): Observable<T> {
+    return this.requestQuery<T>(this.config.archiveUrl, ...args);
+  }
+
+  queryExplorer<T>(...args: CreateQueryArgs): Observable<T> {
+    return this.requestQuery<T>(this.config.explorerUrl, ...args);
+  }
+
+  queryGSExplorer<T>(...args: CreateQueryArgs): Observable<T> {
+    return this.requestQuery<T>(this.config.giantSquidExplorerUrl, ...args);
+  }
+
+  queryGSMain<T>(...args: CreateQueryArgs): Observable<T> {
+    return this.requestQuery<T>(this.config.giantSquidMainUrl, ...args);
+  }
+
+  queryBalances<T>(...args: CreateQueryArgs): Observable<T> {
+    return this.requestQuery<T>(this.config.balancesUrl, ...args);
   }
 
   private formatFields(fields: Fields, indent = ''): string {
@@ -173,7 +127,7 @@ export class Adapter extends AdapterBase {
   }
 
   private requestQuery<T>(url: string, contentType: string, fields: Fields, where?: Where,
-                          orderBy?: string, limit?: number, offset?: number): Observable<T[]> {
+                          orderBy?: string, limit?: number, offset?: number): Observable<T> {
     const query: string = this.createQuery(contentType, fields, where, orderBy, limit, offset);
     return fromFetch(url, {
       method: 'POST',
@@ -190,13 +144,5 @@ export class Adapter extends AdapterBase {
       }),
       map(result => result.data[contentType])
     );
-  }
-
-  private queryArchive<T>(...args: CreateQueryArgs): Observable<T[]> {
-    return this.requestQuery<T>(this.config.archiveUrl, ...args);
-  }
-
-  private queryGSExplorer<T>(...args: CreateQueryArgs): Observable<T[]> {
-    return this.requestQuery<T>(this.config.giantSquidExplorerUrl, ...args);
   }
 }

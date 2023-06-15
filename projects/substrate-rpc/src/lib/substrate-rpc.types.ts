@@ -25,7 +25,6 @@ export type ChainProperties = {
   chainTokens: string[] | null;
   systemName: string | null;
   specName: string | null;
-  systemVersion: string | null;
   blockTime: number | null;
 };
 

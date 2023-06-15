@@ -18,7 +18,7 @@
 
 import { types } from '@polkadapt/core';
 import { Adapter } from '../substrate-rpc';
-import { catchError, combineLatest, from, map, Observable, of, switchMap, take } from 'rxjs';
+import { catchError, combineLatest, from, map, Observable, of, switchMap, take, tap } from 'rxjs';
 import { ApiRx } from '@polkadot/api';
 
 
@@ -46,11 +46,6 @@ export const getChainProperties = (adapter: Adapter) =>
             map((name) => name.toString()),
             catchError(() => of(null))
           ),
-          api.rpc.system.version().pipe(
-            take(1),
-            map((name) => name.toString()),
-            catchError(() => of(null))
-          ),
           of(api.consts.babe.expectedBlockTime).pipe(
             map((blocktime) => blocktime.toJSON() as number),
             catchError(() => of(null))
@@ -62,7 +57,7 @@ export const getChainProperties = (adapter: Adapter) =>
         if (!properties[0] || !properties[1] || !properties[2]) {
           return combineLatest([
             of(properties),
-            properties[7].rpc.system.properties().pipe(
+            properties[6].rpc.system.properties().pipe(
               take(1)
             )
           ]).pipe(
@@ -85,14 +80,13 @@ export const getChainProperties = (adapter: Adapter) =>
           return of(properties);
         }
       }),
-      map(([chainSS58, chainDecimals, chainTokens, systemName, specName, systemVersion, blockTime]) =>
+      map(([chainSS58, chainDecimals, chainTokens, systemName, specName, blockTime]) =>
         ({
           chainSS58,
           chainDecimals,
           chainTokens,
           systemName,
           specName,
-          systemVersion,
           blockTime
         })
       )
