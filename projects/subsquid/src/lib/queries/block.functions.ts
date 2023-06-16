@@ -1,5 +1,5 @@
 import { types } from '@polkadapt/core';
-import { map, merge, Observable, switchMap, take } from 'rxjs';
+import { catchError, filter, map, merge, Observable, of, switchMap, take, tap, timer } from 'rxjs';
 import * as st from '../subsquid.types';
 import { Adapter, Where } from '../subsquid';
 
@@ -101,6 +101,15 @@ export const getBlock = (adapter: Adapter) => {
   return fn;
 };
 
+export const getLatestBlock = (adapter: Adapter) => {
+  const fn = () =>
+    getBlocksBase(adapter, 1).pipe(
+      map(blocks => blocks[0])
+    );
+  fn.identifiers = identifiers;
+  return fn;
+};
+
 export const getBlocks = (adapter: Adapter) => {
   const fn = (pageSize?: number) =>
     getBlocksBase(adapter, pageSize);
@@ -117,7 +126,7 @@ export const getBlocksFrom = (adapter: Adapter) => {
         if (blocks[0]) {
           return blocks[0];
         }
-        throw new Error('[Subsquid adapter] getBlocksFrom :Could not find block.');
+        throw new Error('[Subsquid adapter] getBlocksFrom: Could not find block.');
       }),
       switchMap((block) =>
         getBlocksBase(adapter, pageSize, undefined, block.number)
@@ -135,13 +144,57 @@ export const getBlocksUntil = (adapter: Adapter) => {
         if (blocks[0]) {
           return blocks[0];
         }
-        throw new Error('[Subsquid adapter] getBlocksUntil :Could not find block.');
+        throw new Error('[Subsquid adapter] getBlocksUntil: Could not find block.');
       }),
       switchMap((block) =>
         getBlocksBase(adapter, pageSize, undefined, undefined, block.number)
       )
     );
-    // Find number for block hash;
+  fn.identifiers = identifiers;
+  return fn;
+};
+
+export const subscribeNewBlock = (adapter: Adapter) => {
+  let height: number | undefined;
+  let ignoreHeight: number | undefined;
+
+  const fn = () => timer(0, 6000).pipe(
+    switchMap(() =>
+      getBlocksBase(adapter, 1).pipe(
+        filter((blocks) => blocks && blocks[0] && (blocks[0].number as number) !== ignoreHeight),
+        switchMap((blocks) => {
+          if (blocks.length === 1) {
+            const prevHeight = height;
+            const latestBlock = blocks[0];
+            const latestBlockNumber = latestBlock.number as number;
+
+            if (prevHeight !== undefined && latestBlockNumber - prevHeight > 1) {
+              // Missed multiple blocks, retrieve and emit individually.
+              ignoreHeight = latestBlockNumber;
+              const from = prevHeight + 1;
+              const pageSize = latestBlockNumber - prevHeight;
+              return getBlocksBase(adapter, pageSize, undefined, from).pipe(
+                switchMap((latestBlocks) => of(...latestBlocks.reverse())),
+                tap(() => {
+                  if (height && height < latestBlockNumber) {
+                    height = latestBlockNumber;
+                  }
+                })
+              );
+            }
+            height = latestBlockNumber;
+            return of(latestBlock);
+          }
+          return of(null);
+        }),
+        catchError((e) => {
+          console.error('[Subsquid adapter] subscribeNewBlock: Latest block not found', e);
+          return of(null);
+        })
+      )),
+    filter((b) => !!b),
+    map<types.Block | null, types.Block>((b) => b as types.Block)  // TODO REMOVE THIS AND FIX TYPING
+  );
   fn.identifiers = identifiers;
   return fn;
 };

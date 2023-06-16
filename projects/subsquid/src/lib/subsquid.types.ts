@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-import { BalancesChainInfoInput } from './queries/chain.functions';
-
 export type ListResponse<T> = {
   objects: T[];
   pageInfo?: {

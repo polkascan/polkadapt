@@ -19,12 +19,21 @@
 import { AdapterApiCallWithIdentifiers, AdapterBase, types } from '@polkadapt/core';
 import { map, Observable, switchMap } from 'rxjs';
 import { fromFetch } from 'rxjs/internal/observable/dom/fetch';
-import { getBlock, getBlocks, getBlocksFrom, getBlocksUntil } from './queries/block.functions';
+import {
+  getBlock,
+  getBlocks,
+  getBlocksFrom,
+  getBlocksUntil,
+  getLatestBlock,
+  subscribeNewBlock
+} from './queries/block.functions';
 import { getChainProperties } from './queries/chain.functions';
 
 export type Api = {
   getChainProperties: AdapterApiCallWithIdentifiers<[], types.ChainProperties>;
   getBlock: AdapterApiCallWithIdentifiers<[hashOrNumber: string | number], types.Block>;
+  getLatestBlock: AdapterApiCallWithIdentifiers<[], types.Block>;
+  subscribeNewBlock: AdapterApiCallWithIdentifiers<[], types.Block>;
   getBlocks: AdapterApiCallWithIdentifiers<[pageSize?: number], types.Block[]>;
   getBlocksFrom: AdapterApiCallWithIdentifiers<[hashOrNumber: string | number, pageSize?: number], types.Block[]>;
   getBlocksUntil: AdapterApiCallWithIdentifiers<[hashOrNumber: string | number, pageSize?: number], types.Block[]>;
@@ -59,6 +68,8 @@ export class Adapter extends AdapterBase {
   api: Api = {
     getChainProperties: getChainProperties(this),
     getBlock: getBlock(this),
+    getLatestBlock: getLatestBlock(this),
+    subscribeNewBlock: subscribeNewBlock(this),
     getBlocks: getBlocks(this),
     getBlocksFrom: getBlocksFrom(this),
     getBlocksUntil: getBlocksUntil(this)
@@ -68,7 +79,6 @@ export class Adapter extends AdapterBase {
   constructor(config: Config) {
     super(config.chain);
     this.config = config;
-    this.api.getBlocks.identifiers = this.api.getBlock.identifiers = ['number'];
   }
 
   queryArchive<T>(...args: CreateQueryArgs): Observable<T> {
