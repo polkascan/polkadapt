@@ -18,7 +18,6 @@
 
 import { AdapterApiCallWithIdentifiers, AdapterBase, types } from '@polkadapt/core';
 import { map, Observable, switchMap } from 'rxjs';
-import { fromFetch } from 'rxjs/internal/observable/dom/fetch';
 import {
   getBlock,
   getBlocks,
@@ -28,6 +27,8 @@ import {
   subscribeNewBlock
 } from './queries/block.functions';
 import { getChainProperties } from './queries/chain.functions';
+import { EventsFilters, getEvent, getEvents } from './queries/event.functions';
+import { fromFetch } from 'rxjs/internal/observable/dom/fetch';
 
 export type Api = {
   getChainProperties: AdapterApiCallWithIdentifiers<[], types.ChainProperties>;
@@ -37,6 +38,8 @@ export type Api = {
   getBlocks: AdapterApiCallWithIdentifiers<[pageSize?: number], types.Block[]>;
   getBlocksFrom: AdapterApiCallWithIdentifiers<[hashOrNumber: string | number, pageSize?: number], types.Block[]>;
   getBlocksUntil: AdapterApiCallWithIdentifiers<[hashOrNumber: string | number, pageSize?: number], types.Block[]>;
+  getEvent: AdapterApiCallWithIdentifiers<[blockNumber: number, eventIdx: number], types.Event>;
+  getEvents: AdapterApiCallWithIdentifiers<[filters?: EventsFilters, pageSize?: number], types.Event[]>;
 };
 
 export type Config = {
@@ -50,10 +53,10 @@ export type Config = {
 
 type CreateQueryArgs = [contentType: string, fields: Fields, where?: Where, orderBy?: string, limit?: number, offset?: number];
 
-type Fields = (string | { [field: string]: Fields })[];
+export type Fields = (string | { [field: string]: Fields })[];
 
 export type Where = {
-  [field: string]: string | number | Where;
+  [field: string]: string | number | Where | string[] | number[];
 };
 
 type RequestResult<T> = {
@@ -72,7 +75,12 @@ export class Adapter extends AdapterBase {
     subscribeNewBlock: subscribeNewBlock(this),
     getBlocks: getBlocks(this),
     getBlocksFrom: getBlocksFrom(this),
-    getBlocksUntil: getBlocksUntil(this)
+    getBlocksUntil: getBlocksUntil(this),
+    getEvent: getEvent(this),
+    getEvents: getEvents(this),
+    // subscribeNewEvent: subscribeNewEvent(this),
+    // getEventsByAccount: getEventsByAccount(this),
+    // subscribeNewEventByAccount: subscribeNewEventByAccount(this)
   };
 
 
@@ -153,7 +161,7 @@ export class Adapter extends AdapterBase {
         if (response.ok) {
           return response.json() as Promise<RequestResult<T>>;
         } else {
-          throw new Error('Subsquid request failed.');
+          throw new Error('[SubsquidAdapter] Request failed.');
         }
       }),
       map(result => result.data[contentType])

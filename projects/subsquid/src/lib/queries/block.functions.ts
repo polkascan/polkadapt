@@ -126,7 +126,7 @@ export const getBlocksFrom = (adapter: Adapter) => {
         if (blocks[0]) {
           return blocks[0];
         }
-        throw new Error('[Subsquid adapter] getBlocksFrom: Could not find block.');
+        throw new Error('[SubsquidAdapter] getBlocksFrom: Could not find block.');
       }),
       switchMap((block) =>
         getBlocksBase(adapter, pageSize, undefined, block.number)
@@ -144,7 +144,7 @@ export const getBlocksUntil = (adapter: Adapter) => {
         if (blocks[0]) {
           return blocks[0];
         }
-        throw new Error('[Subsquid adapter] getBlocksUntil: Could not find block.');
+        throw new Error('[SubsquidAdapter] getBlocksUntil: Could not find block.');
       }),
       switchMap((block) =>
         getBlocksBase(adapter, pageSize, undefined, undefined, block.number)
@@ -188,7 +188,7 @@ export const subscribeNewBlock = (adapter: Adapter) => {
           return of(null);
         }),
         catchError((e) => {
-          console.error('[Subsquid adapter] subscribeNewBlock: Latest block not found', e);
+          console.error('[SubsquidAdapter] subscribeNewBlock: Latest block not found', e);
           return of(null);
         })
       )),

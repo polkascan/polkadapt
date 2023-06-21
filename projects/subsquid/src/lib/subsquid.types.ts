@@ -77,9 +77,28 @@ export type Event = {
   blockNumber: number;  // PK
   eventIdx: number;  // PK
   extrinsicIdx: number | null;
-  event: string | null;
-  eventModule: string | null;
+  event?: string | null;
+  eventModule: string | null;   // is pallet / palletName
   eventName: string | null;
+  attributes: string | null;
+  blockDatetime: string | null;
+  blockHash: string;
+  eventPhaseName: string | null;
+  specName: string | null;
+  specVersion: number | null;
+};
+
+export type AccountEvent = {
+  blockNumber: number;  // PK
+  eventIdx: number;  // PK
+  attributeName: string; // PK
+  accountId: string;
+  attributes: string | null;
+  pallet: string;
+  eventName: string;
+  blockDatetime: string | null;
+  sortValue: number | null;
+  extrinsicIdx: number | null;
 };
 
 export type Extrinsic = {
