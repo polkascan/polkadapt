@@ -28,6 +28,7 @@ export * as types from './lib/subsquid.types';
 declare module '@polkadapt/core/augmented-types' {
     interface Block extends types.Block {}
     interface Event extends types.Event {}
+    interface AccountEvent extends types.AccountEvent {}
     interface Extrinsic extends types.Extrinsic {}
     interface ChainProperties extends types.ChainProperties {}
 }

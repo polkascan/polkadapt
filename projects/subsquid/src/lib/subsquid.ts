@@ -27,7 +27,14 @@ import {
   subscribeNewBlock
 } from './queries/block.functions';
 import { getChainProperties } from './queries/chain.functions';
-import { EventsFilters, getEvent, getEvents, subscribeNewEvent } from './queries/event.functions';
+import {
+  EventsFilters,
+  getEvent,
+  getEvents,
+  getEventsByAccount,
+  subscribeNewEvent,
+  subscribeNewEventByAccount
+} from './queries/event.functions';
 import { fromFetch } from 'rxjs/internal/observable/dom/fetch';
 
 export type Api = {
@@ -41,6 +48,9 @@ export type Api = {
   getEvent: AdapterApiCallWithIdentifiers<[blockNumber: number, eventIdx: number], types.Event>;
   getEvents: AdapterApiCallWithIdentifiers<[filters?: EventsFilters, pageSize?: number], types.Event[]>;
   subscribeNewEvent: AdapterApiCallWithIdentifiers<[filters?: EventsFilters], types.Event>;
+  getEventsByAccount: AdapterApiCallWithIdentifiers<[accountIdHex: string, filters?: EventsFilters, pageSize?: number],
+    types.AccountEvent[]>;
+  subscribeNewEventByAccount: AdapterApiCallWithIdentifiers<[accountIdHex: string, filters?: EventsFilters], types.AccountEvent>;
 };
 
 export type Config = {
@@ -80,8 +90,8 @@ export class Adapter extends AdapterBase {
     getEvent: getEvent(this),
     getEvents: getEvents(this),
     subscribeNewEvent: subscribeNewEvent(this),
-    // getEventsByAccount: getEventsByAccount(this),
-    // subscribeNewEventByAccount: subscribeNewEventByAccount(this)
+    getEventsByAccount: getEventsByAccount(this),
+    subscribeNewEventByAccount: subscribeNewEventByAccount(this)
   };
 
 

@@ -131,6 +131,10 @@ export interface EventsFilters {
   blockRangeEnd?: number;
 }
 
+
+const identifiers = ['blockNumber', 'eventIdx'];
+
+
 export const getEventsBase = (
   adapter: Adapter,
   pageSize?: number,
@@ -144,7 +148,8 @@ export const getEventsBase = (
   dateRangeBegin?: Date,
   dateRangeEnd?: Date,
   blockRangeBegin?: number,
-  blockRangeEnd?: number
+  blockRangeEnd?: number,
+  accountIdHex?: string
 ): Observable<types.Event[]> => {
 
   const gsWhere: Where = {};
@@ -293,6 +298,10 @@ export const getEventsBase = (
     }
   }
 
+  if (isString(accountIdHex)) {
+    gsWhere['argsStr_containsAny'] = accountIdHex;
+  }
+
   const contentType = 'events';
   const orderBy = 'id_DESC';
 
@@ -387,21 +396,6 @@ export const getEventsBase = (
   );
 };
 
-export interface EventsFilters {
-  blockNumber?: number;
-  eventModule?: string;
-  eventName?: string;
-  extrinsicIdx?: number;
-  specName?: string;
-  specVersion?: number;
-  dateRangeBegin?: Date;
-  dateRangeEnd?: Date;
-  blockRangeBegin?: number;
-  blockRangeEnd?: number;
-}
-
-const identifiers = ['blockNumber', 'eventIdx'];
-
 
 export const getEvent = (adapter: Adapter) => {
   const fn = (blockNumber: number, eventIdx: number) =>
@@ -412,6 +406,8 @@ export const getEvent = (adapter: Adapter) => {
   fn.identifiers = identifiers;
   return fn;
 };
+
+
 export const getEvents = (adapter: Adapter) => {
   const fn = (filters?: EventsFilters, pageSize?: number) => {
     filters = filters || {};
@@ -436,8 +432,10 @@ export const getEvents = (adapter: Adapter) => {
   fn.identifiers = identifiers;
   return fn;
 };
-export const subscribeNewEvent = (adapter: Adapter) => {
-  const fn = (_filters?: EventsFilters) => {
+
+
+export const subscribeNewEventBase = (adapter: Adapter) =>
+  (_filters?: EventsFilters, accountIdHex?: string) => {
     const filters = isObject(_filters) ? _filters : {};
     let height: number;
     let timestamp: string;
@@ -496,7 +494,8 @@ export const subscribeNewEvent = (adapter: Adapter) => {
               filters.dateRangeBegin,
               filters.dateRangeEnd,
               height,
-              filters.blockRangeEnd
+              filters.blockRangeEnd,
+              accountIdHex
             ).pipe(
               tap((events) => {
                 if (events.length > 0) {
@@ -516,17 +515,111 @@ export const subscribeNewEvent = (adapter: Adapter) => {
         );
       }),
       catchError((e) => {
-        console.error('[SubsquidAdapter] subscribeNewBlock', e);
+        console.error('[SubsquidAdapter] subscribeNewEvent', e);
         return of(null);
       }),
       filter((e) => !!e),
       map<types.Event | never[] | null, types.Event>((b) => b as types.Event)  // TODO REMOVE THIS AND FIX TYPING
     );
   };
+
+
+export const subscribeNewEvent = (adapter: Adapter) => {
+  const fn = (filters?: EventsFilters) =>
+    subscribeNewEventBase(adapter)(filters);
   fn.identifiers = identifiers;
   return fn;
 };
-export const getEventsByAccount = () => {
+
+
+const identifiersWithAttributeName = ['blockNumber', 'eventIdx', 'attributeName'];
+
+
+export const getEventsByAccount = (adapter: Adapter) => {
+  const fn = (accountIdHex: string, filters?: EventsFilters, pageSize?: number) => {
+    filters = filters || {};
+    return getEventsBase(
+      adapter,
+      pageSize,
+      filters.blockNumber,
+      undefined,
+      filters.eventModule,
+      filters.eventName,
+      filters.extrinsicIdx,
+      filters.specName,
+      filters.specVersion,
+      filters.dateRangeBegin,
+      filters.dateRangeEnd,
+      filters.blockRangeBegin,
+      filters.blockRangeEnd,
+      accountIdHex
+    ).pipe(
+      map<types.Event[], types.AccountEvent[]>((events) => {
+          const accountEvents = events
+            .map((event) => {
+                const attributes: unknown = isString(event.attributes) ? JSON.parse(event.attributes) : event;
+                if (isObject(attributes)) {
+                  const attributeName = Object.keys(attributes)
+                    .find(key => (attributes as { [k: string]: unknown })[key] === accountIdHex);
+
+                  if (attributeName) {
+                    return {
+                      blockNumber: event.blockNumber,
+                      eventIdx: event.eventIdx,
+                      attributeName: 'null',
+                      accountId: accountIdHex,
+                      attributes: event.attributes,
+                      pallet: event.eventModule,
+                      eventName: event.eventName,
+                      blockDatetime: event.blockDatetime,
+                      sortValue: null,
+                      extrinsicIdx: event.extrinsicIdx
+                    } as types.AccountEvent;
+                  }
+                }
+                return null;
+              }
+            ).filter((ae) => ae !== null) as types.AccountEvent[];
+          return accountEvents;
+        }
+      ),
+      catchError((e: string) => throwError(() => new Error(`[SubsquidAdapter] getEventsByAccount: ${e}`)))
+    );
+  };
+  fn.identifiers = identifiersWithAttributeName;
+  return fn;
 };
-export const subscribeNewEventByAccount = () => {
+
+
+export const subscribeNewEventByAccount = (adapter: Adapter) => {
+  const fn = (accountIdHex: string, filters?: EventsFilters) =>
+    subscribeNewEventBase(adapter)(filters, accountIdHex).pipe(
+      map((event) => {
+          const attributes: unknown = isString(event.attributes) ? JSON.parse(event.attributes) : event;
+          if (isObject(attributes)) {
+            const attributeName = Object.keys(attributes)
+              .find(key => (attributes as { [k: string]: unknown })[key] === accountIdHex);
+
+            if (attributeName) {
+              return {
+                blockNumber: event.blockNumber,
+                eventIdx: event.eventIdx,
+                attributeName,
+                accountId: accountIdHex,
+                attributes: event.attributes,
+                pallet: event.eventModule,
+                eventName: event.eventName,
+                blockDatetime: event.blockDatetime,
+                sortValue: null,
+                extrinsicIdx: event.extrinsicIdx
+              } as types.AccountEvent;
+            }
+          }
+          return null;
+        }
+      ),
+      filter((ae) => ae !== null)
+    ) as Observable<types.AccountEvent>;
+  fn.identifiers = identifiersWithAttributeName;
+  return fn;
 };

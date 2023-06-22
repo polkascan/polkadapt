@@ -193,9 +193,8 @@ export const subscribeNewBlock = (adapter: Adapter) => {
           return of(null);
         })
       )),
-    filter((b) => !!b),
-    map<types.Block | null, types.Block>((b) => b as types.Block)  // TODO REMOVE THIS AND FIX TYPING
-  );
+    filter((b) => !!b)
+  ) as Observable<types.Block>;
   fn.identifiers = identifiers;
   return fn;
 };
