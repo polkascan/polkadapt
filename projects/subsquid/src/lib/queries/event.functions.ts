@@ -1,5 +1,5 @@
 import { Adapter, Fields, Where } from '../subsquid';
-import { catchError, combineLatest, map, Observable, of, share, shareReplay, switchMap, tap, throwError } from 'rxjs';
+import { catchError, combineLatest, map, Observable, of, switchMap, throwError } from 'rxjs';
 import * as st from '../subsquid.types';
 import { types } from '@polkadapt/core';
 import { isDate, isDefined, isPositiveNumber, isString } from './helpers';
@@ -227,11 +227,11 @@ export const getEventsBase = (
 
   if (isDefined(dateRangeBegin) && isDefined(dateRangeEnd)) {
     if (isDate(dateRangeBegin) && isDate(dateRangeEnd)) {
-      if (dateRangeBegin < dateRangeEnd) {
+      if (dateRangeBegin > dateRangeEnd) {
         return throwError(() => 'Provided date range is invalid.');
       }
-      const timestampBegin = `${dateRangeBegin.toISOString().split('.')[0]}.000000Z`;
-      const timestampEnd = `${dateRangeEnd.toISOString().split('.')[0]}.000000Z`;
+      const timestampBegin = dateRangeBegin.toJSON();
+      const timestampEnd = dateRangeEnd.toJSON();
       archiveWhere['block'] = archiveWhere['block'] ? archiveWhere['block'] as Where : {};
       archiveWhere['block']['timestamp_gte'] = timestampBegin;
       archiveWhere['block']['timestamp_lte'] = timestampEnd;
@@ -242,7 +242,7 @@ export const getEventsBase = (
     }
   } else if (isDefined(dateRangeBegin)) {
     if (isDate(dateRangeBegin)) {
-      const timestampBegin = `${dateRangeBegin.toISOString().split('.')[0]}.000000Z`;
+      const timestampBegin = dateRangeBegin.toJSON();
       archiveWhere['block'] = archiveWhere['block'] ? archiveWhere['block'] as Where : {};
       archiveWhere['block']['timestamp_gte'] = timestampBegin;
       gsWhere['timestamp_gte'] = timestampBegin;
@@ -251,7 +251,7 @@ export const getEventsBase = (
     }
   } else if (isDefined(dateRangeEnd)) {
     if (isDate(dateRangeEnd)) {
-      const timestampEnd = `${dateRangeEnd.toISOString().split('.')[0]}.000000Z`;
+      const timestampEnd = dateRangeEnd.toJSON();
       archiveWhere['block'] = archiveWhere['block'] ? archiveWhere['block'] as Where : {};
       gsWhere['timestamp_lte'] = timestampEnd;
     } else {
@@ -260,7 +260,7 @@ export const getEventsBase = (
   }
 
   if (isDefined(blockRangeBegin) && isDefined(blockRangeEnd)) {
-    if (isPositiveNumber(blockRangeBegin) && !isPositiveNumber(blockRangeEnd)) {
+    if (isPositiveNumber(blockRangeBegin) && isPositiveNumber(blockRangeEnd)) {
       if (blockRangeEnd < blockRangeBegin) {
         return throwError(() => 'Provided block number range is invalid.');
       }
@@ -334,7 +334,6 @@ export const getEventsBase = (
               pageSize
             )
           ]).pipe(
-            tap(() => {console.log('cancel???');}),
             map(([events, eventsArgs]) =>
               events.map((ev) => {
                 const evArgs = eventsArgs.find((a) => ev.id === a.id);
