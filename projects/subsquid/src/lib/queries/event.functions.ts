@@ -566,7 +566,7 @@ export const getEventsByAccount = (adapter: Adapter) => {
                     return {
                       blockNumber: event.blockNumber,
                       eventIdx: event.eventIdx,
-                      attributeName: 'null',
+                      attributeName,
                       accountId: accountIdHex,
                       attributes: event.attributes,
                       pallet: event.eventModule,
