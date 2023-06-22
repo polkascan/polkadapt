@@ -174,6 +174,7 @@ export const subscribeNewBlock = (adapter: Adapter) => {
               const from = prevHeight + 1;
               const pageSize = latestBlockNumber - prevHeight;
               return getBlocksBase(adapter, pageSize, undefined, from).pipe(
+                filter((latestBlocks) => latestBlocks.length > 0),
                 switchMap((latestBlocks) => of(...latestBlocks.reverse())),
                 tap(() => {
                   if (height && height < latestBlockNumber) {

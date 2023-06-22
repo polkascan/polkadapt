@@ -1,8 +1,9 @@
 import { Adapter, Fields, Where } from '../subsquid';
-import { catchError, combineLatest, map, Observable, of, switchMap, throwError } from 'rxjs';
+import { catchError, combineLatest, filter, map, Observable, of, switchMap, take, tap, throwError, timer } from 'rxjs';
 import * as st from '../subsquid.types';
 import { types } from '@polkadapt/core';
-import { isDate, isDefined, isPositiveNumber, isString } from './helpers';
+import { isDate, isDefined, isObject, isPositiveNumber, isString } from './helpers';
+import { getLatestBlock } from './block.functions';
 
 
 export type ArchiveEventInput = {
@@ -50,6 +51,7 @@ export type ArchiveEventArgsInput = {
   phase: string;
   name: string;
   block: {
+    height: number;
     spec: {
       specName: string;
     };
@@ -63,6 +65,7 @@ const archiveArgsFields: Fields = [
   'name',
   {
     block: [
+      'height',
       {
         spec: ['specVersion']
       }
@@ -433,7 +436,95 @@ export const getEvents = (adapter: Adapter) => {
   fn.identifiers = identifiers;
   return fn;
 };
-export const subscribeNewEvent = () => {
+export const subscribeNewEvent = (adapter: Adapter) => {
+  const fn = (_filters?: EventsFilters) => {
+    const filters = isObject(_filters) ? _filters : {};
+    let height: number;
+    let timestamp: string;
+
+    return getLatestBlock(adapter)().pipe(
+      take(1),
+      switchMap((block) => {
+        if (isPositiveNumber(block.number)) {
+          height = block.number;
+        } else {
+          return throwError(() => new Error('[SubsquidAdapter] subscribeNewEvent: No block height found to start from'));
+        }
+
+        if (isString(block.datetime)) {
+          timestamp = block.datetime;
+        }
+
+        if (isString(filters.dateRangeEnd)) {
+          if ((new Date(timestamp)) > (new Date(filters.dateRangeEnd))) {
+            return throwError(() => new Error('Latest block number is beyond the date range.'));
+          }
+        }
+
+        return timer(0, 6000).pipe(
+          switchMap(() => {
+            if (isPositiveNumber(height)) {
+              if (isPositiveNumber(filters.blockRangeBegin) && filters.blockRangeBegin < height) {
+                // The latest block number is below the filtered range, return empty until height is matched.
+                return of([]);
+              }
+              if (isPositiveNumber(filters.blockRangeEnd) && height > filters.blockRangeEnd) {
+                // The latest block number exceeds the filtered range, stop.
+                return throwError(() => new Error('Latest block number is beyond the filtered range.'));
+              }
+            }
+
+            if (timestamp) {
+              if (isString(filters.dateRangeBegin)) {
+                if ((new Date(filters.dateRangeBegin)) < (new Date(timestamp))) {
+                  // The latest block timestamp is below the filtered range, wait until the datetime matches.
+                  return of([]);
+                }
+              }
+            }
+
+            return getEventsBase(
+              adapter,
+              100,
+              filters.blockNumber,
+              undefined,
+              filters.eventModule,
+              filters.eventName,
+              filters.extrinsicIdx,
+              filters.specName,
+              filters.specVersion,
+              filters.dateRangeBegin,
+              filters.dateRangeEnd,
+              height,
+              filters.blockRangeEnd
+            ).pipe(
+              tap((events) => {
+                if (events.length > 0) {
+                  // Check the last height that came from the response and reset the height to the next block number.
+                  // The next cycle will start with the next block number.
+                  height = events[0].blockNumber + 1;
+                  timestamp = events[0].blockDatetime as string;
+                }
+              }),
+              filter((events) => events.length > 0),
+              switchMap((events) => of(...events.reverse()))
+            );
+
+            // On the next cycle try the next block with matching events;
+            height += 1;
+          })
+        );
+      }),
+      catchError((e) => {
+        console.error('[SubsquidAdapter] subscribeNewBlock', e);
+        return of(null);
+      }),
+      filter((e) => !!e),
+      map<types.Event | never[] | null, types.Event>((b) => b as types.Event)  // TODO REMOVE THIS AND FIX TYPING
+    );
+  };
+  fn.identifiers = identifiers;
+  return fn;
 };
 export const getEventsByAccount = () => {
 };
