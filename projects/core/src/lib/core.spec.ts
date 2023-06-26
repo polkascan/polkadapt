@@ -28,9 +28,11 @@ type TestApi = {
   values: {
     objectFromBoth: ApiCall;
     arrayFromBoth: ApiCall;
+    failureFromA?: ApiCall;
     successFromA?: ApiCall;
     successFromB?: ApiCall;
     failureFromB?: ApiCall;
+    bothFailure?: ApiCall;
     partialFailure?: ApiCall;
   };
   subscriptions: {
@@ -129,6 +131,8 @@ class TestAdapterA extends TestAdapterBase {
     super(chainName);
     this.api.values.successFromA = () => of('a');
     this.api.values.partialFailure = this.api.values.successFromA;
+    this.api.values.failureFromA = () => throwError(() => new Error('Whenever'));
+    this.api.values.bothFailure = this.api.values.failureFromA;
     this.api.subscriptions.successFromA = () => interval(this.timeout).pipe(
       map(i => ({a: i}))
     );
@@ -164,6 +168,7 @@ class TestAdapterB extends TestAdapterBase {
     this.api.values.successFromB = () => of('b');
     this.api.values.failureFromB = () => throwError(() => new Error('Whatever'));
     this.api.values.partialFailure = this.api.values.failureFromB;
+    this.api.values.bothFailure = this.api.values.failureFromB;
     this.api.subscriptions.failureFromB = () => interval(this.timeout).pipe(
       delay(50),
       map(i => {
@@ -437,7 +442,7 @@ describe('Polkadapt', () => {
     let count = 0;
     const observables: Observable<unknown>[] = [];
 
-    (pa.run().values.arrayFromBoth as PolkadaptArrayOfObservablesCall)().subscribe({
+    (pa.run().values.arrayFromBoth as unknown as PolkadaptArrayOfObservablesCall)().subscribe({
       next: mergedResult => {
         expect(Array.isArray(mergedResult)).toBeTrue();
         expect(mergedResult.length).toBe(3);
@@ -653,7 +658,7 @@ describe('Polkadapt', () => {
     let count = 0;
     const destroyer = new Subject<void>();
     const objObservables = new Set<Observable<unknown>>();
-    (pa.run().subscriptions.newArrayFromBothIdentified as PolkadaptArrayOfObservablesCall)().pipe(
+    (pa.run().subscriptions.newArrayFromBothIdentified as unknown as PolkadaptArrayOfObservablesCall)().pipe(
       takeUntil(destroyer),
     ).subscribe({
       next: mergedResult => {
@@ -843,14 +848,30 @@ describe('Polkadapt', () => {
     });
   });
 
-  it('should reject when one of multiple adapters throws an Error.', done => {
+  it('should not reject when one of multiple adapters throws an Error.', done => {
     (pa.run({observableResults: false}).values.partialFailure as ApiCall)().subscribe({
       next: (a) => {
         // Stream A will not fail.
         expect(a).toEqual('a');
       },
       error: () => {
+        // stream B will fail but should not appear.
+        done.fail();
+      },
+      complete: () => {
+        done();
+      }
+    });
+  });
+
+  it('should reject when both of multiple adapters throws an Error.', done => {
+    (pa.run({observableResults: false}).values.bothFailure as ApiCall)().subscribe({
+      error: (err: Error) => {
         // stream B will fail.
+        expect(err.message).toEqual(
+          'Whenever\n' +
+          'Whatever'
+        );
         done();
       }
     });

@@ -220,7 +220,7 @@ export const subscribeNewEventByAccount = (adapter: Adapter) => {
 
     const query = generateSubscriptionQuery('subscribeNewEventByAccount', genericEventFields, filters);
     return createSubscriptionObservable<pst.AccountEvent>(adapter, 'subscribeNewEventByAccount', query).pipe(
-      filter((e) => isObject(e))
+      filter((e): e is pst.AccountEvent => isObject(e))
     );
   };
   fn.identifiers = identifiers;

@@ -516,10 +516,9 @@ export const subscribeNewEventBase = (adapter: Adapter) =>
       }),
       catchError((e) => {
         console.error('[SubsquidAdapter] subscribeNewEvent', e);
-        return of(null);
+        return of(undefined);
       }),
-      filter((e) => !!e),
-      map<types.Event | never[] | null, types.Event>((b) => b as types.Event)  // TODO REMOVE THIS AND FIX TYPING
+      filter((e): e is types.Event => isObject(e))
     );
   };
 
@@ -577,9 +576,9 @@ export const getEventsByAccount = (adapter: Adapter) => {
                     } as types.AccountEvent;
                   }
                 }
-                return null;
+                return undefined;
               }
-            ).filter((ae) => ae !== null) as types.AccountEvent[];
+            ).filter((ae): ae is types.AccountEvent => isObject(ae));
           return accountEvents;
         }
       ),
@@ -615,11 +614,11 @@ export const subscribeNewEventByAccount = (adapter: Adapter) => {
               } as types.AccountEvent;
             }
           }
-          return null;
+          return undefined;
         }
       ),
-      filter((ae) => ae !== null)
-    ) as Observable<types.AccountEvent>;
+      filter((ae): ae is types.AccountEvent => isObject(ae))
+    );
   fn.identifiers = identifiersWithAttributeName;
   return fn;
 };

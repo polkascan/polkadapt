@@ -1,7 +1,8 @@
 import { types } from '@polkadapt/core';
-import { catchError, filter, map, merge, Observable, of, switchMap, take, tap, timer } from 'rxjs';
+import { catchError, filter, map, merge, Observable, of, switchMap, take, tap, throwError, timer } from 'rxjs';
 import * as st from '../subsquid.types';
 import { Adapter, Where } from '../subsquid';
+import { isObject } from './helpers';
 
 export type ArchiveBlockInput = {
   extrinsicsRoot: string;
@@ -186,15 +187,15 @@ export const subscribeNewBlock = (adapter: Adapter) => {
             height = latestBlockNumber;
             return of(latestBlock);
           }
-          return of(null);
+          return of(undefined);
         }),
         catchError((e) => {
-          console.error('[SubsquidAdapter] subscribeNewBlock: Latest block not found', e);
-          return of(null);
+          console.error('[SubsquidAdapter] subscribeNewBlock', e);
+          return throwError(() => new Error('[SubsquidAdapter] subscribeNewBlock: Latest block not found'));
         })
       )),
-    filter((b) => !!b)
-  ) as Observable<types.Block>;
+    filter((b): b is types.Block => isObject(b))
+  );
   fn.identifiers = identifiers;
   return fn;
 };

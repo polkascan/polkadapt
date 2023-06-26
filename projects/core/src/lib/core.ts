@@ -18,13 +18,19 @@
 
 import {
   BehaviorSubject,
+  catchError,
   debounceTime,
+  EMPTY,
   filter,
   map,
   merge,
   Observable,
   shareReplay,
-  Subject, take, takeUntil, tap
+  Subject,
+  take,
+  takeUntil,
+  tap,
+  throwError
 } from 'rxjs';
 import { deepMerge } from './helpers';
 
@@ -48,7 +54,7 @@ export type RecursiveObservableWrapper<T> = {
     (A extends Array<infer R> ? (...args: Parameters<T[K]>) => Observable<Observable<R>[]> : never) :
     T[K] extends (...args: any[]) => Observable<infer R> ?
       (...args: Parameters<T[K]>) => Observable<Observable<R>> :
-    RecursiveObservableWrapper<T[K]>;
+      RecursiveObservableWrapper<T[K]>;
 };
 
 export type AdapterApiCallWithIdentifiers<A extends any[] = any[], T = any> = {
@@ -117,7 +123,9 @@ export class Polkadapt<T> {
 
   // Run is the entrypoint for the application that starts the method chain and will return a result or create a subscription triggering
   // a passed through callback.
-  run<P extends PolkadaptRunArgument>(config?: P): P extends {observableResults: false} ? T : RecursiveObservableWrapper<T> {
+  run<P extends PolkadaptRunArgument>(config?: P): P extends {
+    observableResults: false;
+  } ? T : RecursiveObservableWrapper<T> {
     let chain: string | undefined;
     let adapters: PolkadaptRegisteredAdapter[] = [];
     let augmentedResults = true;
@@ -157,7 +165,7 @@ export class Polkadapt<T> {
     }
 
     return this.createCallPathProxy(chain, adapters, augmentedResults, observableResults
-    ) as P extends {observableResults: false} ? T : RecursiveObservableWrapper<T>;
+    ) as P extends { observableResults: false } ? T : RecursiveObservableWrapper<T>;
   }
 
   // Generate the proxy object that will return an Observable when the property is being called.
@@ -322,8 +330,28 @@ export class Polkadapt<T> {
         resultObservable.error(new Error(`No adapters were found containing path ${context.path.join('.')}`));
         return;
       } else {
+        const errorsPerObservable = new Map<number, any>();
+        const observables = Array.from(candidateResultObservables.values()).map(
+          (obs, i) => obs.pipe(
+            catchError((err) => {
+              console.error(err);
+              errorsPerObservable.set(i, err);
+              if (errorsPerObservable.size === observables.length) {
+                // All observables are in error state. Throw all errors at once.
+                return throwError(() => new Error(Array.from(errorsPerObservable.values())
+                  .map((e: Error) => e && e.message ? e.message : e)
+                  .join('\n')));
+              }
+
+              // Return an empty completed observable to prevent a rxjs merge from completing/throwing
+              // when not all observables are in error state.
+              return EMPTY;
+            })
+          )
+        );
+
         // Now we merge all candidate result observables into one stream and pass emissions to the resultObservable.
-        merge(...Array.from(candidateResultObservables.values())).pipe(
+        merge(...observables).pipe(
           takeUntil(destroyer),
           map((result) => {
             if (result === null) {
