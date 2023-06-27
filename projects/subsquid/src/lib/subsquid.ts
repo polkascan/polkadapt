@@ -37,6 +37,7 @@ import {
   subscribeNewEventByAccount
 } from './queries/event.functions';
 import { fromFetch } from 'rxjs/internal/observable/dom/fetch';
+import { getLatestRuntime, getRuntime, getRuntimes } from './queries/runtime.functions';
 
 export type Api = {
   getChainProperties: AdapterApiCallWithIdentifiers<[], types.ChainProperties>;
@@ -52,6 +53,9 @@ export type Api = {
   getEventsByAccount: AdapterApiCallWithIdentifiers<[accountIdHex: string, filters?: AccountEventsFilters, pageSize?: number],
     types.AccountEvent[]>;
   subscribeNewEventByAccount: AdapterApiCallWithIdentifiers<[accountIdHex: string, filters?: AccountEventsFilters], types.AccountEvent>;
+  getRuntime: AdapterApiCallWithIdentifiers<[specName: string, specVersion: number], types.Runtime>;
+  getRuntimes: AdapterApiCallWithIdentifiers<[pageSize?: number], types.Runtime[]>;
+  getLatestRuntime: AdapterApiCallWithIdentifiers<[], types.Runtime>;
 };
 
 export type Config = {
@@ -92,7 +96,10 @@ export class Adapter extends AdapterBase {
     getEvents: getEvents(this),
     subscribeNewEvent: subscribeNewEvent(this),
     getEventsByAccount: getEventsByAccount(this),
-    subscribeNewEventByAccount: subscribeNewEventByAccount(this)
+    subscribeNewEventByAccount: subscribeNewEventByAccount(this),
+    getRuntime: getRuntime(this),
+    getRuntimes: getRuntimes(this),
+    getLatestRuntime: getLatestRuntime(this)
   };
 
 

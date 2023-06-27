@@ -36,9 +36,10 @@ export type Api = {
 export type Config = {
   chain: string;
   apiEndpoint: string;
+  coinId: string;
 };
 
-type CoinGeckoSimpleResponse = { [chain: string]: { [currency: string]: number } };
+type CoinGeckoSimpleResponse = { [coinId: string]: { [currency: string]: number } };
 // eslint-disable-next-line @typescript-eslint/naming-convention
 type CoinGeckoHistoryResponse = { market_data: { current_price: { [currency: string]: number } } };
 type CoinGeckoPriceRangeResponse = { prices: [number, number][]};
@@ -58,25 +59,25 @@ export class Adapter extends AdapterBase {
     prices: {
       getPrice: currency =>
         this.request<CoinGeckoSimpleResponse>(
-          `simple/price?ids=${this.config.chain}&vs_currencies=${currency}`
+          `simple/price?ids=${this.config.coinId}&vs_currencies=${currency}`
         ).pipe(
-          map(result => result[this.config.chain][currency.toLocaleLowerCase()])
+          map(result => result[this.config.coinId][currency.toLocaleLowerCase()])
         ),
       getHistoricalPrice: (day, month, year, currency: string) =>
         this.request<CoinGeckoHistoryResponse>(
-          `coins/${this.config.chain}/history?date=${day}-${month}-${year}&localization=false`
+          `coins/${this.config.coinId}/history?date=${day}-${month}-${year}&localization=false`
         ).pipe(
           map(result => result.market_data.current_price[currency.toLowerCase()])
         ),
       getHistoricalPricesRange: (from, to, currency) =>
         this.request<CoinGeckoPriceRangeResponse>(
-          `coins/${this.config.chain}/market_chart/range?vs_currency=${currency}&from=${from}&to=${to}`
+          `coins/${this.config.coinId}/market_chart/range?vs_currency=${currency}&from=${from}&to=${to}`
         ).pipe(
           map(result => result.prices)
         ),
       getHistoricalPrices: (currency: string, days: number | 'max') =>
         this.request<CoinGeckoMarketChartResponse>(
-          `coins/${this.config.chain}/market_chart?vs_currency=${currency}&days=${days}&interval=daily`
+          `coins/${this.config.coinId}/market_chart?vs_currency=${currency}&days=${days}&interval=daily`
         ).pipe(
           map(result => {
             const prices = result && result.prices;

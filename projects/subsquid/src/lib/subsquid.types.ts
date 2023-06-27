@@ -106,3 +106,10 @@ export type Extrinsic = {
   extrinsicIdx: number;  // PK
   hash: string | null;
 };
+
+export type Runtime = {
+  specName: string;  // PK
+  specVersion: number;  // PK
+  blockNumber: number;
+  blockHash: string;
+};
