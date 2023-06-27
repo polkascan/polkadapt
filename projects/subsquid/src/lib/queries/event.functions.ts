@@ -54,6 +54,7 @@ export type ArchiveEventArgsInput = {
     height: number;
     spec: {
       specName: string;
+      specVersion: number;
     };
   };
 };
@@ -67,7 +68,7 @@ const archiveArgsFields: Fields = [
     block: [
       'height',
       {
-        spec: ['specVersion']
+        spec: ['specName', 'specVersion']
       }
     ]
   }
@@ -131,6 +132,12 @@ export interface EventsFilters {
   blockRangeEnd?: number;
 }
 
+export interface AccountEventsFilters extends EventsFilters {
+  attributeName: string;
+  pallet?: string;
+  eventTypes?: { [pallet: string]: string[] };
+}
+
 
 const identifiers = ['blockNumber', 'eventIdx'];
 
@@ -149,7 +156,8 @@ export const getEventsBase = (
   dateRangeEnd?: Date,
   blockRangeBegin?: number,
   blockRangeEnd?: number,
-  accountIdHex?: string
+  accountIdHex?: string,
+  eventTypes?: { [pallet: string]: string[] }
 ): Observable<types.Event[]> => {
 
   const gsWhere: Where = {};
@@ -174,27 +182,43 @@ export const getEventsBase = (
     }
   }
 
-  if (isDefined(eventModule)) {
-    if (isString(eventModule)) {
-      // archiveWhere['name_startsWith'] = eventModule;
-      gsWhere['palletName_eq'] = eventModule;
-    } else {
-      return throwError(() => 'Provided event module (pallet) must be a non-empty string.');
+  if (isDefined(eventTypes)) {
+    let andor: Where;
+    Object.entries(eventTypes).forEach(([p, events], i) => {
+      if (i === 0) {
+        andor = gsWhere['AND'] = {};
+        andor['palletName_eq'] = p;
+        andor['eventName_in'] = events;
+      } else {
+        andor = andor['OR'] = {};
+        andor['palletName_eq'] = p;
+        andor['eventName_in'] = events;
+      }
+    });
+  } else {
+    if (isDefined(eventModule)) {
+      if (isString(eventModule)) {
+        // archiveWhere['name_startsWith'] = eventModule;
+        gsWhere['palletName_eq'] = eventModule;
+      } else {
+        return throwError(() => 'Provided event module (pallet) must be a non-empty string.');
+      }
+    }
+
+    if (isDefined(eventName)) {
+      if (isString(eventName)) {
+        if (isDefined(eventModule)) {
+          // archiveWhere['name_endsWith'] = eventName;
+          gsWhere['eventName_eq'] = eventName;
+        } else {
+          return throwError(() => 'Missing event module (string), only event name is provided.');
+        }
+      } else {
+        return throwError(() => 'Provided event name must be a non-empty string.');
+      }
     }
   }
 
-  if (isDefined(eventName)) {
-    if (isString(eventName)) {
-      if (isDefined(eventModule)) {
-        // archiveWhere['name_endsWith'] = eventName;
-        gsWhere['eventName_eq'] = eventName;
-      } else {
-        return throwError(() => 'Missing event module (string), only event name is provided.');
-      }
-    } else {
-      return throwError(() => 'Provided event name must be a non-empty string.');
-    }
-  }
 
   if (isDefined(extrinsicIdx)) {
     if (isPositiveNumber(extrinsicIdx)) {
@@ -352,7 +376,10 @@ export const getEventsBase = (
                 const modifiedEvent = Object.assign(ev) as GSExplorerEventInput & ArchiveEventArgsInput;
                 if (evArgs) {
                   modifiedEvent.args = evArgs.args;
-                  modifiedEvent.block.spec = {specName: evArgs.block.spec.specName};
+                  modifiedEvent.block.spec = {
+                    specName: evArgs.block.spec.specName,
+                    specVersion: evArgs.block.spec.specVersion
+                  };
                   modifiedEvent.phase = evArgs.phase;
                   modifiedEvent.name = evArgs.name;
                 }
@@ -435,7 +462,7 @@ export const getEvents = (adapter: Adapter) => {
 
 
 export const subscribeNewEventBase = (adapter: Adapter) =>
-  (_filters?: EventsFilters, accountIdHex?: string) => {
+  (_filters?: EventsFilters | AccountEventsFilters, accountIdHex?: string) => {
     const filters = isObject(_filters) ? _filters : {};
     let height: number;
     let timestamp: string;
@@ -446,7 +473,7 @@ export const subscribeNewEventBase = (adapter: Adapter) =>
         if (isPositiveNumber(block.number)) {
           height = block.number;
         } else {
-          return throwError(() => new Error('[SubsquidAdapter] subscribeNewEvent: No block height found to start from'));
+          return throwError(() => new Error('No block height found to start from'));
         }
 
         if (isString(block.datetime)) {
@@ -486,7 +513,7 @@ export const subscribeNewEventBase = (adapter: Adapter) =>
               100,
               filters.blockNumber,
               undefined,
-              filters.eventModule,
+              filters.eventModule || (filters as AccountEventsFilters).pallet,
               filters.eventName,
               filters.extrinsicIdx,
               filters.specName,
@@ -495,7 +522,8 @@ export const subscribeNewEventBase = (adapter: Adapter) =>
               filters.dateRangeEnd,
               height,
               filters.blockRangeEnd,
-              accountIdHex
+              accountIdHex,
+              (filters as AccountEventsFilters).eventTypes
             ).pipe(
               tap((events) => {
                 if (events.length > 0) {
@@ -535,14 +563,14 @@ const identifiersWithAttributeName = ['blockNumber', 'eventIdx', 'attributeName'
 
 
 export const getEventsByAccount = (adapter: Adapter) => {
-  const fn = (accountIdHex: string, filters?: EventsFilters, pageSize?: number) => {
-    filters = filters || {};
+  const fn = (accountIdHex: string, filters?: AccountEventsFilters, pageSize?: number) => {
+    filters = filters || {} as AccountEventsFilters;
     return getEventsBase(
       adapter,
       pageSize,
       filters.blockNumber,
       undefined,
-      filters.eventModule,
+      filters.eventModule || filters.pallet,
       filters.eventName,
       filters.extrinsicIdx,
       filters.specName,
@@ -551,7 +579,8 @@ export const getEventsByAccount = (adapter: Adapter) => {
       filters.dateRangeEnd,
       filters.blockRangeBegin,
       filters.blockRangeEnd,
-      accountIdHex
+      accountIdHex,
+      filters.eventTypes
     ).pipe(
       map<types.Event[], types.AccountEvent[]>((events) => {
           const accountEvents = events
@@ -591,7 +620,7 @@ export const getEventsByAccount = (adapter: Adapter) => {
 
 
 export const subscribeNewEventByAccount = (adapter: Adapter) => {
-  const fn = (accountIdHex: string, filters?: EventsFilters) =>
+  const fn = (accountIdHex: string, filters?: AccountEventsFilters) =>
     subscribeNewEventBase(adapter)(filters, accountIdHex).pipe(
       map((event) => {
           const attributes: unknown = isString(event.attributes) ? JSON.parse(event.attributes) : event;

@@ -28,6 +28,7 @@ import {
 } from './queries/block.functions';
 import { getChainProperties } from './queries/chain.functions';
 import {
+  AccountEventsFilters,
   EventsFilters,
   getEvent,
   getEvents,
@@ -48,9 +49,9 @@ export type Api = {
   getEvent: AdapterApiCallWithIdentifiers<[blockNumber: number, eventIdx: number], types.Event>;
   getEvents: AdapterApiCallWithIdentifiers<[filters?: EventsFilters, pageSize?: number], types.Event[]>;
   subscribeNewEvent: AdapterApiCallWithIdentifiers<[filters?: EventsFilters], types.Event>;
-  getEventsByAccount: AdapterApiCallWithIdentifiers<[accountIdHex: string, filters?: EventsFilters, pageSize?: number],
+  getEventsByAccount: AdapterApiCallWithIdentifiers<[accountIdHex: string, filters?: AccountEventsFilters, pageSize?: number],
     types.AccountEvent[]>;
-  subscribeNewEventByAccount: AdapterApiCallWithIdentifiers<[accountIdHex: string, filters?: EventsFilters], types.AccountEvent>;
+  subscribeNewEventByAccount: AdapterApiCallWithIdentifiers<[accountIdHex: string, filters?: AccountEventsFilters], types.AccountEvent>;
 };
 
 export type Config = {

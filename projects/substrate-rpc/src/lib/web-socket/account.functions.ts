@@ -19,7 +19,7 @@
 
 import { Adapter } from '../substrate-rpc';
 import { types } from '@polkadapt/core';
-import { AccountId32, AccountInfo, BalanceLock } from '@polkadot/types/interfaces';
+import { AccountId32, AccountInfo, Balance, BalanceLock } from '@polkadot/types/interfaces';
 import { catchError, combineLatest, from, map, Observable, of, switchMap, throwError } from 'rxjs';
 import { bool, Data, Option, U32 } from '@polkadot/types';
 import { ITuple } from '@polkadot/types-codec/types';
@@ -96,8 +96,7 @@ export const getAccount = (adapter: Adapter) => {
               }
               if (locks && locks.length > 0) {
                 locks.sort((a, b) => b.amount.sub(a.amount).isNeg() ? -1 : 1);
-                account.data.feeFrozen = locks[0].amount;
-                account.data.miscFrozen = locks[0].amount;
+                account.data.frozen = locks[0].amount;
               }
               return account;
             })
@@ -121,11 +120,13 @@ export const getAccount = (adapter: Adapter) => {
             if ((accountInfo as AccountInfo).data.reserved) {
               account.data.reserved = (accountInfo as AccountInfo).data.reserved.toBn();
             }
-            if ((accountInfo as AccountInfo).data.feeFrozen) {
-              account.data.feeFrozen = (accountInfo as AccountInfo).data.feeFrozen.toBn();
-            }
-            if ((accountInfo as AccountInfo).data.miscFrozen) {
-              account.data.miscFrozen = (accountInfo as AccountInfo).data.miscFrozen.toBn();
+            if ((accountInfo.data as {frozen: Balance}).frozen) {
+              account.data.frozen =  (accountInfo.data as {frozen: Balance}).frozen.toBn();
+            } else if ((accountInfo.data as {feeFrozen: Balance}).feeFrozen || (accountInfo.data as {miscFrozen: Balance}).miscFrozen) {
+              account.data.frozen = BN.max(
+                (accountInfo.data as {feeFrozen: Balance}).feeFrozen,
+                (accountInfo.data as {miscFrozen: Balance}).miscFrozen
+              );
             }
           }
           return account;

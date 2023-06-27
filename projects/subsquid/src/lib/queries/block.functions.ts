@@ -2,7 +2,7 @@ import { types } from '@polkadapt/core';
 import { catchError, filter, map, merge, Observable, of, switchMap, take, tap, throwError, timer } from 'rxjs';
 import * as st from '../subsquid.types';
 import { Adapter, Where } from '../subsquid';
-import { isObject } from './helpers';
+import { isBlockHash, isNumber, isObject } from './helpers';
 
 export type ArchiveBlockInput = {
   extrinsicsRoot: string;
@@ -119,38 +119,52 @@ export const getBlocks = (adapter: Adapter) => {
 };
 
 export const getBlocksFrom = (adapter: Adapter) => {
-  const fn = (hashOrNumber: string | number, pageSize?: number) =>
-    // Find number for block hash;
-    getBlocksBase(adapter, 1, hashOrNumber).pipe(
-      take(1),
-      map((blocks) => {
-        if (blocks[0]) {
-          return blocks[0];
-        }
-        throw new Error('[SubsquidAdapter] getBlocksFrom: Could not find block.');
-      }),
-      switchMap((block) =>
-        getBlocksBase(adapter, pageSize, undefined, block.number)
-      )
-    );
+  const fn = (hashOrNumber: string | number, pageSize?: number) => {
+    if (isNumber(hashOrNumber)) {
+      return getBlocksBase(adapter, pageSize, undefined, hashOrNumber);
+    } else if (isBlockHash(hashOrNumber)) {
+      // Find number for block hash;
+      return getBlocksBase(adapter, 1, hashOrNumber).pipe(
+        take(1),
+        map((blocks) => {
+          if (blocks[0]) {
+            return blocks[0];
+          }
+          throw new Error('[SubsquidAdapter] getBlocksFrom: Could not find block.');
+        }),
+        switchMap((block) =>
+          getBlocksBase(adapter, pageSize, undefined, block.number)
+        )
+      );
+    } else {
+      return throwError('[SubsquidAdapter] getBlocksFrom: Invalid block hash or number.');
+    }
+  };
   fn.identifiers = identifiers;
   return fn;
 };
 
 export const getBlocksUntil = (adapter: Adapter) => {
-  const fn = (hashOrNumber: string | number, pageSize?: number) =>
-    getBlocksBase(adapter, 1, hashOrNumber).pipe(
-      take(1),
-      map((blocks) => {
-        if (blocks[0]) {
-          return blocks[0];
-        }
-        throw new Error('[SubsquidAdapter] getBlocksUntil: Could not find block.');
-      }),
-      switchMap((block) =>
-        getBlocksBase(adapter, pageSize, undefined, undefined, block.number)
-      )
-    );
+  const fn = (hashOrNumber: string | number, pageSize?: number) => {
+    if (isNumber(hashOrNumber)) {
+      return getBlocksBase(adapter, pageSize, undefined, undefined, hashOrNumber);
+    } else if (isBlockHash(hashOrNumber)) {
+      return getBlocksBase(adapter, 1, hashOrNumber).pipe(
+        take(1),
+        map((blocks) => {
+          if (blocks[0]) {
+            return blocks[0];
+          }
+          throw new Error(`[SubsquidAdapter] getBlocksUntil: Could not find block with hash ${hashOrNumber}.`);
+        }),
+        switchMap((block) =>
+          getBlocksBase(adapter, pageSize, undefined, undefined, block.number)
+        )
+      );
+    } else {
+      return throwError('[SubsquidAdapter] getBlocksUntil: Invalid block hash or number.');
+    }
+  };
   fn.identifiers = identifiers;
   return fn;
 };

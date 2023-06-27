@@ -354,14 +354,9 @@ export class Polkadapt<T> {
         merge(...observables).pipe(
           takeUntil(destroyer),
           map((result) => {
-            if (result === null) {
-              // No results were returned.
-              return null;
-            }
-
             // Here we process the actual result values that are coming from multiple sources.
             if (identifiers && identifiers.length) {
-              const isObject = typeof result === 'object';
+              const isObject = typeof result === 'object' && result !== null;
               const isArray = Array.isArray(result);
 
               if (isObject) {
@@ -454,7 +449,7 @@ export class Polkadapt<T> {
                   // Do not augment results.
                   return result;
                 }
-              } else {
+              } else if (result !== null) {
                 resultObservable.error(new Error('Result is not an object, though identifiers were set.'));
                 return;
               }
@@ -509,7 +504,14 @@ export class Polkadapt<T> {
         ).subscribe({
           next: (v) => resultObservable.next(v),
           error: (e) => resultObservable.error(e),
-          complete: () => resultObservable.complete()
+          complete: () => {
+            itemRegistry.forEach((item: ItemRegistryEntry | unknown) => {
+              if (item && (item as ItemRegistryEntry).source instanceof Subject) {
+                ((item as ItemRegistryEntry).source as BehaviorSubject<any>).complete();
+              }
+            });
+            resultObservable.complete();
+          }
         });
       }
     } else {

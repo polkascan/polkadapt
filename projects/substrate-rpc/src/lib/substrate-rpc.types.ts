@@ -57,6 +57,7 @@ export type Account = {
   data: {
     free?: BN;
     reserved?: BN;
+    frozen?: BN;
     miscFrozen?: BN;
     feeFrozen?: BN;
   };

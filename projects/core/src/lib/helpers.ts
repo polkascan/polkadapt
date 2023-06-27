@@ -20,7 +20,7 @@ interface IObject {
   [key: string]: any;
 }
 
-export const isObject = (item: any): boolean => typeof item === 'object' && !Array.isArray(item) && item !== null;
+export const isObject = (item: any): item is object => typeof item === 'object' && !Array.isArray(item) && item !== null;
 
 export const deepMerge = (...objects: IObject[]) =>
   objects.reduce((result, current) => {
