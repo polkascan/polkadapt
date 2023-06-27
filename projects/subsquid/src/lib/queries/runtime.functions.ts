@@ -27,6 +27,8 @@ export type ArchiveMetadataInput = {
   specVersion: number;
 }[];
 
+const identifiers = ['specName', 'specVersion'];
+
 export const getRuntimesBase = (adapter: Adapter, specName?: string, specVersion?: number, limit?: number): Observable<types.Runtime[]> => {
   const where: Where = {};
   if (specName) {
@@ -39,7 +41,7 @@ export const getRuntimesBase = (adapter: Adapter, specName?: string, specVersion
     'metadata',
     ['blockHash', 'blockHeight', 'specName', 'specVersion'],
     where,
-    limit && limit >= 1 && !(specName && specVersion !== undefined) ? 'blockHeight_DESC' : undefined,
+    'blockHeight_DESC',
     limit
   ).pipe(
     map<ArchiveMetadataInput, types.Runtime[]>(metadata => metadata.map(m => ({
@@ -51,15 +53,24 @@ export const getRuntimesBase = (adapter: Adapter, specName?: string, specVersion
   );
 };
 
-export const getRuntime = (adapter: Adapter) =>
-  (specName: string, specVersion: number): Observable<types.Runtime> => getRuntimesBase(adapter, specName, specVersion, 1).pipe(
+export const getRuntime = (adapter: Adapter) => {
+  const fn = (specName: string, specVersion: number): Observable<types.Runtime> => getRuntimesBase(adapter, specName, specVersion, 1).pipe(
     map(runtimes => runtimes[0])
   );
+  fn.identifiers = identifiers;
+  return fn;
+};
 
-export const getRuntimes = (adapter: Adapter) =>
-  (pageSize?: number): Observable<types.Runtime[]> => getRuntimesBase(adapter, undefined, undefined, pageSize);
+export const getRuntimes = (adapter: Adapter) => {
+  const fn = (pageSize?: number): Observable<types.Runtime[]> => getRuntimesBase(adapter, undefined, undefined, pageSize);
+  fn.identifiers = identifiers;
+  return fn;
+};
 
-export const getLatestRuntime = (adapter: Adapter) =>
-  (): Observable<types.Runtime> => getRuntimesBase(adapter, undefined, undefined, 1).pipe(
+export const getLatestRuntime = (adapter: Adapter) => {
+  const fn = (): Observable<types.Runtime> => getRuntimesBase(adapter, undefined, undefined, 1).pipe(
     map(runtimes => runtimes[0])
   );
+  fn.identifiers = identifiers;
+  return fn;
+};
