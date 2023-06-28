@@ -38,6 +38,7 @@ import {
 } from './queries/event.functions';
 import { fromFetch } from 'rxjs/internal/observable/dom/fetch';
 import { getLatestRuntime, getRuntime, getRuntimes } from './queries/runtime.functions';
+import { ExtrinsicsFilters, getExtrinsic, getExtrinsics, subscribeNewExtrinsic } from './queries/extrinsic.functions';
 
 export type Api = {
   getChainProperties: AdapterApiCallWithIdentifiers<[], types.ChainProperties>;
@@ -53,6 +54,9 @@ export type Api = {
   getEventsByAccount: AdapterApiCallWithIdentifiers<[accountIdHex: string, filters?: AccountEventsFilters, pageSize?: number],
     types.AccountEvent[]>;
   subscribeNewEventByAccount: AdapterApiCallWithIdentifiers<[accountIdHex: string, filters?: AccountEventsFilters], types.AccountEvent>;
+  getExtrinsic: AdapterApiCallWithIdentifiers<[blockNumber: number, extrinsicIdx: number], types.Extrinsic>;
+  getExtrinsics: AdapterApiCallWithIdentifiers<[filters?: ExtrinsicsFilters, pageSize?: number], types.Extrinsic[]>;
+  subscribeNewExtrinsic: AdapterApiCallWithIdentifiers<[filters?: ExtrinsicsFilters], types.Extrinsic>;
   getRuntime: AdapterApiCallWithIdentifiers<[specName: string, specVersion: number], types.Runtime>;
   getRuntimes: AdapterApiCallWithIdentifiers<[pageSize?: number], types.Runtime[]>;
   getLatestRuntime: AdapterApiCallWithIdentifiers<[], types.Runtime>;
@@ -72,7 +76,7 @@ type CreateQueryArgs = [contentType: string, fields: Fields, where?: Where, orde
 export type Fields = (string | { [field: string]: Fields })[];
 
 export type Where = {
-  [field: string]: string | number | Where | string[] | number[];
+  [field: string]: string | number | boolean | Where | string[] | number[];
 };
 
 type RequestResult<T> = {
@@ -97,6 +101,9 @@ export class Adapter extends AdapterBase {
     subscribeNewEvent: subscribeNewEvent(this),
     getEventsByAccount: getEventsByAccount(this),
     subscribeNewEventByAccount: subscribeNewEventByAccount(this),
+    getExtrinsic: getExtrinsic(this),
+    getExtrinsics: getExtrinsics(this),
+    subscribeNewExtrinsic: subscribeNewExtrinsic(this),
     getRuntime: getRuntime(this),
     getRuntimes: getRuntimes(this),
     getLatestRuntime: getLatestRuntime(this)

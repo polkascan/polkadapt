@@ -59,7 +59,7 @@ export type ArchiveEventArgsInput = {
   };
 };
 
-const archiveArgsFields: Fields = [
+const archiveEventArgsFields: Fields = [
   'id',
   'args',
   'phase',
@@ -363,7 +363,7 @@ export const getEventsBase = (
             of(rawEvents as GSExplorerEventInput[]),
             adapter.queryArchive<ArchiveEventArgsInput[]>(
               contentType,
-              archiveArgsFields,
+              archiveEventArgsFields,
               // eslint-disable-next-line @typescript-eslint/naming-convention
               {id_in: rawEvents.map((v) => v.id)},
               orderBy,
@@ -398,7 +398,9 @@ export const getEventsBase = (
     ),
     map((events) =>
       events.map<st.Event>((event) => {
-        const splittenName: string[] | null = (event as ArchiveEventInput).name ? (event as ArchiveEventInput).name.split('.') : null;
+        const splittenName: string[] | null = (event as ArchiveEventInput).name
+          ? (event as ArchiveEventInput).name.split('.')
+          : null;
 
         return {
           blockNumber: (event as GSExplorerEventInput).blockNumber || (event as ArchiveEventInput).block?.height,

@@ -105,6 +105,20 @@ export type Extrinsic = {
   blockNumber: number;  // PK
   extrinsicIdx: number;  // PK
   hash: string | null;
+  version: number | null;
+  callModule: string | null;
+  callName: string | null;
+  callArguments: string | null;
+  signed: number | null;
+  multiAddressAccountId: string | null;
+  signature: string | null;
+  feeTotal: number | null;
+  tip: number | null;
+  error: string | null;
+  blockDatetime: string | null;
+  blockHash: string | null;
+  specName: string | null;
+  specVersion: number | null;
 };
 
 export type Runtime = {
