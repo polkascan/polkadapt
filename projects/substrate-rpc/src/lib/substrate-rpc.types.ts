@@ -104,3 +104,15 @@ export type AccountFlags = {
   isTechCommittee: boolean;
 };
 
+export type RuntimePallet = {
+  specName: string;  // PK
+  specVersion: number;  // PK
+  pallet: string;  // PK
+  prefix: string | null;
+  name: string | null;
+  countCallFunctions: number;
+  countStorageFunctions: number;
+  countEvents: number;
+  countConstants: number;
+  countErrors: number;
+};

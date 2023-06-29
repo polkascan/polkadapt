@@ -43,6 +43,7 @@ import {
   getIndexFromAccountId
 } from './web-socket/account.functions';
 import { getChainProperties } from './web-socket/chain.functions';
+import { getRuntimePallet, getRuntimePallets } from './web-socket/runtime-pallet.functions';
 
 export type Api = {
   getChainProperties: () => Observable<types.ChainProperties>;
@@ -64,6 +65,8 @@ export type Api = {
   getAccountFlags: (accountId: string) => Observable<types.AccountFlags>;
   getAccountBalances: (accountId: string) => Observable<any>;  // TODO Fix typing
   getAccountStaking: (accountId: string) => Observable<any>;  // TODO Fix typing
+  getRuntimePallet: (specName: string, specVersion: number, pallet: string) => Observable<types.RuntimePallet>;
+  getRuntimePallets: (specName: string, specVersion: number) => Observable<types.RuntimePallet[]>;
 };
 
 export interface Config {
@@ -127,7 +130,9 @@ export class Adapter extends AdapterBase {
       getAccountInformation: getAccountInformation(this),
       getAccountFlags: getAccountFlags(this),
       getAccountBalances: getAccountBalances(this),
-      getAccountStaking: getAccountStaking(this)
+      getAccountStaking: getAccountStaking(this),
+      getRuntimePallet: getRuntimePallet(this),
+      getRuntimePallets: getRuntimePallets(this)
     };
   }
 

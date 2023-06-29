@@ -32,5 +32,6 @@ declare module '@polkadapt/core/augmented-types' {
     interface AccountInformation extends types.AccountInformation {}
     interface AccountFlags extends types.AccountFlags {}
     interface ChainProperties extends types.ChainProperties {}
+    interface RuntimePallet extends types.RuntimePallet {}
 }
 export * as types from './lib/substrate-rpc.types';
