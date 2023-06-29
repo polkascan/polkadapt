@@ -183,18 +183,26 @@ export const getEventsBase = (
   }
 
   if (isDefined(eventTypes)) {
-    let andor: Where;
-    Object.entries(eventTypes).forEach(([p, events], i) => {
-      if (i === 0) {
-        andor = gsWhere['AND'] = {};
-        andor['palletName_eq'] = p;
-        andor['eventName_in'] = events;
-      } else {
-        andor = andor['OR'] = {};
-        andor['palletName_eq'] = p;
-        andor['eventName_in'] = events;
-      }
-    });
+    const entries = Object.entries(eventTypes);
+    if (Object.entries(eventTypes).length === 1) {
+      gsWhere['palletName_eq'] = entries[0][0];
+      gsWhere['eventName_in'] = entries[0][1];
+    } else if (entries.length > 1) {
+      let andor: Where[];
+      Object.entries(eventTypes).forEach(([p, events], i) => {
+        if (i === 0) {
+          andor = gsWhere['OR'] = [
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            {palletName_eq: p, eventName_in: events}
+          ];
+        } else {
+          andor.push(
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            {palletName_eq: p, eventName_in: events}
+          );
+        }
+      });
+    }
   } else {
     if (isDefined(eventModule)) {
       if (isString(eventModule)) {

@@ -76,7 +76,7 @@ type CreateQueryArgs = [contentType: string, fields: Fields, where?: Where, orde
 export type Fields = (string | { [field: string]: Fields })[];
 
 export type Where = {
-  [field: string]: string | number | boolean | Where | string[] | number[];
+  [field: string]: string | number | boolean | Where | string[] | number[] | Where[];
 };
 
 type RequestResult<T> = {
