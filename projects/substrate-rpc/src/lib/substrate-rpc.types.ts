@@ -105,9 +105,9 @@ export type AccountFlags = {
 };
 
 export type RuntimePallet = {
-  specName: string;  // PK
-  specVersion: number;  // PK
-  pallet: string;  // PK
+  specName: string;
+  specVersion: number;
+  pallet: string;
   prefix: string | null;
   name: string | null;
   countCallFunctions: number;
@@ -115,4 +115,26 @@ export type RuntimePallet = {
   countEvents: number;
   countConstants: number;
   countErrors: number;
+};
+
+export type RuntimeCall = {
+  specName: string;
+  specVersion: number;
+  pallet: string;
+  callName: string;
+  palletCallIdx: number;
+  lookup: string;
+  documentation: string | null;
+  countArguments: number;
+};
+
+export type RuntimeEvent = {
+  specName: string;
+  specVersion: number;
+  pallet: string;
+  eventName: string | null;
+  palletEventIdx: number;
+  lookup: string;
+  documentation: string | null;
+  countAttributes: number;
 };
