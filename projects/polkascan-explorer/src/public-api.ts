@@ -26,19 +26,19 @@ export * as types from './lib/polkascan-explorer.types';
 
 /* eslint-disable @typescript-eslint/no-empty-interface */
 declare module '@polkadapt/core/augmented-types' {
-    interface Block extends types.Block {}
-    interface Event extends types.Event {}
-    interface AccountEvent extends types.AccountEvent {}
-    interface Extrinsic extends types.Extrinsic {}
-    interface Runtime extends types.Runtime {}
-    interface RuntimeCall extends types.RuntimeCall {}
-    interface RuntimeCallArgument extends types.RuntimeCallArgument {}
-    interface RuntimeConstant extends types.RuntimeConstant {}
-    interface RuntimeErrorMessage extends types.RuntimeErrorMessage {}
-    interface RuntimeEvent extends types.RuntimeEvent {}
-    interface RuntimeEventAttribute extends types.RuntimeEventAttribute {}
-    interface RuntimePallet extends types.RuntimePallet {}
-    interface RuntimeStorage extends types.RuntimeStorage {}
-    interface Log extends types.Log {}
-    interface TaggedAccount extends types.TaggedAccount {}
+  interface Block extends types.Block {}
+  interface Event extends types.Event {}
+  interface AccountEvent extends types.AccountEvent {}
+  interface Extrinsic extends types.Extrinsic {}
+  interface Runtime extends types.Runtime {}
+  interface RuntimeCall extends types.RuntimeCall {}
+  interface RuntimeCallArgument extends types.RuntimeCallArgument {}
+  interface RuntimeConstant extends types.RuntimeConstant {}
+  interface RuntimeErrorMessage extends types.RuntimeErrorMessage {}
+  interface RuntimeEvent extends types.RuntimeEvent {}
+  interface RuntimeEventAttribute extends types.RuntimeEventAttribute {}
+  interface RuntimePallet extends types.RuntimePallet {}
+  interface RuntimeStorage extends types.RuntimeStorage {}
+  interface Log extends types.Log {}
+  interface TaggedAccount extends types.TaggedAccount {}
 }
