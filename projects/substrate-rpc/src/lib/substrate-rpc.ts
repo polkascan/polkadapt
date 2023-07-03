@@ -48,6 +48,7 @@ import { getRuntimeCall, getRuntimeCalls } from './web-socket/runtime-call.funct
 import { getRuntimeEvent, getRuntimeEvents } from './web-socket/runtime-event.functions';
 import { getRuntime } from './web-socket/runtime.functions';
 import { getRuntimeStorage, getRuntimeStorages } from './web-socket/runtime-storage.functions';
+import { getRuntimeErrorMessage, getRuntimeErrorMessages } from './web-socket/runtime-error-message.functions';
 
 export type Api = {
   getChainProperties: () => Observable<types.ChainProperties>;
@@ -78,6 +79,8 @@ export type Api = {
   getRuntimeEvents: (specName: string, specVersion: number, pallet?: string) => Observable<types.RuntimeEvent[]>;
   getRuntimeStorage: (specName: string, specVersion: number, pallet: string, storageName: string) => Observable<types.RuntimeStorage>;
   getRuntimeStorages: (specName: string, specVersion: number, pallet?: string) => Observable<types.RuntimeStorage[]>;
+  getRuntimeErrorMessage: (specName: string, specVersion: number, pallet: string, errorName: string) => Observable<types.RuntimeErrorMessage>;
+  getRuntimeErrorMessages: (specName: string, specVersion: number, pallet?: string) => Observable<types.RuntimeErrorMessage[]>;
 };
 
 export interface Config {
@@ -150,7 +153,9 @@ export class Adapter extends AdapterBase {
       getRuntimeEvent: getRuntimeEvent(this),
       getRuntimeEvents: getRuntimeEvents(this),
       getRuntimeStorage: getRuntimeStorage(this),
-      getRuntimeStorages: getRuntimeStorages(this)
+      getRuntimeStorages: getRuntimeStorages(this),
+      getRuntimeErrorMessage: getRuntimeErrorMessage(this),
+      getRuntimeErrorMessages: getRuntimeErrorMessages(this)
     };
   }
 

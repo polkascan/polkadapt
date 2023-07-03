@@ -172,3 +172,13 @@ export type RuntimeStorage = {
   isLinked: boolean;
   documentation: string | null;
 }>;
+
+export type RuntimeErrorMessage = {
+  specName: string;
+  specVersion: number;
+  pallet: string;
+  errorName: string;
+  palletIdx?: number;
+  errorIdx: number;
+  documentation: string | null;
+};
