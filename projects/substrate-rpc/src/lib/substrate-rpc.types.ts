@@ -152,3 +152,23 @@ export type RuntimeEvent = {
   documentation: string | null;
   countAttributes: number;
 };
+
+export type RuntimeStorage = {
+  specName: string;
+  specVersion: number;
+  pallet: string;
+  storageName: string;
+} & Partial<{
+  palletStorageIdx: number;
+  default: string | null;
+  modifier: string | null;
+  keyPrefixPallet: string | null;
+  keyPrefixName: string | null;
+  key1ScaleType: string | null;
+  key1Hasher: string | null;
+  key2ScaleType: string | null;
+  key2Hasher: string | null;
+  valueScaleType: string | null;
+  isLinked: boolean;
+  documentation: string | null;
+}>;

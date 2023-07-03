@@ -36,5 +36,6 @@ declare module '@polkadapt/core/augmented-types' {
   interface RuntimePallet extends types.RuntimePallet {}
   interface RuntimeCall extends types.RuntimeCall {}
   interface RuntimeEvent extends types.RuntimeEvent {}
+  interface RuntimeStorage extends types.RuntimeStorage {}
 }
 export * as types from './lib/substrate-rpc.types';
