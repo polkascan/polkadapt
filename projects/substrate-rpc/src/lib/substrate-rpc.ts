@@ -48,6 +48,7 @@ import { getRuntimeCall, getRuntimeCalls } from './web-socket/runtime-call.funct
 import { getRuntimeEvent, getRuntimeEvents } from './web-socket/runtime-event.functions';
 import { getRuntime } from './web-socket/runtime.functions';
 import { getRuntimeStorage, getRuntimeStorages } from './web-socket/runtime-storage.functions';
+import { getRuntimeConstant, getRuntimeConstants } from './web-socket/runtime-constant.functions';
 import { getRuntimeErrorMessage, getRuntimeErrorMessages } from './web-socket/runtime-error-message.functions';
 
 export type Api = {
@@ -79,7 +80,12 @@ export type Api = {
   getRuntimeEvents: (specName: string, specVersion: number, pallet?: string) => Observable<types.RuntimeEvent[]>;
   getRuntimeStorage: (specName: string, specVersion: number, pallet: string, storageName: string) => Observable<types.RuntimeStorage>;
   getRuntimeStorages: (specName: string, specVersion: number, pallet?: string) => Observable<types.RuntimeStorage[]>;
-  getRuntimeErrorMessage: (specName: string, specVersion: number, pallet: string, errorName: string) => Observable<types.RuntimeErrorMessage>;
+  getRuntimeConstant: (specName: string, specVersion: number, pallet: string, constantName: string) =>
+    Observable<types.RuntimeConstant>;
+  getRuntimeConstants: (specName: string, specVersion: number, pallet?: string) =>
+    Observable<types.RuntimeConstant[]>;
+  getRuntimeErrorMessage: (specName: string, specVersion: number, pallet: string, errorName: string) =>
+    Observable<types.RuntimeErrorMessage>;
   getRuntimeErrorMessages: (specName: string, specVersion: number, pallet?: string) => Observable<types.RuntimeErrorMessage[]>;
 };
 
@@ -154,6 +160,8 @@ export class Adapter extends AdapterBase {
       getRuntimeEvents: getRuntimeEvents(this),
       getRuntimeStorage: getRuntimeStorage(this),
       getRuntimeStorages: getRuntimeStorages(this),
+      getRuntimeConstant: getRuntimeConstant(this),
+      getRuntimeConstants: getRuntimeConstants(this),
       getRuntimeErrorMessage: getRuntimeErrorMessage(this),
       getRuntimeErrorMessages: getRuntimeErrorMessages(this)
     };

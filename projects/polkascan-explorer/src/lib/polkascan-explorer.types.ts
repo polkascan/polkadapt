@@ -172,7 +172,7 @@ export type RuntimeConstant = {
   specName: string;  // PK
   specVersion: number;  // PK
   pallet: string;  // PK
-  constantName: string | null;  // PK
+  constantName: string;  // PK
   palletConstantIdx: number;
   scaleType: string | null;
   scaleTypeComposition: string | null;
