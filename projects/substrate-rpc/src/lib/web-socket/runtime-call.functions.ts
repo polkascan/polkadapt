@@ -19,7 +19,6 @@
 import { types } from '@polkadapt/core';
 import { map, Observable } from 'rxjs';
 import { Adapter } from '../substrate-rpc';
-import { RuntimeCall } from '../substrate-rpc.types';
 import { getMetadataForSpecVersion } from './helpers';
 
 const identifiers = ['specName', 'specVersion', 'pallet'];
@@ -27,8 +26,9 @@ const identifiers = ['specName', 'specVersion', 'pallet'];
 export const getRuntimeCalls = (adapter: Adapter) => {
   const fn = (specName: string, specVersion: number, pallet?: string): Observable<types.RuntimeCall[]> =>
     getMetadataForSpecVersion(adapter, specName, specVersion).pipe(
-      map(metadata => {
-        const runtimeCalls: RuntimeCall[] = [];
+      map(data => {
+        const metadata = data[1];
+        const runtimeCalls: types.RuntimeCall[] = [];
         const metadataTypes = metadata.asLatest.lookup.types.toArray();
         for (const p of metadata.asLatest.pallets) {
           if (pallet && p.name.toString() !== pallet) {

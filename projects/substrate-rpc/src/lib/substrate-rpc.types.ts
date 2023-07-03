@@ -104,6 +104,20 @@ export type AccountFlags = {
   isTechCommittee: boolean;
 };
 
+export type Runtime = {
+  specName: string;
+  specVersion: number;
+  implName: string | null;
+  implVersion: number | null;
+  authoringVersion: number | null;
+  countCallFunctions: number;
+  countEvents: number;
+  countPallets: number;
+  countStorageFunctions: number;
+  countConstants: number;
+  countErrors: number;
+};
+
 export type RuntimePallet = {
   specName: string;
   specVersion: number;

@@ -17,45 +17,65 @@
  */
 
 import { Adapter } from '../substrate-rpc';
-import { from, Observable, switchMap } from 'rxjs';
+import { combineLatest, from, Observable, of, switchMap, tap } from 'rxjs';
 import { Metadata } from '@polkadot/types';
+import { RuntimeVersion } from '@polkadot/types/interfaces';
 
-export const getMetadataForSpecVersion = (adapter: Adapter, specName: string, specVersion: number): Observable<Metadata> =>
-  from(adapter.apiPromise).pipe(
-    switchMap(api =>
-      api.rpc.chain.getHeader().pipe(
-        switchMap(latestHeader => {
-          const latestBlockNumber = latestHeader.number.toNumber();
-          let left = 0;
-          let right = latestBlockNumber;
+type MetadataCache = {
+  [specName: string]: {
+    [specVersion: string]: [RuntimeVersion, Metadata];
+  };
+};
 
-          const binarySearch = (): Observable<Metadata> => {
-            if (left > right) {
-              throw new Error('Spec version not found');
-            }
-            const mid = Math.floor((left + right) / 2);
+const metadataCache: MetadataCache = {};
 
-            return api.rpc.chain.getBlockHash(mid).pipe(
-              switchMap(blockHash =>
-                api.rpc.state.getRuntimeVersion(blockHash).pipe(
-                  switchMap(runtimeVersion => {
-                    if (runtimeVersion.specName.toString() !== specName || runtimeVersion.specVersion.toNumber() < specVersion) {
-                      left = mid + 1;
-                      return binarySearch();
-                    } else if (runtimeVersion.specName.toString() === specName && runtimeVersion.specVersion.toNumber() > specVersion) {
-                      right = mid - 1;
-                      return binarySearch();
-                    } else {
-                      return api.rpc.state.getMetadata(blockHash);
-                    }
-                  })
-                )
-              )
-            );
-          };
+export const getMetadataForSpecVersion =
+  (adapter: Adapter, specName: string, specVersion: number): Observable<[RuntimeVersion, Metadata]> =>
+    (metadataCache[specName] && metadataCache[specName][specVersion])
+      ? of(metadataCache[specName][specVersion])
+      : from(adapter.apiPromise).pipe(
+        switchMap(api =>
+          api.rpc.chain.getHeader().pipe(
+            switchMap(latestHeader => {
+              const latestBlockNumber = latestHeader.number.toNumber();
+              let left = 0;
+              let right = latestBlockNumber;
 
-          return binarySearch();
-        })
-      )
-    )
-  );
+              const binarySearch = (): Observable<[RuntimeVersion, Metadata]> => {
+                if (left > right) {
+                  throw new Error('Spec version not found');
+                }
+                const mid = Math.floor((left + right) / 2);
+
+                return api.rpc.chain.getBlockHash(mid).pipe(
+                  switchMap(blockHash =>
+                    api.rpc.state.getRuntimeVersion(blockHash).pipe(
+                      switchMap(runtimeVersion => {
+                        if (runtimeVersion.specName.toString() !== specName || runtimeVersion.specVersion.toNumber() < specVersion) {
+                          left = mid + 1;
+                          return binarySearch();
+                        } else if (runtimeVersion.specName.toString() === specName && runtimeVersion.specVersion.toNumber() > specVersion) {
+                          right = mid - 1;
+                          return binarySearch();
+                        } else {
+                          if (!metadataCache[specName]) {
+                            metadataCache[specName] = {};
+                          }
+                          return combineLatest([
+                            of(runtimeVersion),
+                            api.rpc.state.getMetadata(blockHash).pipe(tap(metadata => {
+                              metadataCache[specName][specVersion] = [runtimeVersion, metadata];
+                            }))
+                          ]);
+                        }
+                      })
+                    )
+                  )
+                );
+              };
+
+              return binarySearch();
+            })
+          )
+        )
+      );

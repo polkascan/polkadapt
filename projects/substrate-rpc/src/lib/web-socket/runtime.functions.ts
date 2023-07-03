@@ -21,14 +21,25 @@ import { map, Observable } from 'rxjs';
 import { Adapter } from '../substrate-rpc';
 import { getMetadataForSpecVersion } from './helpers';
 
-const identifiers = ['specName', 'specVersion', 'pallet'];
+const identifiers = ['specName', 'specVersion'];
 
-export const getRuntimePallets = (adapter: Adapter) => {
-  const fn = (specName: string, specVersion: number): Observable<types.RuntimePallet[]> =>
+export const getRuntime = (adapter: Adapter) => {
+  const fn = (specName: string, specVersion: number): Observable<types.Runtime> =>
     getMetadataForSpecVersion(adapter, specName, specVersion).pipe(
-      map(data => {
-        const metadata = data[1];
-        const runtimePallets: types.RuntimePallet[] = [];
+      map(([runtimeVersion, metadata]) => {
+        const runtime: types.Runtime = {
+          specName,
+          specVersion,
+          implName: runtimeVersion.implName.toString(),
+          implVersion: runtimeVersion.implVersion.toNumber(),
+          authoringVersion: runtimeVersion.authoringVersion.toBn().toNumber(),
+          countCallFunctions: 0,
+          countEvents: 0,
+          countPallets: 0,
+          countStorageFunctions: 0,
+          countConstants: 0,
+          countErrors: 0
+        };
         const metadataTypes = metadata.asLatest.lookup.types.toArray();
         for (const p of metadata.asLatest.pallets) {
           const calls = p.calls.value.type ?
@@ -37,39 +48,16 @@ export const getRuntimePallets = (adapter: Adapter) => {
             metadataTypes[p.events.value.type.toNumber()].type.def.asVariant.variants.length : 0;
           const errors = p.errors.value.type ?
             metadataTypes[p.errors.value.type.toNumber()].type.def.asVariant.variants.length : 0;
-          runtimePallets.push({
-            specName,
-            specVersion,
-            pallet: p.name.toString(),
-            prefix: p.name.toString(),
-            name: p.name.toString(),
-            countCallFunctions: calls,
-            countStorageFunctions: p.storage.value.items?.length || 0,
-            countEvents: events,
-            countConstants: p.constants.length,
-            countErrors: errors
-          });
+          runtime.countPallets += 1;
+          runtime.countCallFunctions += calls;
+          runtime.countEvents += events;
+          runtime.countErrors += errors;
+          runtime.countStorageFunctions += p.storage.value.items?.length || 0;
+          runtime.countConstants += p.constants.length;
         }
-        runtimePallets.sort((a, b) => a.pallet.localeCompare(b.pallet));
-        return runtimePallets;
+        return runtime;
       })
     );
   fn.identifiers = identifiers;
   return fn;
 };
-
-export const getRuntimePallet = (adapter: Adapter) => {
-  const fn = (specName: string, specVersion: number, pallet: string): Observable<types.RuntimePallet> =>
-    getRuntimePallets(adapter)(specName, specVersion).pipe(
-      map(pallets => {
-        const runtimePallet = pallets.find(p => p.name === pallet);
-        if (!runtimePallet) {
-          throw new Error('Pallet not found');
-        }
-        return runtimePallet;
-      })
-    );
-  fn.identifiers = identifiers;
-  return fn;
-};
-

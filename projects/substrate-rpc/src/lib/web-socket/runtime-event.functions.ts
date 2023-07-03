@@ -19,7 +19,6 @@
 import { types } from '@polkadapt/core';
 import { map, Observable } from 'rxjs';
 import { Adapter } from '../substrate-rpc';
-import { RuntimeEvent } from '../substrate-rpc.types';
 import { getMetadataForSpecVersion } from './helpers';
 
 const identifiers = ['specName', 'specVersion', 'pallet'];
@@ -27,8 +26,9 @@ const identifiers = ['specName', 'specVersion', 'pallet'];
 export const getRuntimeEvents = (adapter: Adapter) => {
   const fn = (specName: string, specVersion: number, pallet?: string): Observable<types.RuntimeEvent[]> =>
     getMetadataForSpecVersion(adapter, specName, specVersion).pipe(
-      map(metadata => {
-        const runtimeEvents: RuntimeEvent[] = [];
+      map(data => {
+        const metadata = data[1];
+        const runtimeEvents: types.RuntimeEvent[] = [];
         const metadataTypes = metadata.asLatest.lookup.types.toArray();
         for (const p of metadata.asLatest.pallets) {
           if (pallet && p.name.toString() !== pallet) {
