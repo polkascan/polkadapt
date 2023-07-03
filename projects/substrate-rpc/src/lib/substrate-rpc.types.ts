@@ -164,11 +164,21 @@ export type RuntimeEvent = {
   countAttributes: number;
 };
 
+export type RuntimeEventAttribute = {
+  specName: string;
+  specVersion: number;
+  pallet: string;
+  eventName: string;
+  eventAttributeName: string;
+  scaleType: string | null;
+  scaleTypeComposition: string | null;
+};
+
 export type RuntimeConstant = {
-  specName: string;  // PK
-  specVersion: number;  // PK
-  pallet: string;  // PK
-  constantName: string;  // PK
+  specName: string;
+  specVersion: number;
+  pallet: string;
+  constantName: string;
   palletConstantIdx: number;
   scaleType: string | null;
   scaleTypeComposition: string | null;
