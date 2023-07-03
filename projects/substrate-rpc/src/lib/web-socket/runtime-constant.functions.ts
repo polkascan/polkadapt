@@ -44,8 +44,8 @@ export const getRuntimeConstants = (adapter: Adapter) => {
               pallet: p.name.toString(),
               constantName: c.name.toString(),
               palletConstantIdx: i,
-              scaleType: c.type.toString(), //c.type.isEmpty ? null : c.type.toNumber(),   "scale_info::4"
-              scaleTypeComposition: JSON.stringify(getSiName(c.registry.lookup, c.type)),
+              scaleType: c.type.toString(),
+              scaleTypeComposition: JSON.stringify(getSiName(registry.lookup, c.type)),
               value: value.toString(),
               documentation: c.docs.join('')
             });

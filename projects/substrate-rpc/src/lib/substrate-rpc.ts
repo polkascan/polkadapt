@@ -50,6 +50,7 @@ import { getRuntime } from './web-socket/runtime.functions';
 import { getRuntimeStorage, getRuntimeStorages } from './web-socket/runtime-storage.functions';
 import { getRuntimeConstant, getRuntimeConstants } from './web-socket/runtime-constant.functions';
 import { getRuntimeErrorMessage, getRuntimeErrorMessages } from './web-socket/runtime-error-message.functions';
+import { getRuntimeCallArguments } from './web-socket/runtime-call-arguments.functions';
 
 export type Api = {
   getChainProperties: () => Observable<types.ChainProperties>;
@@ -76,6 +77,8 @@ export type Api = {
   getRuntimePallets: (specName: string, specVersion: number) => Observable<types.RuntimePallet[]>;
   getRuntimeCall: (specName: string, specVersion: number, pallet: string, callName: string) => Observable<types.RuntimeCall>;
   getRuntimeCalls: (specName: string, specVersion: number, pallet?: string) => Observable<types.RuntimeCall[]>;
+  getRuntimeCallArguments: (specName: string, specVersion: number, pallet: string, callName: string) =>
+    Observable<types.RuntimeCallArgument[]>;
   getRuntimeEvent: (specName: string, specVersion: number, pallet: string, eventName: string) => Observable<types.RuntimeEvent>;
   getRuntimeEvents: (specName: string, specVersion: number, pallet?: string) => Observable<types.RuntimeEvent[]>;
   getRuntimeStorage: (specName: string, specVersion: number, pallet: string, storageName: string) => Observable<types.RuntimeStorage>;
@@ -156,6 +159,7 @@ export class Adapter extends AdapterBase {
       getRuntimePallets: getRuntimePallets(this),
       getRuntimeCall: getRuntimeCall(this),
       getRuntimeCalls: getRuntimeCalls(this),
+      getRuntimeCallArguments: getRuntimeCallArguments(this),
       getRuntimeEvent: getRuntimeEvent(this),
       getRuntimeEvents: getRuntimeEvents(this),
       getRuntimeStorage: getRuntimeStorage(this),

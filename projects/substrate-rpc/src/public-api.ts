@@ -35,6 +35,7 @@ declare module '@polkadapt/core/augmented-types' {
   interface Runtime extends types.Runtime {}
   interface RuntimePallet extends types.RuntimePallet {}
   interface RuntimeCall extends types.RuntimeCall {}
+  interface RuntimeCallArgument extends types.RuntimeCallArgument {}
   interface RuntimeEvent extends types.RuntimeEvent {}
   interface RuntimeStorage extends types.RuntimeStorage {}
   interface RuntimeConstant extends types.RuntimeConstant {}

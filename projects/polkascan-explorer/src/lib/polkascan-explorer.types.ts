@@ -161,7 +161,7 @@ export type RuntimeCallArgument = {
   specVersion: number;  // PK
   pallet: string;  // PK
   callName: string;  // PK
-  callArgumentIdx: number | null;  // PK
+  callArgumentIdx: number;  // PK
   name: string | null;
   scaleType: string | null;
   scaleTypeComposition: string | null;

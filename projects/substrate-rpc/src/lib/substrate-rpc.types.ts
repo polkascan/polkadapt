@@ -142,6 +142,17 @@ export type RuntimeCall = {
   countArguments: number;
 };
 
+export type RuntimeCallArgument = {
+  specName: string;  // PK
+  specVersion: number;  // PK
+  pallet: string;  // PK
+  callName: string;  // PK
+  callArgumentIdx: number;  // PK
+  name: string | null;
+  scaleType: string | null;
+  scaleTypeComposition: string | null;
+};
+
 export type RuntimeEvent = {
   specName: string;
   specVersion: number;
