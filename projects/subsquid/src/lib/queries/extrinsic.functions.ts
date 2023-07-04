@@ -28,7 +28,7 @@ export type ArchiveExtrinsicInput = {
   call: {
     id: string;
     name: string;
-    args: string;
+    args: { [k: string]: any };
   };
 };
 
@@ -82,7 +82,7 @@ export type GSExplorerExtrinsicInput = {
     hash: string;
   };
   mainCall: {
-    argsStr: string | null;
+    argsStr: { [k: string]: any };
     callName: string;
     palletName: string;
     callerPublicKey: string | null;

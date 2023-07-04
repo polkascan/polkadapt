@@ -90,7 +90,7 @@ export type GSExplorerEventInput = {
     indexInBlock: number;
   };
   call: {
-    argsStr: string;
+    argsStr: { [k: string]: any };
   };
 };
 
@@ -420,7 +420,7 @@ export const getEventsBase = (
           eventModule: (event as GSExplorerEventInput).palletName || splittenName && splittenName[0],
           eventName: (event as GSExplorerEventInput).eventName || splittenName && splittenName[1],
           attributes: (event as ArchiveEventInput).args
-            ? JSON.stringify((event as ArchiveEventInput).args)
+            ? (event as ArchiveEventInput).args
             : (event as GSExplorerEventInput).call.argsStr,
           blockDatetime: (event as GSExplorerEventInput).timestamp || (event as ArchiveEventInput).block?.timestamp,
           blockHash: event.block.hash,

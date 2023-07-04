@@ -80,7 +80,7 @@ export type Event = {
   event?: string | null;
   eventModule: string | null;   // is pallet / palletName
   eventName: string | null;
-  attributes: string | null;
+  attributes: { [k: string]: any } | null;
   blockDatetime: string | null;
   blockHash: string;
   eventPhaseName: string | null;
@@ -108,7 +108,7 @@ export type Extrinsic = {
   version: number | null;
   callModule: string | null;
   callName: string | null;
-  callArguments: string | null;
+  callArguments: { [k: string]: any } | null;
   signed: number | null;
   multiAddressAccountId: string | null;
   signature: string | null;
