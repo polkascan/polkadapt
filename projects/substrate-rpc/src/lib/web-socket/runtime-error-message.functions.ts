@@ -21,7 +21,7 @@ import { map, Observable } from 'rxjs';
 import { Adapter } from '../substrate-rpc';
 import { getMetadataForSpecVersion } from './helpers';
 
-const identifiers = ['specName', 'specVersion', 'pallet', 'errorName'];
+const identifiers = ['specName', 'specVersion', 'pallet', 'errorName', 'errorIdx'];
 
 export const getRuntimeErrorMessages = (adapter: Adapter) => {
   const fn = (specName: string, specVersion: number, pallet?: string): Observable<types.RuntimeErrorMessage[]> =>

@@ -22,7 +22,7 @@ import { Adapter } from '../substrate-rpc';
 import { getMetadataForSpecVersion } from './helpers';
 import { getSiName } from '@polkadot/types/metadata/util';
 
-const identifiers = ['specName', 'specVersion', 'pallet', 'constantName'];
+const identifiers = ['specName', 'specVersion', 'pallet', 'constantName', 'palletConstantIdx'];
 
 export const getRuntimeConstants = (adapter: Adapter) => {
   const fn = (specName: string, specVersion: number, pallet?: string): Observable<types.RuntimeConstant[]> =>

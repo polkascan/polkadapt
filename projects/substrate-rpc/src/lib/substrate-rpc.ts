@@ -241,7 +241,7 @@ export class Adapter extends AdapterBase {
     await this.isConnected;
   }
 
-  async disconnect(isError: boolean = false) {
+  async disconnect(isError = false) {
     // If the promise is still unresolved, we can re-use it for the new connection.
     if (!this.resolvePromise) {
       // But it was already resolved, so we need to reset it.

@@ -21,7 +21,7 @@ import { map, Observable } from 'rxjs';
 import { Adapter } from '../substrate-rpc';
 import { getMetadataForSpecVersion } from './helpers';
 
-const identifiers = ['specName', 'specVersion', 'pallet'];
+const identifiers = ['specName', 'specVersion', 'pallet', 'eventName', 'palletEventIdx'];
 
 export const getRuntimeEvents = (adapter: Adapter) => {
   const fn = (specName: string, specVersion: number, pallet?: string): Observable<types.RuntimeEvent[]> =>

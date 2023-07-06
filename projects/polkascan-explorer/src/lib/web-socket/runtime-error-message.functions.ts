@@ -39,7 +39,7 @@ const runtimeErrorMessageFields: (keyof pst.RuntimeErrorMessage)[] = [
   'documentation'
 ];
 
-const identifiers = ['specName', 'specVersion', 'pallet', 'errorName', 'palletIdx'];
+const identifiers = ['specName', 'specVersion', 'pallet', 'errorName', 'errorIdx'];
 
 
 export const getRuntimeErrorMessage = (adapter: Adapter) => {

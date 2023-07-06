@@ -190,6 +190,7 @@ export class Polkadapt<T> {
     // in order to get information from the adapters.
     const proxy: () => void = new Proxy(
       () => {
+        // Just a target function.
       },
       {
         get: (obj, prop) => {

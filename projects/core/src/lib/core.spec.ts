@@ -69,7 +69,7 @@ class TestAdapterBase extends AdapterBase {
     const newArrayFromBoth = interval(this.timeout).pipe(
       delay(this.letter === 'a' ? 0 : 50),
       map((i) => {
-        const arr: { [p: string]: any }[] = [{id: i + 1}, {id: i + 2}, {
+        const arr: { [p: string]: unknown }[] = [{id: i + 1}, {id: i + 2}, {
           id: i + 3,
           nested: {isThisA: (this.letter === 'a')}
         }];
@@ -86,11 +86,11 @@ class TestAdapterBase extends AdapterBase {
               conflicted: this.letter,
             }
           };
-          (obj.nested as { [p: string]: any })[this.letter] = true;
+          (obj.nested as { [p: string]: unknown })[this.letter] = true;
           return of(obj);
         },
         arrayFromBoth: () => {
-          const arr: { [p: string]: any }[] = [{id: 1}, {id: 2}, {id: 3, nested: {isThisA: (this.letter === 'a')}}];
+          const arr: { [p: string]: unknown }[] = [{id: 1}, {id: 2}, {id: 3, nested: {isThisA: (this.letter === 'a')}}];
           arr[0][this.letter] = true;
           arr[1][this.letter] = false;
           return of(arr).pipe(delay(this.letter === 'a' ? 0 : this.timeout));
@@ -106,7 +106,7 @@ class TestAdapterBase extends AdapterBase {
                 conflicted: this.letter + i.toString(),
               }
             };
-            (obj.nested as { [p: string]: any })[this.letter] = i;
+            (obj.nested as { [p: string]: unknown })[this.letter] = i;
             return obj;
           })
         ),

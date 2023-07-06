@@ -39,7 +39,7 @@ const runtimeCallFields: (keyof pst.RuntimeCall)[] = [
   'countArguments'
 ];
 
-const identifiers = ['specName', 'specVersion', 'pallet', 'callName'];
+const identifiers = ['specName', 'specVersion', 'pallet', 'callName', 'palletCallIdx'];
 
 
 export const getRuntimeCall = (adapter: Adapter) => {
