@@ -17,7 +17,7 @@
  */
 
 import { AdapterApiCallWithIdentifiers, AdapterBase, types } from '@polkadapt/core';
-import { map, Observable, switchMap } from 'rxjs';
+import { EMPTY, map, Observable, switchMap } from 'rxjs';
 import {
   getBlock,
   getBlocks,
@@ -64,11 +64,11 @@ export type Api = {
 
 export type Config = {
   chain: string;
-  archiveUrl: string;
-  explorerUrl: string;
-  giantSquidExplorerUrl: string;
-  giantSquidMainUrl: string;
-  balancesUrl: string;
+  archiveUrl?: string;
+  explorerUrl?: string;
+  giantSquidExplorerUrl?: string;
+  giantSquidMainUrl?: string;
+  balancesUrl?: string;
 };
 
 type CreateQueryArgs = [contentType: string, fields: Fields, where?: Where, orderBy?: string, limit?: number, offset?: number];
@@ -116,23 +116,38 @@ export class Adapter extends AdapterBase {
   }
 
   queryArchive<T>(...args: CreateQueryArgs): Observable<T> {
-    return this.requestQuery<T>(this.config.archiveUrl, ...args);
+    if (this.config.archiveUrl) {
+      return this.requestQuery<T>(this.config.archiveUrl, ...args);
+    }
+    return EMPTY;
   }
 
   queryExplorer<T>(...args: CreateQueryArgs): Observable<T> {
-    return this.requestQuery<T>(this.config.explorerUrl, ...args);
+    if (this.config.explorerUrl) {
+      return this.requestQuery<T>(this.config.explorerUrl, ...args);
+    }
+    return EMPTY;
   }
 
   queryGSExplorer<T>(...args: CreateQueryArgs): Observable<T> {
-    return this.requestQuery<T>(this.config.giantSquidExplorerUrl, ...args);
+    if (this.config.giantSquidExplorerUrl) {
+      return this.requestQuery<T>(this.config.giantSquidExplorerUrl, ...args);
+    }
+    return EMPTY;
   }
 
   queryGSMain<T>(...args: CreateQueryArgs): Observable<T> {
-    return this.requestQuery<T>(this.config.giantSquidMainUrl, ...args);
+    if (this.config.giantSquidMainUrl) {
+      return this.requestQuery<T>(this.config.giantSquidMainUrl, ...args);
+    }
+    return EMPTY;
   }
 
   queryBalances<T>(...args: CreateQueryArgs): Observable<T> {
-    return this.requestQuery<T>(this.config.balancesUrl, ...args);
+    if (this.config.balancesUrl) {
+      return this.requestQuery<T>(this.config.balancesUrl, ...args);
+    }
+    return EMPTY;
   }
 
   private formatFields(fields: Fields, indent = ''): string {
