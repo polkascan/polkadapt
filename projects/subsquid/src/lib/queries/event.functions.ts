@@ -613,7 +613,9 @@ export const getEventsByAccount = (adapter: Adapter) => {
       map<types.Event[], types.AccountEvent[]>((events) => {
           const accountEvents = events
             .map((event) => {
-                const attributes: unknown = isString(event.attributes) ? JSON.parse(event.attributes) : event;
+                const attributes: unknown = isString(event.attributes)
+                  ? JSON.parse(event.attributes)
+                  : event.attributes;
                 if (isObject(attributes)) {
                   const attributeName = Object.keys(attributes)
                     .find(key => (attributes as { [k: string]: unknown })[key] === accountIdHex);
@@ -651,7 +653,9 @@ export const subscribeNewEventByAccount = (adapter: Adapter) => {
   const fn = (accountIdHex: string, filters?: AccountEventsFilters) =>
     subscribeNewEventBase(adapter)(filters, accountIdHex).pipe(
       map((event) => {
-          const attributes: unknown = isString(event.attributes) ? JSON.parse(event.attributes) : event;
+          const attributes: unknown = isString(event.attributes)
+            ? JSON.parse(event.attributes)
+            : event.attributes;
           if (isObject(attributes)) {
             const attributeName = Object.keys(attributes)
               .find(key => (attributes as { [k: string]: unknown })[key] === accountIdHex);
