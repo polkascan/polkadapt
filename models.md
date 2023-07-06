@@ -15,30 +15,40 @@
 | countExtrinsics      | number        |
 | countEvents          | number        |
 | countLogs            | number        |
+| countCalls           | number        |
 | totalFee             | number / null |
 | totalFeeTreasury     | number / null |
 | totalFeeBlockAuthor  | number / null |
 | specName             | string        |
 | specVersion          | number        |
 | complete             | number        |
+| extrinsics           | Extrinsic[]   |
+| events               | Event[]       |
 
-| Event          |               |
-|----------------|---------------|
-| blockNumber    | number        |
-| eventIdx       | number        |
-| extrinsicIdx   | number / null |
-| event          | string / null |
-| eventModule    | string / null |
-| eventName      | string / null |
-| eventPhaseIdx  | number / null |
-| eventPhaseName | string / null |
-| attributes     | string / null |
-| topics         | string / null |
-| blockDatetime  | string / null |
-| blockHash      | string        |
-| specName       | string / null |
-| specVersion    | number / null |
-| complete       | number        |
+| Header         |        |
+|----------------|--------|
+| number         | number |
+| parentHast     | string |
+| stateRoot      | string |
+| extrinsicsRoot | string |
+
+| Event          |                        |
+|----------------|------------------------|
+| blockNumber    | number                 |
+| eventIdx       | number                 |
+| extrinsicIdx   | number / null          |
+| event          | string / null          |
+| eventModule    | string / null          |
+| eventName      | string / null          |
+| eventPhaseIdx  | number / null          |
+| eventPhaseName | string / null          |
+| attributes     | string / object / null |
+| topics         | string / null          |
+| blockDatetime  | string / null          |
+| blockHash      | string                 |
+| specName       | string / null          |
+| specVersion    | number / null          |
+| complete       | number                 |
 
 | AccountEvent  |               |
 |---------------|---------------|
@@ -53,47 +63,95 @@
 | sortValue     | number / null |
 | extrinsicIdx  | number / null |
 
-| Extrinsic                |               |
-|--------------------------|---------------|
-| blockNumber              | number        |
-| extrinsicIdx             | number        |
-| hash                     | string / null |
-| version                  | number / null |
-| versionInfo              | number / null |
-| call                     | number / null |
-| callModule               | string / null |
-| callName                 | string / null |
-| callArguments            | string / null |
-| callHash                 | string / null |
-| signed                   | number / null |
-| multiAddressType         | string / null |
-| multiAddressAccountId    | string / null |
-| multiAddressAccountIndex | number / null |
-| multiAddressRaw          | string / null |
-| multiAddressAddress32    | string / null |
-| multiAddressAddress20    | string / null |
-| signature                | string / null |
-| signatureVersion         | number / null |
-| extrinsicLength          | number / null |
-| nonce                    | number / null |
-| era                      | string / null |
-| eraImmortal              | number / null |
-| eraBirth                 | number / null |
-| eraDeath                 | number / null |
-| feeTotal                 | number / null |
-| feeTreasury              | number / null |
-| feeBlockAuthor           | number / null |
-| tip                      | number / null |
-| weight                   | number / null |
-| errorModuleIdx           | number / null |
-| errorModule              | string / null |
-| errorNameIdx             | number / null |
-| errorName                | string / null |
-| blockDatetime            | string / null |
-| blockHash                | string / null |
-| specName                 | string / null |
-| specVersion              | number / null |
-| complete                 | number        |
+| Account |        |
+|---------|--------|
+| id      | string |
+| nonce   | number |
+| data    | object |
+
+| AccountJudgement |         |
+|------------------|---------|
+| isUnknown        | boolean |
+| isFeePaid        | boolean |
+| asFeePaid        | number  |
+| isReasonable     | boolean |
+| isKnownGood      | boolean |
+| isOutOfDate      | boolean |
+| isLowQuality     | boolean |
+| isErroneous      | boolean |
+| type             | string  |
+
+| AccountIdentity |                    |
+|-----------------|--------------------|
+| display         | string             |
+| displayParent   | string             |
+| email           | string             |
+| image           | string             |
+| legal           | string             |
+| other           | Record             |
+| parent          | string             |
+| pgp             | string             |
+| riot            | string             |
+| twitter         | string             |
+| web             | string             |
+| judgements      | AccountJudgement[] |
+
+| AccountInformation |                 |
+|--------------------|-----------------|
+| accountId          | string          |
+| accountIndex       | number          |
+| identity           | AccountIdentity |
+| nickname           | string          |
+
+| AccountFlags    |         |
+|-----------------|---------|
+| isCouncil       | boolean |
+| isSociety       | boolean |
+| isSudo          | boolean |
+| isTechCommittee | boolean |
+
+| Extrinsic                |                        |
+|--------------------------|------------------------|
+| blockNumber              | number                 |
+| extrinsicIdx             | number                 |
+| hash                     | string / null          |
+| version                  | number / null          |
+| versionInfo              | number / null          |
+| call                     | number / null          |
+| callModule               | string / null          |
+| callName                 | string / null          |
+| callArguments            | string / object / null |
+| callHash                 | string / null          |
+| signed                   | number / null          |
+| multiAddressType         | string / null          |
+| multiAddressAccountId    | string / null          |
+| multiAddressAccountIndex | number / null          |
+| multiAddressRaw          | string / null          |
+| multiAddressAddress32    | string / null          |
+| multiAddressAddress20    | string / null          |
+| signature                | string / null          |
+| signatureVersion         | number / null          |
+| extrinsicLength          | number / null          |
+| nonce                    | number / null          |
+| era                      | string / null          |
+| eraImmortal              | number / null          |
+| eraBirth                 | number / null          |
+| eraDeath                 | number / null          |
+| feeTotal                 | number / null          |
+| feeTreasury              | number / null          |
+| feeBlockAuthor           | number / null          |
+| tip                      | number / null          |
+| weight                   | number / null          |
+| error                    | string / null          |
+| errorModuleIdx           | number / null          |
+| errorModule              | string / null          |
+| errorNameIdx             | number / null          |
+| errorName                | string / null          |
+| blockDatetime            | string / null          |
+| blockHash                | string / null          |
+| specName                 | string / null          |
+| specVersion              | number / null          |
+| complete                 | number                 |
 
 | Runtime               |               |
 |-----------------------|---------------|
@@ -128,7 +186,7 @@
 | specVersion          | number        |
 | pallet               | string        |
 | callName             | string        |
-| callArgumentIdx      | number / null |
+| callArgumentIdx      | number        |
 | name                 | string / null |
 | scaleType            | string / null |
 | scaleTypeComposition | string / null |
@@ -138,7 +196,7 @@
 | specName             | string        |
 | specVersion          | number        |
 | pallet               | string        |
-| constantName         | string / null |
+| constantName         | string        |
 | palletConstantIdx    | number        |
 | scaleType            | string / null |
 | scaleTypeComposition | string / null |
@@ -231,3 +289,14 @@
 | riskLevelVerbose | string / null |
 | originatorInfo   | object / null |
 | beneficiaryInfo  | object / null |
+
+| ChainProperties |               |
+|-----------------|---------------|
+| chainSS58       | number        |
+| chainDecimals   | number[]      |
+| chainTokens     | string[]      |
+| name            | string        |
+| displayName     | string        |
+| systemName      | string        |
+| specName        | string / null |
+| blockTime       | number / null |

@@ -16,17 +16,6 @@
  * limitations under the License.
  */
 
-export type ListResponse<T> = {
-  objects: T[];
-  pageInfo?: {
-    pageSize: number;
-    pageNext: string;
-    pagePrev: string;
-    blockLimitOffset?: number;
-    blockLimitCount?: number;
-  };
-};
-
 export type ArchiveBlockOutput = {
   // eslint-disable-next-line id-blacklist
   number: number;  // PK

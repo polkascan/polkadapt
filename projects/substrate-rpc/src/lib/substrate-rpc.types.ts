@@ -47,8 +47,8 @@ export type Block = {
   countExtrinsics: number;
   countEvents: number;
   countLogs: number;
-  extrinsics: any[];  // TODO EXTRINSIC
-  events: any[];  // TODO EVENT
+  extrinsics: any[];
+  events: any[];
 };
 
 export type Account = {
