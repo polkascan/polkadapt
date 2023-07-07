@@ -4,16 +4,18 @@ PolkADAPT is an Augmented Data Application Protocol Technology that aims to be a
 
 > For example, you can get realtime data from a Kusama RPC node, augmented with indexed data from [Polkascan.io](https://polkascan.io/) and KSM-USD price information from a third party's API using the commands provided by the PolkADAPT system.
 
-PolkADAPT is a stand-alone library with no dependencies at its core. Use it in your browser-based or NodeJS application. It works with any application framework, such as React, Angular, Vue, etc.
+PolkADAPT is a stand-alone library, using RxJS data streams. Use it in your browser-based or NodeJS application. It works with any application framework, such as React, Angular, Vue, etc.
+
+Tip! Check out the [unit tests](https://github.com/polkascan/polkadapt/blob/main/projects/core/src/lib/core.spec.ts) for a complete overview of its capabilities.
 
 ## Generic installation instructions
 
 1. Add at least the following packages to your project's `package.json` "dependencies":
     ```json
     {
-      "@polkadapt/core": "^1.0.0",
-      "@polkadapt/substrate-rpc": "^1.0.0",
-      "@polkadot/api": "^7.3.1",
+      "@polkadapt/core": "^2.0.0",
+      "@polkadapt/substrate-rpc": "^2.0.0",
+      "@polkadot/api": "^10.9.1",
       "buffer": "^6.0.3",
       "crypto": "npm:crypto-browserify@^3.12.0",
       "stream": "npm:stream-browserify@^3.0.0"
@@ -22,15 +24,16 @@ PolkADAPT is a stand-alone library with no dependencies at its core. Use it in y
     If you wish, you can add more adapters to the list, e.g.:
     ```json
     {
-      "@polkadapt/polkascan-explorer": "^1.0.0",
-      "@polkadapt/coingecko": "^1.0.0"
+      "@polkadapt/polkascan-explorer": "^2.0.0",
+      "@polkadapt/subsquid": "^1.0.0",
+      "@polkadapt/coingecko": "^2.0.0"
     }
     ```
    
 2. Add the following to the `package.json` "devDependencies":
     ```json
     {
-        "@polkadot/types": "^7.3.1"
+        "@polkadot/types": "^10.9.1"
     }
     ```
 
@@ -60,41 +63,95 @@ PolkADAPT is a stand-alone library with no dependencies at its core. Use it in y
     (window as any).process = require('process');
     ```
 
-## Usage (example)
+## Usage
+
+The PolkADAPT library facilitates interaction with a Substrate network (e.g. Polkadot) and its various data providers. Below is an example demonstrating how to retrieve and process data using PolkADAPT.
 
 ```ts
+// Import PolkADAPT and various adapters from the respective packages
 import { Polkadapt } from '@polkadapt/core';
-import * as polkascanExplorer from '@polkadapt/polkascan-explorer';
 import * as substrate from '@polkadapt/substrate-rpc';
+import * as explorer from '@polkadapt/polkascan-explorer';
+import * as coingecko from '@polkadapt/coingecko';
+import * as subsquid from '@polkadapt/subsquid';
 
-// Merge the Api types from the adapters we want to use.
-type AugmentedApi = substrate.Api & polkascanExplorer.Api & currency.Api;
+// Merge the Api types from the adapters to create a comprehensive interface.
+type AugmentedApi = substrate.Api & explorer.Api & coingecko.Api & subsquid.Api;
 
-// Instantiate the adapters:
+// Define the chain name. This could be any string, but it should be consistent 
+// across all adapters.
+const chainName = 'whatever';
+
+// Instantiate the adapters using their respective constructors. 
+// Remember to replace the placeholders with your actual URLs.
 const adapters = [
   new substrate.Adapter({
-    chain: 'kusama',
-    providerURL: 'wss://kusama-rpc.polkadot.io'
+    chain: chainName,
+    providerURL: 'wss://your-substrate-rpc-node'
   }),
-  new polkascanExplorer.Adapter({
-    chain: 'kusama',
-    wsEndpoint: 'ws://host-xx.polkascan.io:8009/graphql-ws'
+  new explorer.Adapter({
+    chain: chainName,
+    wsEndpoint: 'wss://your-self-hosted-polkascan-explorer-api-host/graphql-ws'
+  }),
+  new coingecko.Adapter({
+    chain: chainName,
+    apiEndpoint: 'https://api.coingecko.com/api/v3/',
+    coinId: 'coingecko-coinId-for-this-chain'
+  }),
+  new subsquid.Adapter({
+    chain: chainName,
+    archiveUrl: 'https://polkadot.explorer.subsquid.io/graphql',
+    explorerUrl: 'https://squid.subsquid.io/polkadot-explorer/graphql',
+    giantSquidExplorerUrl: 'https://squid.subsquid.io/gs-explorer-polkadot/graphql',
+    giantSquidMainUrl: 'https://squid.subsquid.io/gs-main-polkadot/graphql',
+    balancesUrl: 'https://squid.subsquid.io/polkadot-balances/graphql'
   })
 ];
 
-// Instantiate PolkADAPT:
+// Instantiate PolkADAPT with the type as AugmentedApi.
 const api: Polkadapt<AugmentedApi> = new Polkadapt();
 
+// Register all the adapters with the api.
 api.register(...adapters);
 
-// Wait for any initialization to finish, 
-// e.g. Polkadot.js connecting to a Substrate node using a websocket:
-await api.ready();
-
-// Now we can run commands on PolkADAPT. These are basically Polkadot.js 
-// (ApiPromise) calls, augmented by the other adapters.
-
-// For example, the following call could return an augmented result,
-// containing data from both the Substrate node and Polkascan API:
-const account = await api.run('kusama').query.system.account('some input data');
+// Now you can execute commands on PolkADAPT. Check each adapter's API 
+// documentation for a list of available calls.
 ```
+
+PolkADAPT returns results in two modes:
+
+1.  **Observable results mode:** The API calls return an Observable for each individual item. Adapters implementing the API call will return their portion of the results, which will be used to augment each item. The item Observable will then emit the next iteration. For example, here is how you retrieve a single block and subscribe to its data:
+    ```ts
+    api.run().getBlock(123456).pipe(
+      switchMap(observableBlock => observableBlock) // Switch to the result Observable.
+    ).subscribe(block => {
+      // For every adapter that returns data for this block, the block data will be augmented
+      // and emitted to this result Observable. The Observable completes after all adapters have returned their data.
+      console.log('Next block iteration:', block);
+    });
+    ```
+    If the result of an API call is an Array of items, then it will be presented as an Array of Observables containing each item.
+    ```ts
+    api.run().getBlocksFrom(123456).pipe(
+      // Switch to a combination of all result Observables in the Array.
+      switchMap(obsBlocks => obsBlocks.length ? combineLatest(obsBlocks) : of([]))
+    ).subscribe(blocks => {
+      // As each adapter returns data for these blocks, the blocks are augmented and emitted.
+      console.log('Next iteration of the Array of blocks:', blocks);
+    });
+    ```
+
+2.  **Direct results mode:** If you don't want to deal with Observable result items, you can set `observableResults` to `false` when calling `run()`. The results will then be directly emitted. For example, here is how you can get a single block: 
+    ```ts
+    api.run({observableResults: false}).getBlock(123456).subscribe(block => {
+      console.log('Next block iteration:', block);
+    });
+    ```
+    For multiple items:
+    ```ts
+    api.run({observableResults: false}).getBlocksFrom(123456).subscribe(blocks => {
+        console.log('Next iteration of the Array of blocks:', blocks);
+    });
+    ```
+
+Remember to unsubscribe from Observables when you're done to prevent memory leaks.
