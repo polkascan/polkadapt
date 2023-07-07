@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 
-
 import { Adapter } from '../substrate-rpc';
 import { types } from '@polkadapt/core';
 import { AccountId32, AccountInfo, Balance, BalanceLock } from '@polkadot/types/interfaces';
@@ -24,9 +23,12 @@ import { catchError, combineLatest, from, map, Observable, of, switchMap, throwE
 import { bool, Data, Option, U32 } from '@polkadot/types';
 import { ITuple } from '@polkadot/types-codec/types';
 import { u128, Vec } from '@polkadot/types-codec';
-import { BN, u8aToString } from '@polkadot/util';
+import { BN as PolkadotBN, u8aToString } from '@polkadot/util';
+import { BN } from 'bn.js'
+import { DeriveStakingAccount } from '@polkadot/api-derive/types';
 
 const accountIdentifiers: string[] = ['id'];
+
 
 export const getAccountIdFromIndex = (adapter: Adapter) =>
   (index: number): Observable<string | null> => {
@@ -45,6 +47,7 @@ export const getAccountIdFromIndex = (adapter: Adapter) =>
       })
     );
   };
+
 
 export const getAccount = (adapter: Adapter) => {
   const fn = (accountId: string, blockHash?: string): Observable<types.Account> =>
@@ -73,12 +76,12 @@ export const getAccount = (adapter: Adapter) => {
             ),
             ((blockHash
               ? api.query.balances.freeBalance.at(blockHash, accountId)
-              : api.query.balances.freeBalance(accountId)) as Observable<BN>).pipe(
+              : api.query.balances.freeBalance(accountId)) as Observable<PolkadotBN>).pipe(
               catchError(() => of(null))
             ),
             ((blockHash
               ? api.query.balances.reservedBalance.at(blockHash, accountId)
-              : api.query.balances.reservedBalance(accountId)) as Observable<BN>).pipe(
+              : api.query.balances.reservedBalance(accountId)) as Observable<PolkadotBN>).pipe(
               catchError(() => of(null))
             )
           ).pipe(
@@ -89,14 +92,14 @@ export const getAccount = (adapter: Adapter) => {
               };
 
               if (free) {
-                account.data.free = free;
+                account.data.free = new BN(free.toString());
               }
               if (reserved) {
-                account.data.reserved = reserved;
+                account.data.reserved = new BN(reserved.toString());
               }
               if (locks && locks.length > 0) {
                 locks.sort((a, b) => b.amount.sub(a.amount).isNeg() ? -1 : 1);
-                account.data.frozen = locks[0].amount;
+                account.data.frozen = new BN(locks[0].amount.toString());
               }
               return account;
             })
@@ -108,24 +111,28 @@ export const getAccount = (adapter: Adapter) => {
         if (accountInfo) {
           const account = {
             id: accountId,
-            data: {            }
+            data: {}
           } as types.Account;
           if ((accountInfo as AccountInfo).nonce) {
             account.nonce = (accountInfo as AccountInfo).nonce.toJSON() as number;
           }
           if ((accountInfo as AccountInfo).data) {
             if ((accountInfo as AccountInfo).data.free) {
-              account.data.free = (accountInfo as AccountInfo).data.free.toBn();
+              account.data.free = new BN((accountInfo as AccountInfo).data.free.toString());
             }
             if ((accountInfo as AccountInfo).data.reserved) {
-              account.data.reserved = (accountInfo as AccountInfo).data.reserved.toBn();
+              account.data.reserved = new BN((accountInfo as AccountInfo).data.reserved.toString());
             }
-            if ((accountInfo.data as {frozen: Balance}).frozen) {
-              account.data.frozen =  (accountInfo.data as {frozen: Balance}).frozen.toBn();
-            } else if ((accountInfo.data as {feeFrozen: Balance}).feeFrozen || (accountInfo.data as {miscFrozen: Balance}).miscFrozen) {
-              account.data.frozen = BN.max(
-                (accountInfo.data as {feeFrozen: Balance}).feeFrozen,
-                (accountInfo.data as {miscFrozen: Balance}).miscFrozen
+            if ((accountInfo.data as { frozen: Balance }).frozen) {
+              account.data.frozen = new BN((accountInfo.data as { frozen: Balance }).frozen.toString());
+            } else if ((accountInfo.data as { feeFrozen: Balance }).feeFrozen || (accountInfo.data as {
+              miscFrozen: Balance
+            }).miscFrozen) {
+              account.data.frozen = new BN(
+                BN.max(
+                  (accountInfo.data as { feeFrozen: Balance }).feeFrozen,
+                  (accountInfo.data as { miscFrozen: Balance }).miscFrozen
+                ).toString()
               );
             }
           }
@@ -136,8 +143,6 @@ export const getAccount = (adapter: Adapter) => {
     );
   fn.identifiers = accountIdentifiers;
   return fn;
-
-
 };
 
 
@@ -156,7 +161,9 @@ export const getIndexFromAccountId = (adapter: Adapter) =>
 export const getIdentity = (adapter: Adapter) =>
   (accountId: string): Observable<types.AccountIdentity> => from(adapter.apiPromise).pipe(
     switchMap((api) => api.derive.accounts.identity(accountId)),
-    map((identity) => identity as unknown as types.AccountIdentity)
+    map((identity) => {
+      return identity as unknown as types.AccountIdentity
+    })
   );
 
 
@@ -196,6 +203,7 @@ export const getChildAccountName = (adapter: Adapter) =>
     })
   );
 
+
 export const getAccountInformation = (adapter: Adapter) =>
   (accountId: string): Observable<types.AccountInformation> => from(adapter.apiPromise).pipe(
     switchMap((api) => api.derive.accounts.info(accountId)),
@@ -220,16 +228,66 @@ export const getAccountInformation = (adapter: Adapter) =>
 
 export const getAccountFlags = (adapter: Adapter) =>
   (accountId: string): Observable<types.AccountFlags> => from(adapter.apiPromise).pipe(
-    switchMap((api) => api.derive.accounts.flags(accountId))
+    switchMap((api) => api.derive.accounts.flags(accountId)),
+    map((flags) => ({
+      isCouncil: flags.isCouncil,
+      isSociety: flags.isSociety,
+      isSudo: flags.isSudo,
+      isTechCommittee: flags.isTechCommittee
+    }))
   );
 
-export const getAccountBalances = (adapter: Adapter) =>  // TODO unpack the result and use BN
-  (accountId: string): Observable<any> => from(adapter.apiPromise).pipe(  // TODO Fix typing
-    switchMap((api) => api.derive.balances.all(accountId))
+export const getAccountBalances = (adapter: Adapter) =>
+  (accountId: string): Observable<types.AccountBalances> => from(adapter.apiPromise).pipe(
+    switchMap((api) => api.derive.balances.all(accountId)),
+    map((balances) => ({
+      lockedBalance: new BN(balances.lockedBalance.toString()),
+      freeBalance: new BN(balances.freeBalance.toString()),
+      reservedBalance: new BN(balances.reservedBalance.toString()),
+      availableBalance: new BN(balances.availableBalance.toString())
+    }))
   );
 
 
-export const getAccountStaking = (adapter: Adapter) =>  // TODO unpack the result and use BN
-  (accountId: string): Observable<any> => from(adapter.apiPromise).pipe(  // TODO Fix typing
-    switchMap((api) => api.derive.staking.account(accountId))
+// From account.txs PolkadotJS apps Page-accounts
+function calcUnbonding(stakingInfo?: DeriveStakingAccount) {
+  if (!stakingInfo?.unlocking) {
+    return new BN(0);
+  }
+
+  const filtered = stakingInfo.unlocking
+    .filter(({remainingEras, value}) => value.gt(new BN(0)) && remainingEras.gt(new BN(0)))
+    .map((unlock) => unlock.value);
+  const total = filtered.reduce((total, value) => total.iadd(value), new BN(0));
+
+  return total;
+}
+
+// From address-info.txs PolkadotJS apps Page-accounts
+// function calcBonded(stakingInfo?: DeriveStakingAccount, bonded?: boolean | BN[]): [BN, BN[]] {
+//   let other: BN[] = [];
+//   let own = BN_ZERO;
+//
+//   if (Array.isArray(bonded)) {
+//     other = bonded
+//       .filter((_, index) => index !== 0)
+//       .filter((value) => value.gt(BN_ZERO));
+//
+//     own = bonded[0];
+//   } else if (stakingInfo && stakingInfo.stakingLedger && stakingInfo.stakingLedger.active && stakingInfo.accountId.eq(stakingInfo.stashId)) {
+//     own = stakingInfo.stakingLedger.active.unwrap();
+//   }
+//
+//   return [own, other];
+// }
+
+export const getAccountStaking = (adapter: Adapter) =>
+  (accountId: string): Observable<types.AccountStaking> => from(adapter.apiPromise).pipe(
+    switchMap((api) => api.derive.staking.account(accountId)),
+    map((stakingInfo) => ({
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-argument
+      bonded: stakingInfo.stakingLedger?.active?.unwrap ? new BN(stakingInfo.stakingLedger.active.toString()) : new BN(0),
+      redeemable: stakingInfo.redeemable?.toString ? new BN(stakingInfo.redeemable.toString()) : new BN(0),
+      unbonding: calcUnbonding(stakingInfo)
+    }))
   );

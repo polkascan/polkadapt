@@ -104,6 +104,19 @@ export type AccountFlags = {
   isTechCommittee: boolean;
 };
 
+export type AccountStaking = {
+  bonded: BN;
+  redeemable: BN;
+  unbonding: BN;
+}
+
+export type AccountBalances = {
+  lockedBalance: BN;
+  freeBalance: BN;
+  reservedBalance: BN;
+  availableBalance: BN;
+}
+
 export type Runtime = {
   specName: string;
   specVersion: number;

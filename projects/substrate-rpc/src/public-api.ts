@@ -31,6 +31,8 @@ declare module '@polkadapt/core/augmented-types' {
   interface AccountIdentity extends types.AccountIdentity {}
   interface AccountInformation extends types.AccountInformation {}
   interface AccountFlags extends types.AccountFlags {}
+  interface AccountStaking extends types.AccountStaking {}
+  interface AccountBalances extends types.AccountBalances {}
   interface ChainProperties extends types.ChainProperties {}
   interface Runtime extends types.Runtime {}
   interface RuntimePallet extends types.RuntimePallet {}
