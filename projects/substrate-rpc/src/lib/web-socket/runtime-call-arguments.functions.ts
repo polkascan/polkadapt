@@ -32,11 +32,15 @@ export const getRuntimeCallArguments = (adapter: Adapter) => {
         const runtimeCallsArguments: types.RuntimeCallArgument[] = [];
         const metadataTypes = metadata.asLatest.lookup.types.toArray();
         const registry = metadata.registry;
+        let palletFound = false;
+        let callFound = false;
 
         for (const p of metadata.asLatest.pallets) {
           if (pallet && p.name.toString() !== pallet) {
             continue;
           }
+
+          palletFound = true;
           const callsType = p.calls.value.type ?
             metadataTypes[p.calls.value.type.toNumber()].type : null;
 
@@ -44,6 +48,7 @@ export const getRuntimeCallArguments = (adapter: Adapter) => {
             const calls = callsType.def.asVariant.variants;
             for (const c of calls) {
               if (c.name.toString() === callName) {
+                callFound = true;
                 c.fields.forEach((f, i) => {
                   runtimeCallsArguments.push({
                     specName,
@@ -64,6 +69,11 @@ export const getRuntimeCallArguments = (adapter: Adapter) => {
           a.pallet.localeCompare(b.pallet)
           || a.callName.localeCompare(b.callName)
           || a.callArgumentIdx - b.callArgumentIdx);
+
+        if (!palletFound || !callFound) {
+          throw new Error('Could not find runtime call arguments, pallet or call does not exist.');
+        }
+
         return runtimeCallsArguments;
       })
     );

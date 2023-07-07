@@ -32,11 +32,15 @@ export const getRuntimeEventAttributes = (adapter: Adapter) => {
         const runtimeEventAttributes: types.RuntimeEventAttribute[] = [];
         const metadataTypes = metadata.asLatest.lookup.types.toArray();
         const registry = metadata.registry;
+        let palletFound = false;
+        let attributeFound = false;
 
         for (const p of metadata.asLatest.pallets) {
           if (pallet && p.name.toString() !== pallet) {
             continue;
           }
+
+          palletFound = true;
           const eventsType = p.events.value.type ?
             metadataTypes[p.events.value.type.toNumber()].type : null;
 
@@ -44,6 +48,7 @@ export const getRuntimeEventAttributes = (adapter: Adapter) => {
             const events = eventsType.def.asVariant.variants;
             for (const e of events) {
               if (e.name.toString() === eventName) {
+                attributeFound = true
                 for (const a of e.fields.toArray()) {
                   runtimeEventAttributes.push({
                     specName,
@@ -65,6 +70,9 @@ export const getRuntimeEventAttributes = (adapter: Adapter) => {
             || a.eventName.localeCompare(b.eventName)
             || a.eventAttributeName.localeCompare(b.eventAttributeName)
         );
+        if (!palletFound || !attributeFound) {
+          throw new Error('Could not find runtime event attributes, pallet or attribute does not exist.');
+        }
         return runtimeEventAttributes;
       })
     );
