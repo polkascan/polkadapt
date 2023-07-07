@@ -11,5 +11,8 @@
     "type": "git",
     "url": "https://github.com/polkascan/polkadapt.git"
   },
+  "peerDependencies": {
+    "rxjs": "~7.8.1"
+  },
   "dependencies": {}
 }
