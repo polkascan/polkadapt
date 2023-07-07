@@ -27,28 +27,30 @@ export const getChainProperties = (adapter: Adapter) =>
     from(adapter.apiPromise).pipe(
       switchMap((api: ApiRx) =>
         combineLatest([
-          of(api.registry.chainSS58 as number).pipe(
+          of(api.registry?.chainSS58 as number || null).pipe(
             catchError(() => of(null))
           ),
-          of(api.registry.chainDecimals).pipe(
+          of(api.registry?.chainDecimals || null).pipe(
             catchError(() => of(null))
           ),
-          of(api.registry.chainTokens).pipe(
+          of(api.registry?.chainTokens || null).pipe(
             catchError(() => of(null))
           ),
-          api.rpc.system.name().pipe(
+          api.rpc?.system?.name().pipe(
+            take(1),
+            map((name) => name.toString()),
+            catchError(() => of(null))
+          ) || of(null),
+          of(api.runtimeVersion?.specName || null).pipe(
             take(1),
             map((name) => name.toString()),
             catchError(() => of(null))
           ),
-          of(api.runtimeVersion.specName).pipe(
-            take(1),
-            map((name) => name.toString()),
-            catchError(() => of(null))
-          ),
-          of(api.consts.babe.expectedBlockTime).pipe(
+          of(api.consts?.babe?.expectedBlockTime || null).pipe(
             map((blocktime) => blocktime.toJSON() as number),
-            catchError(() => of(null))
+            catchError(() => {
+              return of(null)
+            })
           ),
           of(api)
         ])
