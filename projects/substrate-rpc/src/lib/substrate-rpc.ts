@@ -1,7 +1,7 @@
 /*
  * PolkADAPT
  *
- * Copyright 2020-2022 Polkascan Foundation (NL)
+ * Copyright 2020-2023 Polkascan Foundation (NL)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,16 +16,84 @@
  * limitations under the License.
  */
 
-import { ApiPromise, WsProvider } from '@polkadot/api';
-import { AdapterBase } from '@polkadapt/core';
+import { ApiRx, WsProvider } from '@polkadot/api';
+import { AdapterBase, types } from '@polkadapt/core';
 import { ApiOptions } from '@polkadot/api/types';
+import { Observable } from 'rxjs';
+import {
+  getBlock,
+  getBlockHash,
+  getHeader,
+  getTimestamp,
+  getFinalizedHead,
+  getLatestBlock,
+  subscribeNewBlock
+} from './web-socket/block.functions';
+import {
+  getAccount,
+  getAccountBalances,
+  getAccountChildrenIds,
+  getAccountFlags,
+  getAccountIdFromIndex,
+  getAccountInformation,
+  getAccountParentId,
+  getAccountStaking,
+  getChildAccountName,
+  getIdentity,
+  getIndexFromAccountId
+} from './web-socket/account.functions';
+import { getChainProperties } from './web-socket/chain.functions';
+import { getRuntimePallet, getRuntimePallets } from './web-socket/runtime-pallet.functions';
+import { getRuntimeCall, getRuntimeCalls } from './web-socket/runtime-call.functions';
+import { getRuntimeEvent, getRuntimeEvents } from './web-socket/runtime-event.functions';
+import { getRuntime } from './web-socket/runtime.functions';
+import { getRuntimeStorage, getRuntimeStorages } from './web-socket/runtime-storage.functions';
+import { getRuntimeConstant, getRuntimeConstants } from './web-socket/runtime-constant.functions';
+import { getRuntimeErrorMessage, getRuntimeErrorMessages } from './web-socket/runtime-error-message.functions';
+import { getRuntimeCallArguments } from './web-socket/runtime-call-arguments.functions';
+import { getRuntimeEventAttributes } from './web-socket/runtime-event-attribute.functions';
 
-type Polkadapted<T> = {
-  [K in keyof T]:
-    T[K] extends ((...args: any[]) => any) ? T[K] : (Polkadapted<T[K]> & Promise<T[K]>);
+export type Api = {
+  getChainProperties: () => Observable<types.ChainProperties>;
+  subscribeNewBlock: () => Observable<types.Block>;
+  getBlock: (hashOrNumber: string | number) => Observable<types.Block>;
+  getLatestBlock: () => Observable<types.Block>;
+  getBlockHash: (blockNumber: number) => Observable<string>;
+  getFinalizedHead: () => Observable<string>;
+  getHeader: (hashOrNumber: string | number) => Observable<types.Header>;
+  getTimestamp: (hashOrNumber?: number | string) => Observable<number>;
+  getAccountIdFromIndex: (index: number) => Observable<string | null>;
+  getAccount: (accountId: string, blockHash?: string) => Observable<types.Account>;
+  getIndexFromAccountId: (accountId: string) => Observable<number | null>;
+  getIdentity: (accountId: string) => Observable<types.AccountIdentity>;
+  getAccountParentId: (accountId: string) => Observable<string | null>;
+  getAccountChildrenIds: (accountId: string) => Observable<string[]>;
+  getChildAccountName: (accountId: string) => Observable<string | null>;
+  getAccountInformation: (accountId: string) => Observable<types.AccountInformation>;
+  getAccountFlags: (accountId: string) => Observable<types.AccountFlags>;
+  getAccountBalances: (accountId: string) => Observable<types.AccountBalances>;
+  getAccountStaking: (accountId: string) => Observable<types.AccountStaking>;
+  getRuntime: (specName: string, specVersion: number) => Observable<types.Runtime>;
+  getRuntimePallet: (specName: string, specVersion: number, pallet: string) => Observable<types.RuntimePallet>;
+  getRuntimePallets: (specName: string, specVersion: number) => Observable<types.RuntimePallet[]>;
+  getRuntimeCall: (specName: string, specVersion: number, pallet: string, callName: string) => Observable<types.RuntimeCall>;
+  getRuntimeCalls: (specName: string, specVersion: number, pallet?: string) => Observable<types.RuntimeCall[]>;
+  getRuntimeCallArguments: (specName: string, specVersion: number, pallet: string, callName: string) =>
+    Observable<types.RuntimeCallArgument[]>;
+  getRuntimeEvent: (specName: string, specVersion: number, pallet: string, eventName: string) => Observable<types.RuntimeEvent>;
+  getRuntimeEvents: (specName: string, specVersion: number, pallet?: string) => Observable<types.RuntimeEvent[]>;
+  getRuntimeEventAttributes: (specName: string, specVersion: number, pallet: string, eventName: string) =>
+    Observable<types.RuntimeEventAttribute[]>;
+  getRuntimeStorage: (specName: string, specVersion: number, pallet: string, storageName: string) => Observable<types.RuntimeStorage>;
+  getRuntimeStorages: (specName: string, specVersion: number, pallet?: string) => Observable<types.RuntimeStorage[]>;
+  getRuntimeConstant: (specName: string, specVersion: number, pallet: string, constantName: string) =>
+    Observable<types.RuntimeConstant>;
+  getRuntimeConstants: (specName: string, specVersion: number, pallet?: string) =>
+    Observable<types.RuntimeConstant[]>;
+  getRuntimeErrorMessage: (specName: string, specVersion: number, pallet: string, errorName: string) =>
+    Observable<types.RuntimeErrorMessage>;
+  getRuntimeErrorMessages: (specName: string, specVersion: number, pallet?: string) => Observable<types.RuntimeErrorMessage[]>;
 };
-
-export type Api = Polkadapted<ApiPromise>;
 
 export interface Config {
   chain: string;
@@ -46,10 +114,12 @@ type ActiveCall = {
 export class Adapter extends AdapterBase {
   name = 'substrate-rpc';
   config: Config;
-  promise: Promise<ApiPromise>;
-  private resolvePromise: ((api: ApiPromise) => void) | undefined;
-  private api: ApiPromise | undefined;
-  private unproxiedApi: ApiPromise | undefined;
+  promise: Promise<Api>;
+  apiPromise: Promise<ApiRx>;
+  api: Api;
+  private resolvePromise: ((api: ApiRx) => void) | undefined;
+  private proxyApi: ApiRx | undefined;
+  private unproxiedApi: ApiRx | undefined;
   private isConnected: Promise<boolean> = Promise.resolve(false);
   private resolveConnected: ((v: boolean) => void) | undefined;
   private activeCalls: { [K: string]: ActiveCall } = {};
@@ -65,28 +135,44 @@ export class Adapter extends AdapterBase {
     super(config.chain);
     this.config = config;
     // Create the initial Promise to expose to PolkADAPT Core.
-    this.promise = this.createPromise();
-  }
+    this.apiPromise = this.createPromise();
 
-  get isReady(): Promise<boolean> {
-    return new Promise<boolean>((resolve, reject) => {
-      this.isConnected.then(connected => {
-        if (!connected) {
-          throw new Error('[SubstrateRPCAdapter] Could not check readiness, adapter is not connected');
-        }
-        if (this.unproxiedApi) {
-          this.unproxiedApi.isReadyOrError.then(() => {
-            resolve(true);
-          }, e => {
-            reject(e);
-          });
-        } else {
-          throw new Error('[SubstrateRPCAdapter] Could not check readiness, no apiPromise available');
-        }
-      }, e => {
-        reject(e);
-      });
-    });
+    this.api = {
+      getChainProperties: getChainProperties(this),
+      getBlock: getBlock(this),
+      getLatestBlock: getLatestBlock(this),
+      subscribeNewBlock: subscribeNewBlock(this),
+      getBlockHash: getBlockHash(this),
+      getFinalizedHead: getFinalizedHead(this),
+      getHeader: getHeader(this),
+      getTimestamp: getTimestamp(this),
+      getAccount: getAccount(this),
+      getAccountIdFromIndex: getAccountIdFromIndex(this),
+      getIndexFromAccountId: getIndexFromAccountId(this),
+      getIdentity: getIdentity(this),
+      getAccountParentId: getAccountParentId(this),
+      getAccountChildrenIds: getAccountChildrenIds(this),
+      getChildAccountName: getChildAccountName(this),
+      getAccountInformation: getAccountInformation(this),
+      getAccountFlags: getAccountFlags(this),
+      getAccountBalances: getAccountBalances(this),
+      getAccountStaking: getAccountStaking(this),
+      getRuntime: getRuntime(this),
+      getRuntimePallet: getRuntimePallet(this),
+      getRuntimePallets: getRuntimePallets(this),
+      getRuntimeCall: getRuntimeCall(this),
+      getRuntimeCalls: getRuntimeCalls(this),
+      getRuntimeCallArguments: getRuntimeCallArguments(this),
+      getRuntimeEvent: getRuntimeEvent(this),
+      getRuntimeEvents: getRuntimeEvents(this),
+      getRuntimeEventAttributes: getRuntimeEventAttributes(this),
+      getRuntimeStorage: getRuntimeStorage(this),
+      getRuntimeStorages: getRuntimeStorages(this),
+      getRuntimeConstant: getRuntimeConstant(this),
+      getRuntimeConstants: getRuntimeConstants(this),
+      getRuntimeErrorMessage: getRuntimeErrorMessage(this),
+      getRuntimeErrorMessages: getRuntimeErrorMessages(this)
+    };
   }
 
   resolveActiveCall(nonce: string, result: unknown): void {
@@ -133,7 +219,7 @@ export class Adapter extends AdapterBase {
       this.createApi().then(api => {
         this.unproxiedApi = api;
         // Set up a Proxy, so we can hijack the API.
-        this.api = new Proxy(this.unproxiedApi, {
+        this.proxyApi = new Proxy(this.unproxiedApi, {
           get: (target, p: string) =>
             this.createFollowUpProxy(target, (target as { [K: string]: any })[p], [p])
         });
@@ -143,7 +229,7 @@ export class Adapter extends AdapterBase {
           this.dispatchEvent('connected', {providerUrl: this.config.providerUrl});
           resolve(v);
         };
-        // If the ws 'connected' event fired *before* this.api was set, we can now resolve the promises.
+        // If the ws 'connected' event fired *before* this.proxyApi was set, we can now resolve the promises.
         if (this.wsConnected) {
           this.resolveCombined();
         }
@@ -155,11 +241,11 @@ export class Adapter extends AdapterBase {
     await this.isConnected;
   }
 
-  async disconnect(isError: boolean = false) {
+  async disconnect(isError = false) {
     // If the promise is still unresolved, we can re-use it for the new connection.
     if (!this.resolvePromise) {
       // But it was already resolved, so we need to reset it.
-      this.promise = this.createPromise();
+      this.apiPromise = this.createPromise();
     }
     if (this.wsProvider) {
       // Remove the event listeners from the old wsProvider.
@@ -170,7 +256,7 @@ export class Adapter extends AdapterBase {
     // Wait for isConnected to resolve, either being true or false.
     if (this.unproxiedApi) {
       await this.unproxiedApi.disconnect();
-      this.api = undefined;
+      this.proxyApi = undefined;
       this.unproxiedApi = undefined;
     }
     this.isConnected = Promise.resolve(false);
@@ -259,8 +345,8 @@ export class Adapter extends AdapterBase {
     this.removeEventListener(eventName, listener);
   }
 
-  private createPromise(): Promise<ApiPromise> {
-    return new Promise<ApiPromise>(resolve => {
+  private createPromise(): Promise<ApiRx> {
+    return new Promise<ApiRx>(resolve => {
       // Set up a one-time-only function to resolve the initial entrypoint Promise after connecting.
       this.resolvePromise = api => {
         // Unset the function.
@@ -312,13 +398,13 @@ export class Adapter extends AdapterBase {
   }
 
   private resolveCombined() {
-    if (this.wsConnected && this.api) {
+    if (this.wsConnected && this.proxyApi) {
       if (this.resolvePromise) {
         // Resolve the unresolved Promise.
-        this.resolvePromise(this.api);
+        this.resolvePromise(this.proxyApi);
       } else {
         // This is a new connection. We can just replace the Promise with an already resolved one.
-        this.promise = Promise.resolve(this.api);
+        this.apiPromise = Promise.resolve(this.proxyApi);
       }
       if (this.resolveConnected) {
         this.resolveConnected(true);
@@ -363,7 +449,7 @@ export class Adapter extends AdapterBase {
     });
   }
 
-  private async createApi(): Promise<ApiPromise> {
+  private async createApi(): Promise<ApiRx> {
     if (!this.config.providerUrl) {
       throw new Error('[SubstrateRPCAdapter] Can\'t create Polkadot.js API without a providerUrl.');
     }
@@ -373,23 +459,28 @@ export class Adapter extends AdapterBase {
     this.wsEventOffFunctions.push(this.wsProvider.on('disconnected', () => this.handleWsDisconnected()));
     await this.wsProvider.connect();
 
+    let api: ApiRx | undefined;
     try {
       const apiOptions: ApiOptions = {provider: this.wsProvider};
       if (this.config.apiOptions) {
         // Provider can be overwritten by the given apiOptions.
         Object.assign(apiOptions, this.config.apiOptions);
       }
-      return await ApiPromise.create(apiOptions);
+      api = await ApiRx.create(apiOptions).toPromise();
     } catch (e) {
       console.error('[SubstrateRPCAdapter] Could not create apiPromise');
       throw e;
     }
+    if (!api) {
+      throw new Error('[SubstrateRPCAdapter] Could not create apiPromise');
+    }
+    return api;
   }
 
   private handleWsConnected() {
     this.wsConnected = true;
-    if (this.api) {
-      // Connection has been established *after* this.api was set. Resolve the promises.
+    if (this.proxyApi) {
+      // Connection has been established *after* this.proxyApi was set. Resolve the promises.
       this.resolveCombined();
     }
   }

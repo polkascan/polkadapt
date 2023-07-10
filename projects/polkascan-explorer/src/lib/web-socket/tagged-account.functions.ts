@@ -1,7 +1,7 @@
 /*
  * PolkADAPT
  *
- * Copyright 2020-2022 Polkascan Foundation (NL)
+ * Copyright 2020-2023 Polkascan Foundation (NL)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,14 @@
 
 import { Adapter } from '../polkascan-explorer';
 import * as pst from '../polkascan-explorer.types';
-import { generateObjectQuery, generateObjectsListQuery, isArray, isObject, isString } from './helpers';
+import { types } from '@polkadapt/core';
+import {
+  createObjectObservable,
+  createObjectsListObservable,
+  generateObjectQuery,
+  isString
+} from './helpers';
+import { Observable } from 'rxjs';
 
 const taggedAccountFields: (keyof pst.TaggedAccount)[] = [
   'accountId',
@@ -32,9 +39,10 @@ const taggedAccountFields: (keyof pst.TaggedAccount)[] = [
   'beneficiaryInfo'
 ];
 
+const identifiers = ['accountId'];
 
-export const getTaggedAccount = (adapter: Adapter) =>
-  async (accountId: string): Promise<pst.TaggedAccount> => {
+export const getTaggedAccount = (adapter: Adapter) => {
+  const fn = (accountId: string): Observable<types.TaggedAccount> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
@@ -51,19 +59,15 @@ export const getTaggedAccount = (adapter: Adapter) =>
     }
 
     const query = generateObjectQuery('getTaggedAccount', taggedAccountFields, filters);
-
-    const result = await adapter.socket.query(query) as { getTaggedAccount: pst.TaggedAccount };
-    const account = result.getTaggedAccount;
-    if (account === null || isObject(account)) {
-      return account;
-    } else {
-      throw new Error(`[PolkascanExplorerAdapter] getTaggedAccount: Returned response is invalid.`);
-    }
+    return createObjectObservable<pst.TaggedAccount>(adapter, 'getTaggedAccount', query);
   };
+  fn.identifiers = identifiers;
+  return fn;
+};
 
 
-export const getTaggedAccounts = (adapter: Adapter) =>
-  async (tagType?: string): Promise<pst.ListResponse<pst.TaggedAccount>> => {
+export const getTaggedAccounts = (adapter: Adapter) => {
+  const fn = (tagType?: string): Observable<pst.TaggedAccount[]> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
@@ -71,16 +75,11 @@ export const getTaggedAccounts = (adapter: Adapter) =>
     const filters: string[] = [];
 
     if (isString(tagType)) {
-        filters.push(`tagType: "${tagType}"`);
+      filters.push(`tagType: "${tagType}"`);
     }
 
-    const query = generateObjectsListQuery('getTaggedAccounts', taggedAccountFields, filters);
-
-    const result = await adapter.socket.query(query) as { getTaggedAccounts: pst.ListResponse<pst.TaggedAccount> };
-    const accounts = result.getTaggedAccounts.objects;
-    if (isArray(accounts)) {
-      return result.getTaggedAccounts;
-    } else {
-      throw new Error(`[PolkascanExplorerAdapter] getTaggedAccounts: Returned response is invalid.`);
-    }
+    return createObjectsListObservable<types.TaggedAccount>(adapter, 'getTaggedAccounts', taggedAccountFields, filters, identifiers);
   };
+  fn.identifiers = identifiers;
+  return fn;
+};

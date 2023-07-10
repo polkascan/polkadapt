@@ -1,7 +1,7 @@
 /*
  * PolkADAPT
  *
- * Copyright 2020-2022 Polkascan Foundation (NL)
+ * Copyright 2020-2023 Polkascan Foundation (NL)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ export type ListResponse<T> = {
 };
 
 
-export type Block = {
+export type Block = Partial<{
   // eslint-disable-next-line id-blacklist
   number: number;  // PK
   parentNumber: number | null;
@@ -49,7 +49,7 @@ export type Block = {
   specName: string;
   specVersion: number;
   complete: number;
-};
+}>;
 
 
 export type Event = {
@@ -161,7 +161,7 @@ export type RuntimeCallArgument = {
   specVersion: number;  // PK
   pallet: string;  // PK
   callName: string;  // PK
-  callArgumentIdx: number | null;  // PK
+  callArgumentIdx: number;  // PK
   name: string | null;
   scaleType: string | null;
   scaleTypeComposition: string | null;
@@ -172,7 +172,7 @@ export type RuntimeConstant = {
   specName: string;  // PK
   specVersion: number;  // PK
   pallet: string;  // PK
-  constantName: string | null;  // PK
+  constantName: string;  // PK
   palletConstantIdx: number;
   scaleType: string | null;
   scaleTypeComposition: string | null;

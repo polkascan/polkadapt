@@ -1,7 +1,7 @@
 /*
  * PolkADAPT
  *
- * Copyright 2020-2022 Polkascan Foundation (NL)
+ * Copyright 2020-2023 Polkascan Foundation (NL)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,9 @@
 
 import { Adapter } from '../polkascan-explorer';
 import * as pst from '../polkascan-explorer.types';
-import { generateObjectsListQuery, isArray, isNumber, isString } from './helpers';
+import { types } from '@polkadapt/core';
+import { createObjectsListObservable, isNumber, isString } from './helpers';
+import { Observable } from 'rxjs';
 
 const runtimeEventAttributeFields: (keyof pst.RuntimeEventAttribute)[] = [
   'specName',
@@ -31,10 +33,11 @@ const runtimeEventAttributeFields: (keyof pst.RuntimeEventAttribute)[] = [
   'scaleTypeComposition'
 ];
 
+const identifiers = ['specName', 'specVersion', 'pallet', 'eventName', 'eventAttributeName'];
 
-export const getRuntimeEventAttributes = (adapter: Adapter) =>
-  async (
-    specName: string, specVersion: number, pallet: string, eventName: string): Promise<pst.ListResponse<pst.RuntimeEventAttribute>> => {
+
+export const getRuntimeEventAttributes = (adapter: Adapter) => {
+  const fn = (    specName: string, specVersion: number, pallet: string, eventName: string): Observable<types.RuntimeEventAttribute[]> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
@@ -53,13 +56,9 @@ export const getRuntimeEventAttributes = (adapter: Adapter) =>
       );
     }
 
-    const query = generateObjectsListQuery('getRuntimeEventAttributes', runtimeEventAttributeFields, filters);
-
-    const result = await adapter.socket.query(query) as { getRuntimeEventAttributes: pst.ListResponse<pst.RuntimeEventAttribute> };
-    const runtimeEventAttributes = result.getRuntimeEventAttributes.objects;
-    if (isArray(runtimeEventAttributes)) {
-      return result.getRuntimeEventAttributes;
-    } else {
-      throw new Error(`[PolkascanExplorerAdapter] getRuntimeEventAttributes: Returned response is invalid.`);
-    }
+    return createObjectsListObservable<pst.RuntimeEventAttribute>(adapter,
+      'getRuntimeEventAttributes', runtimeEventAttributeFields, filters, identifiers);
   };
+  fn.identifiers = identifiers;
+  return fn;
+};

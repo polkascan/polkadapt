@@ -1,7 +1,7 @@
 /*
  * PolkADAPT
  *
- * Copyright 2020-2022 Polkascan Foundation (NL)
+ * Copyright 2020-2023 Polkascan Foundation (NL)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,15 @@
 
 import { Adapter } from '../polkascan-explorer';
 import * as pst from '../polkascan-explorer.types';
-import { generateObjectQuery, generateObjectsListQuery, isArray, isNumber, isObject, isString } from './helpers';
+import { types } from '@polkadapt/core';
+import {
+  createObjectObservable,
+  createObjectsListObservable,
+  generateObjectQuery,
+  isNumber,
+  isString
+} from './helpers';
+import { Observable } from 'rxjs';
 
 const runtimePalletFields: (keyof pst.RuntimePallet)[] = [
   'specName',
@@ -34,8 +42,11 @@ const runtimePalletFields: (keyof pst.RuntimePallet)[] = [
   'countErrors'
 ];
 
-export const getRuntimePallet = (adapter: Adapter) =>
-  async (specName: string, specVersion: number, pallet: string): Promise<pst.RuntimePallet> => {
+const identifiers = ['specName', 'specVersion', 'pallet'];
+
+
+export const getRuntimePallet = (adapter: Adapter) => {
+  const fn = (specName: string, specVersion: number, pallet: string): Observable<types.RuntimePallet> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
@@ -53,20 +64,14 @@ export const getRuntimePallet = (adapter: Adapter) =>
     }
 
     const query = generateObjectQuery('getRuntimePallet', runtimePalletFields, filters);
-
-    const result = await adapter.socket.query(query) as { getRuntimePallet: pst.RuntimePallet };
-    const runtimePallet = result.getRuntimePallet;
-    if (runtimePallet === null || isObject(runtimePallet)) {
-      return runtimePallet;
-    } else {
-      throw new Error(`[PolkascanExplorerAdapter] getRuntimePallet: Returned response is invalid.`);
-    }
+    return createObjectObservable<pst.RuntimePallet>(adapter, 'getRuntimePallet', query);
   };
+  fn.identifiers = identifiers;
+  return fn;
+};
 
-
-export const getRuntimePallets = (adapter: Adapter) =>
-  async (
-    specName: string, specVersion: number): Promise<pst.ListResponse<pst.RuntimePallet>> => {
+export const getRuntimePallets = (adapter: Adapter) => {
+  const fn = (specName: string, specVersion: number): Observable<types.RuntimePallet[]> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
@@ -82,13 +87,8 @@ export const getRuntimePallets = (adapter: Adapter) =>
       );
     }
 
-    const query = generateObjectsListQuery('getRuntimePallets', runtimePalletFields, filters);
-
-    const result = await adapter.socket.query(query) as { getRuntimePallets: pst.ListResponse<pst.RuntimePallet> };
-    const runtimePallets = result.getRuntimePallets.objects;
-    if (isArray(runtimePallets)) {
-      return result.getRuntimePallets;
-    } else {
-      throw new Error(`[PolkascanExplorerAdapter] getRuntimePallets: Returned response is invalid.`);
-    }
+    return createObjectsListObservable<pst.RuntimePallet>(adapter, 'getRuntimePallets', runtimePalletFields, filters, identifiers);
   };
+  fn.identifiers = identifiers;
+  return fn;
+};

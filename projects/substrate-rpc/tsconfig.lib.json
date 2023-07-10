@@ -9,7 +9,8 @@
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
     "types": [],
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "noPropertyAccessFromIndexSignature": false
   },
   "exclude": [
     "src/test.ts",

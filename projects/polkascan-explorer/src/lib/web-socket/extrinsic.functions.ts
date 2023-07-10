@@ -1,7 +1,7 @@
 /*
  * PolkADAPT
  *
- * Copyright 2020-2022 Polkascan Foundation (NL)
+ * Copyright 2020-2023 Polkascan Foundation (NL)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,18 +19,21 @@
 
 import { Adapter } from '../polkascan-explorer';
 import * as pst from '../polkascan-explorer.types';
+import { types } from '@polkadapt/core';
 import {
+  createObjectObservable,
+  createObjectsListObservable,
+  createSubscriptionObservable,
   generateObjectQuery,
-  generateObjectsListQuery,
-  generateSubscription,
-  isArray, isDate,
+  generateSubscriptionQuery,
+  isDate,
   isDefined,
-  isFunction,
   isNumber,
   isObject,
   isPositiveNumber,
   isString
 } from './helpers';
+import { filter, Observable } from 'rxjs';
 
 const genericExtrinsicFields = [
   'blockNumber',
@@ -79,9 +82,10 @@ export interface ExtrinsicsFilters {
   blockRangeEnd?: number;
 }
 
+const identifiers = ['blockNumber', 'extrinsicIdx'];
 
-export const getExtrinsic = (adapter: Adapter) =>
-  async (blockNumber: number, extrinsicIdx: number): Promise<pst.Extrinsic> => {
+export const getExtrinsic = (adapter: Adapter) => {
+  const fn = (blockNumber: number, extrinsicIdx: number): Observable<types.Extrinsic> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
@@ -109,15 +113,11 @@ export const getExtrinsic = (adapter: Adapter) =>
     }
 
     const query = generateObjectQuery('getExtrinsic', extrinsicDetailFields, filters);
-
-    const result = await adapter.socket.query(query) as { getExtrinsic: pst.Extrinsic };
-    const extrinsic = result.getExtrinsic;
-    if (extrinsic === null || isObject(extrinsic)) {
-      return extrinsic;
-    } else {
-      throw new Error(`[PolkascanExplorerAdapter] getExtrinsic: Returned response is invalid.`);
-    }
+    return createObjectObservable<pst.Extrinsic>(adapter, 'getExtrinsic', query);
   };
+  fn.identifiers = identifiers;
+  return fn;
+};
 
 
 const createExtrinsicsFilters = (extrinsicsFilters?: ExtrinsicsFilters): string[] => {
@@ -243,58 +243,46 @@ const createExtrinsicsFilters = (extrinsicsFilters?: ExtrinsicsFilters): string[
 };
 
 
-export const getExtrinsics = (adapter: Adapter) =>
-  async (extrinsicsFilters?: ExtrinsicsFilters,
-         pageSize?: number,
-         pageKey?: string,
-         blockLimitOffset?: number,
-         blockLimitCount?: number): Promise<pst.ListResponse<pst.Extrinsic>> => {
+export const getExtrinsics = (adapter: Adapter) => {
+  const fn = (extrinsicsFilters?: ExtrinsicsFilters,
+              pageSize?: number): Observable<types.Extrinsic[]> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
     const filters: string[] = createExtrinsicsFilters(extrinsicsFilters);
-    const query = generateObjectsListQuery('getExtrinsics',
-      genericExtrinsicFields, filters, pageSize, pageKey, blockLimitOffset, blockLimitCount
+    const blockLimitOffset = extrinsicsFilters && extrinsicsFilters.blockRangeEnd ? extrinsicsFilters.blockRangeEnd : undefined;
+    return createObjectsListObservable<types.Extrinsic>(
+      adapter,
+      'getExtrinsics',
+      genericExtrinsicFields,
+      filters,
+      identifiers,
+      pageSize,
+      blockLimitOffset
     );
-    const result = await adapter.socket.query(query) as { getExtrinsics: pst.ListResponse<pst.Extrinsic> };
-    const extrinsics = result.getExtrinsics.objects;
-
-    if (isArray(extrinsics)) {
-      return result.getExtrinsics;
-    } else {
-      throw new Error(`[PolkascanExplorerAdapter] getExtrinsics: Returned response is invalid.`);
-    }
   };
+  fn.identifiers = identifiers;
+  return fn;
+};
 
 
-export const subscribeNewExtrinsic = (adapter: Adapter) =>
-  async (...args: (((extrinsic: pst.Extrinsic) => void) | ExtrinsicsFilters | undefined)[]): Promise<() => void> => {
+export const subscribeNewExtrinsic = (adapter: Adapter) => {
+  const fn = (extrinsicFilters?: ExtrinsicsFilters): Observable<types.Extrinsic> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
-    const callback = args.find((arg) => isFunction(arg)) as (undefined | ((extrinsic: pst.Extrinsic) => void));
-    if (!callback) {
-      throw new Error(`[PolkascanExplorerAdapter] subscribeNewExtrinsic: No callback function is provided.`);
-    }
-
     let filters: string[] = [];
-    if (isObject(args[0])) {
-      filters = createExtrinsicsFilters(args[0] as ExtrinsicsFilters);
+    if (isObject(extrinsicFilters)) {
+      filters = createExtrinsicsFilters(extrinsicFilters);
     }
 
-    const query = generateSubscription('subscribeNewExtrinsic', genericExtrinsicFields, filters);
-
-    // return the unsubscribe function.
-    return await adapter.socket.createSubscription(query, (result: { subscribeNewExtrinsic: pst.Extrinsic }) => {
-      try {
-        const extrinsic = result.subscribeNewExtrinsic;
-        if (isObject(extrinsic)) {
-          callback(extrinsic);
-        }
-      } catch (e) {
-        // Ignore.
-      }
-    });
+    const query = generateSubscriptionQuery('subscribeNewExtrinsic', genericExtrinsicFields, filters);
+    return createSubscriptionObservable<pst.Extrinsic>(adapter, 'subscribeNewExtrinsic', query).pipe(
+      filter((e) => isObject(e)));
   };
+  fn.identifiers = identifiers;
+  return fn;
+};
+

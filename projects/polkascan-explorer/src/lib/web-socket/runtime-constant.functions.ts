@@ -1,7 +1,7 @@
 /*
  * PolkADAPT
  *
- * Copyright 2020-2022 Polkascan Foundation (NL)
+ * Copyright 2020-2023 Polkascan Foundation (NL)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,15 @@
 
 import { Adapter } from '../polkascan-explorer';
 import * as pst from '../polkascan-explorer.types';
-import { generateObjectQuery, generateObjectsListQuery, isArray, isNumber, isObject, isString } from './helpers';
+import { types } from '@polkadapt/core';
+import {
+  createObjectObservable,
+  createObjectsListObservable,
+  generateObjectQuery,
+  isNumber,
+  isString
+} from './helpers';
+import { Observable } from 'rxjs';
 
 const runtimeConstantFields: (keyof pst.RuntimeConstant)[] = [
   'specName',
@@ -33,9 +41,11 @@ const runtimeConstantFields: (keyof pst.RuntimeConstant)[] = [
   'documentation'
 ];
 
+const identifiers = ['specName', 'specVersion', 'pallet', 'constantName', 'palletConstantIdx'];
 
-export const getRuntimeConstant = (adapter: Adapter) =>
-  async (specName: string, specVersion: number, pallet: string, constantName: string): Promise<pst.RuntimeConstant> => {
+
+export const getRuntimeConstant = (adapter: Adapter) => {
+  const fn = (specName: string, specVersion: number, pallet: string, constantName: string): Observable<types.RuntimeConstant> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
@@ -55,20 +65,15 @@ export const getRuntimeConstant = (adapter: Adapter) =>
     }
 
     const query = generateObjectQuery('getRuntimeConstant', runtimeConstantFields, filters);
-
-    const result = await adapter.socket.query(query) as { getRuntimeConstant: pst.RuntimeConstant };
-    const runtimeConstant = result.getRuntimeConstant;
-    if (runtimeConstant === null || isObject(runtimeConstant)) {
-      return runtimeConstant;
-    } else {
-      throw new Error(`[PolkascanExplorerAdapter] getRuntimeConstant: Returned response is invalid.`);
-    }
+    return createObjectObservable<pst.RuntimeConstant>(adapter, 'getRuntimeConstant', query);
   };
+  fn.identifiers = identifiers;
+  return fn;
+};
 
 
-export const getRuntimeConstants = (adapter: Adapter) =>
-  async (
-    specName: string, specVersion: number, pallet?: string): Promise<pst.ListResponse<pst.RuntimeConstant>> => {
+export const getRuntimeConstants = (adapter: Adapter) => {
+  const fn = (specName: string, specVersion: number, pallet?: string): Observable<types.RuntimeConstant[]> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
@@ -88,14 +93,8 @@ export const getRuntimeConstants = (adapter: Adapter) =>
       );
     }
 
-    const query = generateObjectsListQuery('getRuntimeConstants', runtimeConstantFields, filters);
-
-    const result = await adapter.socket.query(query) as {getRuntimeConstants: pst.ListResponse<pst.RuntimeConstant>};
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    const RuntimeConstants = result.getRuntimeConstants.objects;
-    if (isArray(RuntimeConstants)) {
-      return result.getRuntimeConstants;
-    } else {
-      throw new Error(`[PolkascanExplorerAdapter] getRuntimeConstants: Returned response is invalid.`);
-    }
+    return createObjectsListObservable<pst.RuntimeConstant>(adapter, 'getRuntimeConstants', runtimeConstantFields, filters, identifiers);
   };
+  fn.identifiers = identifiers;
+  return fn;
+};

@@ -24,23 +24,21 @@
     "strictPropertyInitialization": false,
     "paths": {
       "coingecko": [
-        "dist/coingecko/coingecko",
         "dist/coingecko"
       ],
       "polkadapt": [
-        "dist/polkadapt/polkadapt",
         "dist/polkadapt"
       ],
       "core": [
-        "dist/core/core",
         "dist/core"
       ],
       "substrate-rpc": [
-        "dist/substrate-rpc/substrate-rpc",
         "dist/substrate-rpc"
       ],
+      "subsquid": [
+        "dist/subsquid"
+      ],
       "polkascan-explorer": [
-        "dist/polkascan-explorer/polkascan-explorer",
         "dist/polkascan-explorer"
       ]
     },

@@ -1,7 +1,7 @@
 /*
  * PolkADAPT
  *
- * Copyright 2020-2022 Polkascan Foundation (NL)
+ * Copyright 2020-2023 Polkascan Foundation (NL)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ type WebsocketEventNames = 'open' | 'socketError' | 'dataError' | 'readyChange' 
 
 const channelName = 'graphql-ws';
 const reconnectTimeout = 3000;
-const connectionTimeout = 5000;
+const connectionTimeout = 10000;
 
 export class PolkascanExplorerWebSocket {
   wsEndpoint: string;
@@ -112,19 +112,17 @@ export class PolkascanExplorerWebSocket {
   }
 
 
-  query(query: string, timeoutAmount = 5000, id?: number): Promise<unknown> {
+  query(query: string, timeoutAmount?: number, id?: number): Promise<unknown> {
     return new Promise((resolve, reject) => {
       if (!query.startsWith('query')) {
-        throw new Error(`Invalid query string, should start with 'query'.`);
+        throw new Error(`[PolkascanExplorerAdapter] Invalid query string, should start with 'query'.`);
       }
 
       id = id || this.generateNonce();
 
       if (this.connectedSubscriptions.has(id)) {
-        throw new Error(`There is an active subscription running on id ${id}.`);
+        throw new Error(`[PolkascanExplorerAdapter] There is an active subscription running on id ${id}.`);
       }
-
-      let timeout: number;
 
       const payload = {
         type: GQLMSG.START,
@@ -137,10 +135,6 @@ export class PolkascanExplorerWebSocket {
 
       const listenerFn = (data: { id: number; payload: { data: any } }): void => {
         if (data.id === id) {
-          if (timeout) {
-            clearTimeout(timeout);
-          }
-
           this.off('data', listenerFn);
           this.off('dataError', errorListenerFn);
           this.connectedSubscriptions.delete(id);
@@ -148,35 +142,37 @@ export class PolkascanExplorerWebSocket {
           if (data.payload && data.payload.data) {
             resolve(data.payload.data);
           } else {
-            reject('No data received.');
+            reject('[PolkascanExplorerAdapter] No data received.');
           }
         }
       };
 
       const errorListenerFn = (errorData: { id: number; query: any; payload: { message: string } }): void => {
         if (errorData.id === id) {
-          if (timeout) {
-            clearTimeout(timeout);
-          }
           errorData.query = query;
           this.off('data', listenerFn);
           this.off('dataError', errorListenerFn);
           this.connectedSubscriptions.delete(id);
 
-          reject(errorData.payload && errorData.payload.message);
+          reject(`[PolkascanExplorerAdapter] ${errorData.payload && errorData.payload.message}`);
         }
       };
 
-      if (Number.isInteger(timeoutAmount) && timeoutAmount > 0) {
-        timeout = window.setTimeout(() => {
-          this.off('data', listenerFn);
-          this.off('dataError', errorListenerFn);
-          this.connectedSubscriptions.delete(id as number);
-          reject('Query timed out: ' + query);
-        }, timeoutAmount);
-      }
+      const clearListenerFn = () => {
+        this.off('data', listenerFn);
+        this.off('dataError', errorListenerFn);
+        this.connectedSubscriptions.delete(id as number);
+      };
 
-      this.send(JSON.stringify(payload)); // Can reject the promise if it fails.
+      this.send(JSON.stringify(payload), Number.isInteger(timeoutAmount) ? timeoutAmount as number : connectionTimeout).then(
+        () => {
+          // Websocket message has been successfully transmitted.
+        },
+        () => {
+          // Websocket message has failed because it took to long.
+          clearListenerFn();
+          reject('Query timed out: ' + query);
+        });
 
       this.connectedSubscriptions.set(id, payload);
       this.on('data', listenerFn);
@@ -186,15 +182,15 @@ export class PolkascanExplorerWebSocket {
 
 
   createSubscription(query: string, callback: (...attr: any[]) => any, id?: number): Promise<() => void> {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       if (!query.startsWith('subscription')) {
-        throw new Error(`Invalid query string, should start with 'subscription'.`);
+        throw new Error(`[PolkascanExplorerAdapter] Invalid query string, should start with 'subscription'.`);
       }
 
       id = id || this.generateNonce();
 
       if (this.connectedSubscriptions.has(id)) {
-        throw new Error(`There is an active subscription running on id ${id}.`);
+        throw new Error(`[PolkascanExplorerAdapter] There is an active subscription running on id ${id}.`);
       }
 
       const payload = {
@@ -206,12 +202,17 @@ export class PolkascanExplorerWebSocket {
         }
       };
 
-      const listenerFn = (response: { id: number; payload: { message: string; data: any }; type: string; query: string }): void => {
+      const listenerFn = (response: {
+        id: number;
+        payload: { message: string; data: any };
+        type: string;
+        query: string;
+      }): void => {
         if (response.id === id) {
           if (response.type === GQLMSG.ERROR) {
             response.query = query;
             clearListenerFn();
-            throw new Error(response.payload && response.payload.message ||
+            reject(response.payload && response.payload.message ||
               '[PolkascanExplorerAdapter] Subscription returned an error without a payload.');
           } else if (response.type === GQLMSG.DATA) {
             callback(response.payload.data);
@@ -223,41 +224,93 @@ export class PolkascanExplorerWebSocket {
         this.off('data', listenerFn);
         this.off('dataError', listenerFn);
         this.connectedSubscriptions.delete(id as number);
-        try {
-          this.send(JSON.stringify({
-            type: GQLMSG.STOP,
-            id
-          }));
-        } catch (e) {
-          console.error('[PolkascanExplorerAdapter] Stop subscription encountered an error.', e);
-          // Ignore.
-        }
+
+        this.send(JSON.stringify({  // TODO TEST THIS
+          type: GQLMSG.STOP,
+          id
+        }), reconnectTimeout).then(
+          () => {
+            // Websocket message has been successfully transmitted.
+          },
+          (e) => {
+            console.error('[PolkascanExplorerAdapter] Stop subscription encountered an error.', e);
+          });
+
       };
 
-      this.send(JSON.stringify(payload)); // Can reject the promise if it fails.
+      this.send(JSON.stringify(payload), connectionTimeout).then(
+        () => {
+          // Websocket message has been successfully transmitted.
+          resolve(clearListenerFn);
+        },
+        () => {
+          // Websocket message has failed because it took to long.
+          clearListenerFn();
+          reject('Subscription query timed out: ' + query);
+        }
+      );
 
       this.connectedSubscriptions.set(id, payload);
       this.on('data', listenerFn);
       this.on('dataError', listenerFn);
-
-      resolve(clearListenerFn);
     });
   }
 
 
-  send(message: any): void {
-    if (!this.webSocket) {
-      throw new Error('There is no websocket connection.');
-    }
-    if (!this.websocketReady) {
-      throw new Error('Websocket is connected but not (yet) initialized.');
-    }
+  async send(message: any, timeoutAmount: number): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      if (!this.webSocket) {
+        throw new Error('[PolkascanExplorerAdapter] There is no websocket connection.');
+      }
 
-    if (typeof message !== 'string') {
-      message = JSON.stringify(message);
-    }
+      if (typeof message !== 'string') {
+        message = JSON.stringify(message);
+      }
 
-    this.webSocket.send(message as string);
+      if (this.websocketReady) {
+        this.webSocket.send(message as string);
+        resolve();
+        return;
+      }
+
+      const readyTimeout = window.setTimeout(() => {
+        removeListeners();
+        console.error('[PolkascanExplorerAdapter] Websocket connection timed out.');
+        reject();
+      }, timeoutAmount);
+
+      const readyCallback = (ready: boolean) => {
+        if (ready) {
+          if (readyTimeout) {
+            clearTimeout(readyTimeout);
+          }
+          removeListeners();
+
+          if (this.webSocket) {
+            this.webSocket.send(message as string);
+            resolve();
+          }
+        }
+      };
+
+      const closeCallback = () => {
+        if (readyTimeout) {
+          clearTimeout(readyTimeout);
+        }
+        removeListeners();
+        reject('[PolkascanExplorerAdapter] Websocket connection closed.');
+      };
+
+      const removeListeners = () => {
+        // Remove listeners after error or readyChange.
+        this.off('readyChange', readyCallback);
+        this.off('close', closeCallback);
+      };
+
+      // Subscribe to the websockets readyChange or error.
+      this.on('readyChange', readyCallback);
+      this.on('close', closeCallback);
+    });
   }
 
 
@@ -297,7 +350,7 @@ export class PolkascanExplorerWebSocket {
     const timeout = setTimeout(() => {
       // It took too long to connect the websocket. Close it.
       webSocket.close(1000);
-    }, connectionTimeout);
+    }, connectionTimeout) as unknown as number;
     this.connectingWebsockets.set(webSocket, timeout);
 
     webSocket.onopen = () => {
@@ -337,7 +390,7 @@ export class PolkascanExplorerWebSocket {
 
             if (isReconnect) {
               this.connectedSubscriptions.forEach((payload: any) => {
-                this.send(JSON.stringify(payload));
+                void this.send(JSON.stringify(payload), connectionTimeout);  // TODO CHECK IF THIS WORKS
               });
             }
             break;
@@ -438,8 +491,13 @@ export class PolkascanExplorerWebSocket {
 
   // Trigger handler function on event.
   emit(eventName: string, ...args: unknown[]): boolean {
-    if (this.eventListeners[eventName] && this.eventListeners[eventName].length) {
-      this.eventListeners[eventName].forEach((listener) => void listener(...args));
+    if (this.eventListeners[eventName] && this.eventListeners[eventName].length > 0) {
+      // Store the functions in a new array because it will change while in the listener functions are triggered.
+      const listeners = this.eventListeners[eventName].slice();
+
+      listeners.forEach((fn) => {
+        fn(...args);
+      });
       return true;
     }
     return false;
