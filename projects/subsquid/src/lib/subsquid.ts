@@ -68,7 +68,6 @@ export type Config = {
   explorerUrl?: string;
   giantSquidExplorerUrl?: string;
   giantSquidMainUrl?: string;
-  balancesUrl?: string;
 };
 
 type CreateQueryArgs = [contentType: string, fields: Fields, where?: Where, orderBy?: string, limit?: number, offset?: number];
@@ -139,13 +138,6 @@ export class Adapter extends AdapterBase {
   queryGSMain<T>(...args: CreateQueryArgs): Observable<T> {
     if (this.config.giantSquidMainUrl) {
       return this.requestQuery<T>(this.config.giantSquidMainUrl, ...args);
-    }
-    return EMPTY;
-  }
-
-  queryBalances<T>(...args: CreateQueryArgs): Observable<T> {
-    if (this.config.balancesUrl) {
-      return this.requestQuery<T>(this.config.balancesUrl, ...args);
     }
     return EMPTY;
   }

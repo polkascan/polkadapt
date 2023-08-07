@@ -46,19 +46,11 @@ export type ExplorerChainInfoOutput = {
   name: string;
 };
 
-export type BalancesChainInfoOutput = {
-  chainSS58: number;
-  chainDecimals: number[];
-  chainTokens: string[] ;
-  name: string;
-  displayName: string;
-};
-
 export type ArchiveChainInfoOutput = {
   specName: string | null;
 };
 
-export type ChainProperties = Partial<ExplorerChainInfoOutput & BalancesChainInfoOutput & ArchiveChainInfoOutput>;
+export type ChainProperties = Partial<ExplorerChainInfoOutput & ArchiveChainInfoOutput>;
 
 export type Block = Partial<ArchiveBlockOutput & GSExplorerBlockOutput>;
 
