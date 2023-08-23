@@ -17,7 +17,7 @@
  */
 
 import { AdapterApiCallWithIdentifiers, AdapterBase, types } from '@polkadapt/core';
-import { EMPTY, map, Observable, switchMap } from 'rxjs';
+import { map, Observable, switchMap, throwError } from 'rxjs';
 import {
   getBlock,
   getBlocks,
@@ -118,28 +118,28 @@ export class Adapter extends AdapterBase {
     if (this.config.archiveUrl) {
       return this.requestQuery<T>(this.config.archiveUrl, ...args);
     }
-    return EMPTY;
+    return throwError(() => new Error(`[SubSquid adapter] ${this.config.chain} archive node encountered an error or is unavailable`));
   }
 
   queryExplorer<T>(...args: CreateQueryArgs): Observable<T> {
     if (this.config.explorerUrl) {
       return this.requestQuery<T>(this.config.explorerUrl, ...args);
     }
-    return EMPTY;
+    return throwError(() => new Error(`[SubSquid adapter] ${this.config.chain} explorer node encountered an error or is unavailable`));
   }
 
   queryGSExplorer<T>(...args: CreateQueryArgs): Observable<T> {
     if (this.config.giantSquidExplorerUrl) {
       return this.requestQuery<T>(this.config.giantSquidExplorerUrl, ...args);
     }
-    return EMPTY;
+    return throwError(() => new Error(`[SubSquid adapter] ${this.config.chain} giant squid explorer encountered an error or is unavailable`));
   }
 
   queryGSMain<T>(...args: CreateQueryArgs): Observable<T> {
     if (this.config.giantSquidMainUrl) {
       return this.requestQuery<T>(this.config.giantSquidMainUrl, ...args);
     }
-    return EMPTY;
+    return throwError(() => new Error(`[SubSquid adapter] ${this.config.chain} giant squid main encountered an error or is unavailable`));
   }
 
   private formatFields(fields: Fields, indent = ''): string {

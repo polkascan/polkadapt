@@ -224,7 +224,7 @@ export const getEventsBase = (
   } else {
     if (isDefined(eventModule)) {
       if (isString(eventModule)) {
-        // archiveWhere['name_startsWith'] = eventModule;
+        archiveWhere['name_startsWith'] = eventModule;
         gsWhere['palletName_eq'] = eventModule;
       } else {
         return throwError(() => 'Provided event module (pallet) must be a non-empty string.');
@@ -234,7 +234,8 @@ export const getEventsBase = (
     if (isDefined(eventName)) {
       if (isString(eventName)) {
         if (isDefined(eventModule)) {
-          // archiveWhere['name_endsWith'] = eventName;
+          delete archiveWhere['name_startsWith'];
+          archiveWhere['name_eq'] = `${eventModule}.${eventName}`;
           gsWhere['eventName_eq'] = eventName;
         } else {
           return throwError(() => 'Missing event module (string), only event name is provided.');

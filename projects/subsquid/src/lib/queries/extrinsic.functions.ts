@@ -230,7 +230,7 @@ export const getExtrinsicsBase = (
 
   if (isDefined(callModule)) {
     if (isString(callModule)) {
-      // archiveWhere['call']['name_startsWith'] = callModule;
+      archiveWhere['call']['name_startsWith'] = callModule;
       gsWhere['mainCall'] = gsWhere['mainCall'] ? gsWhere['mainCall'] as Where : {};
       gsWhere['mainCall']['palletName_eq'] = callModule;
     } else {
@@ -241,7 +241,8 @@ export const getExtrinsicsBase = (
   if (isDefined(callName)) {
     if (isString(callName)) {
       if (isDefined(callModule)) {
-        // archiveWhere['call']['name_endsWith'] = callName;
+        delete archiveWhere['call']['name_startsWith'];
+        archiveWhere['call']['name_eq'] = `${callModule}.${callName}`;
         gsWhere['mainCall'] = gsWhere['mainCall'] ? gsWhere['mainCall'] as Where : {};
         gsWhere['mainCall']['callName_eq'] = callName;
       } else {
@@ -435,14 +436,29 @@ export const getExtrinsicsBase = (
         }
         if ((extrinsic as ArchiveExtrinsicInput).signature) {
           isSigned = 1;
-          signatureValue = ((extrinsic as ArchiveExtrinsicInput).signature as unknown as {signature: {value: string}}).signature?.value;
+          signatureValue = ((extrinsic as ArchiveExtrinsicInput).signature as unknown as {signature: {value: string}}).signature?.value || null;
         }
 
         let callerAccountId: string | null = null;
-        if ((extrinsic as GSExplorerExtrinsicInput).mainCall.callerPublicKey) {
-          callerAccountId = (extrinsic as GSExplorerExtrinsicInput).mainCall.callerPublicKey;
-        } else if ((extrinsic as ArchiveExtrinsicInput).signature) {
-          callerAccountId = ((extrinsic as ArchiveExtrinsicInput).signature as unknown as {address: {value: string}}).address?.value;
+        let callModule: string | null = null;
+        let callName: string | null = null;
+        let callArguments: { [key: string]: any } | null = null;
+
+        if ((extrinsic as GSExplorerExtrinsicInput).mainCall) {
+          callerAccountId = (extrinsic as GSExplorerExtrinsicInput).mainCall.callerPublicKey || null;
+          callName = (extrinsic as GSExplorerExtrinsicInput).mainCall?.callName || null;
+          callModule = (extrinsic as GSExplorerExtrinsicInput).mainCall?.palletName || null;
+          callArguments = (extrinsic as GSExplorerExtrinsicInput).mainCall?.argsStr || null;
+        } else {
+          if ((extrinsic as ArchiveExtrinsicInput).signature) {
+            callerAccountId = ((extrinsic as ArchiveExtrinsicInput).signature as unknown as {address: {value: string}}).address?.value || null;
+          }
+          if ((extrinsic as ArchiveExtrinsicInput).call) {
+            callArguments = (extrinsic as ArchiveExtrinsicInput).call.args;
+            if ((extrinsic as ArchiveExtrinsicInput).call.name) {
+              [callModule, callName] = (extrinsic as ArchiveExtrinsicInput).call.name.split('.');
+            }
+          }
         }
 
         return {
@@ -450,9 +466,9 @@ export const getExtrinsicsBase = (
           extrinsicIdx: extrinsic.indexInBlock,
           hash: (extrinsic as GSExplorerExtrinsicInput).extrinsicHash || (extrinsic as ArchiveExtrinsicInput).hash,
           version: extrinsic.version,
-          callModule: (extrinsic as GSExplorerExtrinsicInput).mainCall.palletName,
-          callName: (extrinsic as GSExplorerExtrinsicInput).mainCall.callName,
-          callArguments: (extrinsic as ArchiveExtrinsicInput).call?.args || (extrinsic as GSExplorerExtrinsicInput).mainCall.argsStr,
+          callModule: callModule,
+          callName: callName,
+          callArguments: callArguments,
           signed: isSigned,
           multiAddressAccountId: callerAccountId,
           signature: signatureValue,
