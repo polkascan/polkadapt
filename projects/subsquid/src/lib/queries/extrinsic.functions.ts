@@ -189,8 +189,8 @@ const identifiers = ['blockNumber', 'extrinsicIdx'];
 export const getExtrinsicsBase = (
   adapter: Adapter,
   pageSize?: number,
-  blockNumber?: number,
-  extrinsicIdx?: number,
+  blockNumberOrHash?: number | string,
+  extrinsicIdx?: number | null,
   callModule?: string,
   callName?: string,
   signed?: number,
@@ -206,13 +206,16 @@ export const getExtrinsicsBase = (
   const gsWhere: Where = {};
   const archiveWhere: Where = {};
 
-  if (isDefined(blockNumber)) {
-    if (isPositiveNumber(blockNumber)) {
+  if (isDefined(blockNumberOrHash)) {
+    if (isPositiveNumber(blockNumberOrHash)) {
       archiveWhere['block'] = gsWhere['block'] ? gsWhere['block'] as Where : {};
-      archiveWhere['block']['height_eq'] = blockNumber;
-      gsWhere['blockNumber_eq'] = blockNumber;
+      archiveWhere['block']['height_eq'] = blockNumberOrHash;
+      gsWhere['blockNumber_eq'] = blockNumberOrHash;
+    } else if (isString(blockNumberOrHash)) {
+      archiveWhere['hash_eq'] = blockNumberOrHash;
+      gsWhere['extrinsicHash_eq'] = blockNumberOrHash;
     } else {
-      return throwError(() => 'Provided block number must be a positive number.');
+      return throwError(() => 'Provided block number or hash must be a positive number or a string.');
     }
   }
 
@@ -469,8 +472,8 @@ export const getExtrinsicsBase = (
 
 
 export const getExtrinsic = (adapter: Adapter) => {
-  const fn = (blockNumber: number, extrinsicIdx: number) =>
-    getExtrinsicsBase(adapter, 1, blockNumber, extrinsicIdx).pipe(
+  const fn = (blockNumberOrHash: number | string, extrinsicIdx: number | null) =>
+    getExtrinsicsBase(adapter, 1, blockNumberOrHash, extrinsicIdx).pipe(
       catchError((e: string) => throwError(() => new Error(`[SubsquidAdapter] getExtrinsic: ${e}`))),
       map(extrinsics => extrinsics[0])
     );
