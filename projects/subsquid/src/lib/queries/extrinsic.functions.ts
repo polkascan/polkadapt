@@ -230,7 +230,8 @@ export const getExtrinsicsBase = (
 
   if (isDefined(callModule)) {
     if (isString(callModule)) {
-      archiveWhere['call']['name_startsWith'] = callModule;
+      archiveWhere['call'] = archiveWhere['call'] ? archiveWhere['call'] as Where : {};
+      archiveWhere['call']['name_eq'] = callModule;
       gsWhere['mainCall'] = gsWhere['mainCall'] ? gsWhere['mainCall'] as Where : {};
       gsWhere['mainCall']['palletName_eq'] = callModule;
     } else {
@@ -241,7 +242,10 @@ export const getExtrinsicsBase = (
   if (isDefined(callName)) {
     if (isString(callName)) {
       if (isDefined(callModule)) {
-        delete archiveWhere['call']['name_startsWith'];
+        archiveWhere['call'] = archiveWhere['call'] ? archiveWhere['call'] as Where : {};
+        if (archiveWhere['call']['name_startsWith']) {
+          delete archiveWhere['call']['name_startsWith'];
+        }
         archiveWhere['call']['name_eq'] = `${callModule}.${callName}`;
         gsWhere['mainCall'] = gsWhere['mainCall'] ? gsWhere['mainCall'] as Where : {};
         gsWhere['mainCall']['callName_eq'] = callName;
