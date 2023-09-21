@@ -440,7 +440,7 @@ export const getEventsBase = (
           eventName: (event as GSExplorerEventInput).eventName || splittenName && splittenName[1],
           attributes: (event as ArchiveEventInput).args
             ? (event as ArchiveEventInput).args
-            : (event as GSExplorerEventInput).call.argsStr,
+            : (event as GSExplorerEventInput)?.call?.argsStr || null,
           blockDatetime: (event as GSExplorerEventInput).timestamp || (event as ArchiveEventInput).block?.timestamp,
           blockHash: event.block.hash,
           eventPhaseName: (event as ArchiveEventInput).phase,
