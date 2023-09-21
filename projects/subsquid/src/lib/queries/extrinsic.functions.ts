@@ -449,13 +449,13 @@ export const getExtrinsicsBase = (
         let callArguments: { [key: string]: any } | null = null;
 
         if ((extrinsic as GSExplorerExtrinsicInput).mainCall) {
-          callerAccountId = (extrinsic as GSExplorerExtrinsicInput).mainCall.callerPublicKey || null;
+          callerAccountId = (extrinsic as GSExplorerExtrinsicInput).signerPublicKey || null;
           callName = (extrinsic as GSExplorerExtrinsicInput).mainCall?.callName || null;
           callModule = (extrinsic as GSExplorerExtrinsicInput).mainCall?.palletName || null;
           callArguments = (extrinsic as GSExplorerExtrinsicInput).mainCall?.argsStr || null;
         } else {
           if ((extrinsic as ArchiveExtrinsicInput).signature) {
-            callerAccountId = ((extrinsic as ArchiveExtrinsicInput).signature as unknown as {address: {value: string}}).address?.value || null;
+            callerAccountId = callerAccountId || ((extrinsic as ArchiveExtrinsicInput).signature as unknown as {address: {value: string}}).address?.value || null;
           }
           if ((extrinsic as ArchiveExtrinsicInput).call) {
             callArguments = (extrinsic as ArchiveExtrinsicInput).call.args;
