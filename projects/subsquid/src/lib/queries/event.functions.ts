@@ -23,76 +23,6 @@ import { types } from '@polkadapt/core';
 import { isDate, isDefined, isObject, isPositiveNumber, isString } from './helpers';
 import { getLatestBlock } from './block.functions';
 
-
-export type ArchiveEventInput = {
-  id: string;
-  args: { [k: string]: any };
-  indexInBlock: number;
-  name: string;
-  phase: string;
-  block: {
-    height: number;
-    hash: string;
-    timestamp: string;
-    spec: {
-      specName: string;
-      specVersion: number;
-    };
-  };
-  extrinsic: {
-    indexInBlock: number;
-  };
-};
-
-const archiveFields: Fields = [
-  'id',
-  'args',
-  'indexInBlock',
-  'phase',
-  'name',
-  {
-    block: [
-      'height', 'hash', 'timestamp',
-      {
-        spec: ['specName', 'specVersion']
-      }
-    ]
-  },
-  {
-    extrinsic: ['indexInBlock']
-  }
-];
-
-export type ArchiveEventArgsInput = {
-  id: string;
-  args: { [k: string]: any };
-  phase: string;
-  name: string;
-  block: {
-    height: number;
-    spec: {
-      specName: string;
-      specVersion: number;
-    };
-  };
-};
-
-const archiveEventArgsFields: Fields = [
-  'id',
-  'args',
-  'phase',
-  'name',
-  {
-    block: [
-      'height',
-      {
-        spec: ['specName', 'specVersion']
-      }
-    ]
-  }
-];
-
-
 export type GSExplorerEventInput = {
   id: string;
   blockNumber: number;
@@ -100,15 +30,15 @@ export type GSExplorerEventInput = {
   palletName: string;
   eventName: string;
   indexInBlock: number;
+  argsStr: { [k: string]: any };
   block: {
+    height: number;
     hash: string;
     specVersion: number;
+    timestamp: string;
   };
   extrinsic: {
     indexInBlock: number;
-  };
-  call: {
-    argsStr: { [k: string]: any };
   };
 };
 
@@ -119,10 +49,13 @@ const gsExplorerFields: Fields = [
   'palletName',
   'eventName',
   'indexInBlock',
+  'argsStr',
   {
     block: [
+      'height',
       'hash',
-      'specVersion'
+      'specVersion',
+      'timestamp'
     ]
   },
   {
@@ -130,11 +63,6 @@ const gsExplorerFields: Fields = [
       'indexInBlock'
     ]
   },
-  {
-    call: [
-      'argsStr'
-    ]
-  }
 ];
 
 export interface EventsFilters {
@@ -179,12 +107,9 @@ export const getEventsBase = (
 ): Observable<types.Event[]> => {
 
   const gsWhere: Where = {};
-  const archiveWhere: Where = {};
 
   if (isDefined(blockNumber)) {
     if (isPositiveNumber(blockNumber)) {
-      archiveWhere['block'] = gsWhere['block'] ? gsWhere['block'] as Where : {};
-      archiveWhere['block']['height_eq'] = blockNumber;
       gsWhere['blockNumber_eq'] = blockNumber;
     } else {
       return throwError(() => 'Provided block number must be a positive number.');
@@ -193,7 +118,6 @@ export const getEventsBase = (
 
   if (isDefined(eventIdx)) {
     if (isPositiveNumber(eventIdx)) {
-      archiveWhere['indexInBlock_eq'] = eventIdx;
       gsWhere['indexInBlock_eq'] = eventIdx;
     } else {
       return throwError(() => 'Provided eventIdx must be a positive number.');
@@ -224,7 +148,6 @@ export const getEventsBase = (
   } else {
     if (isDefined(eventModule)) {
       if (isString(eventModule)) {
-        archiveWhere['name_startsWith'] = eventModule;
         gsWhere['palletName_eq'] = eventModule;
       } else {
         return throwError(() => 'Provided event module (pallet) must be a non-empty string.');
@@ -234,8 +157,6 @@ export const getEventsBase = (
     if (isDefined(eventName)) {
       if (isString(eventName)) {
         if (isDefined(eventModule)) {
-          delete archiveWhere['name_startsWith'];
-          archiveWhere['name_eq'] = `${eventModule}.${eventName}`;
           gsWhere['eventName_eq'] = eventName;
         } else {
           return throwError(() => 'Missing event module (string), only event name is provided.');
@@ -250,8 +171,6 @@ export const getEventsBase = (
   if (isDefined(extrinsicIdx)) {
     if (isPositiveNumber(extrinsicIdx)) {
       if (isDefined(blockNumber)) {
-        archiveWhere['extrinsic'] = archiveWhere['extrinsic'] ? archiveWhere['extrinsic'] as Where : {};
-        archiveWhere['extrinsic']['indexInBlock_eq'] = extrinsicIdx;
         gsWhere['extrinsic'] = gsWhere['extrinsic'] ? gsWhere['extrinsic'] as Where : {};
         gsWhere['extrinsic']['indexInBlock_eq'] = extrinsicIdx;
       } else {
@@ -264,9 +183,7 @@ export const getEventsBase = (
 
   if (isDefined(specName)) {
     if (isString(specName)) {
-      archiveWhere['block'] = archiveWhere['block'] ? archiveWhere['block'] as Where : {};
-      archiveWhere['block']['spec'] = archiveWhere['block']['spec'] ? archiveWhere['block']['spec'] as Where : {};
-      archiveWhere['block']['spec']['specName_eq'] = specName;
+      // Giant squid has not implemented specName. Ignore it for now.
     } else {
       return throwError(() => 'Provided spec name must be a non-empty string.');
     }
@@ -274,9 +191,6 @@ export const getEventsBase = (
 
   if (isDefined(specVersion)) {
     if (isPositiveNumber(specVersion)) {
-      archiveWhere['block'] = archiveWhere['block'] ? archiveWhere['block'] as Where : {};
-      archiveWhere['block']['spec'] = archiveWhere['block']['spec'] ? archiveWhere['block']['spec'] as Where : {};
-      archiveWhere['block']['spec']['specVersion_eq'] = specVersion;
       gsWhere['block'] = gsWhere['block'] ? gsWhere['block'] as Where : {};
       gsWhere['block']['specVersion_eq'] = specVersion;
     } else {
@@ -291,9 +205,6 @@ export const getEventsBase = (
       }
       const timestampBegin = dateRangeBegin.toJSON();
       const timestampEnd = dateRangeEnd.toJSON();
-      archiveWhere['block'] = archiveWhere['block'] ? archiveWhere['block'] as Where : {};
-      archiveWhere['block']['timestamp_gte'] = timestampBegin;
-      archiveWhere['block']['timestamp_lte'] = timestampEnd;
       gsWhere['timestamp_gte'] = timestampBegin;
       gsWhere['timestamp_lte'] = timestampEnd;
     } else {
@@ -302,8 +213,6 @@ export const getEventsBase = (
   } else if (isDefined(dateRangeBegin)) {
     if (isDate(dateRangeBegin)) {
       const timestampBegin = dateRangeBegin.toJSON();
-      archiveWhere['block'] = archiveWhere['block'] ? archiveWhere['block'] as Where : {};
-      archiveWhere['block']['timestamp_gte'] = timestampBegin;
       gsWhere['timestamp_gte'] = timestampBegin;
     } else {
       return throwError(() => 'Provided begin date must be a Date.');
@@ -311,7 +220,6 @@ export const getEventsBase = (
   } else if (isDefined(dateRangeEnd)) {
     if (isDate(dateRangeEnd)) {
       const timestampEnd = dateRangeEnd.toJSON();
-      archiveWhere['block'] = archiveWhere['block'] ? archiveWhere['block'] as Where : {};
       gsWhere['timestamp_lte'] = timestampEnd;
     } else {
       return throwError(() => 'Provided end date must be a Date.');
@@ -323,9 +231,6 @@ export const getEventsBase = (
       if (blockRangeEnd < blockRangeBegin) {
         return throwError(() => 'Provided block number range is invalid.');
       }
-      archiveWhere['block'] = archiveWhere['block'] ? archiveWhere['block'] as Where : {};
-      archiveWhere['block']['height_gte'] = blockRangeBegin;
-      archiveWhere['block']['height_lte'] = blockRangeEnd;
       gsWhere['blockNumber_gte'] = blockRangeBegin;
       gsWhere['blockNumber_lte'] = blockRangeEnd;
     } else {
@@ -333,16 +238,12 @@ export const getEventsBase = (
     }
   } else if (isDefined(blockRangeBegin)) {
     if (isPositiveNumber(blockRangeBegin)) {
-      archiveWhere['block'] = archiveWhere['block'] ? archiveWhere['block'] as Where : {};
-      archiveWhere['block']['height_gte'] = blockRangeBegin;
       gsWhere['blockNumber_gte'] = blockRangeBegin;
     } else {
       return throwError(() => 'Provided begin block must be a positive number.');
     }
   } else if (isDefined(blockRangeEnd)) {
     if (isPositiveNumber(blockRangeEnd)) {
-      archiveWhere['block'] = archiveWhere['block'] ? archiveWhere['block'] as Where : {};
-      archiveWhere['block']['height_lte'] = blockRangeEnd;
       gsWhere['blockNumber_lte'] = blockRangeEnd;
     } else {
       return throwError(() => 'Provided end block must be a positive number.');
@@ -363,14 +264,6 @@ export const getEventsBase = (
     orderBy,
     pageSize
   ).pipe(
-    catchError(() =>
-      adapter.queryArchive<ArchiveEventInput[]>(
-        contentType,
-        archiveFields,
-        archiveWhere,
-        orderBy,
-        pageSize
-      )),
     switchMap(
       (rawEvents) => {
         if (!rawEvents) {
@@ -381,71 +274,23 @@ export const getEventsBase = (
           return of([]);
         }
 
-        const event = rawEvents[0];
-
-        if (Object.keys(event).indexOf('args') === -1) {
-          // No args attribute in event, we are dealing with an event coming from the GS Explorer.
-          // Get args from archive.
-          return combineLatest([
-            of(rawEvents as GSExplorerEventInput[]),
-            adapter.queryArchive<ArchiveEventArgsInput[]>(
-              contentType,
-              archiveEventArgsFields,
-              // eslint-disable-next-line @typescript-eslint/naming-convention
-              {id_in: rawEvents.map((v) => v.id)},
-              orderBy,
-              pageSize
-            )
-          ]).pipe(
-            map(([events, eventsArgs]) =>
-              events.map((ev) => {
-                const evArgs = eventsArgs.find((a) => ev.id === a.id);
-                const modifiedEvent = Object.assign(ev) as GSExplorerEventInput & ArchiveEventArgsInput;
-                if (evArgs) {
-                  modifiedEvent.args = evArgs.args;
-                  modifiedEvent.block.spec = {
-                    specName: evArgs.block.spec.specName,
-                    specVersion: evArgs.block.spec.specVersion
-                  };
-                  modifiedEvent.phase = evArgs.phase;
-                  modifiedEvent.name = evArgs.name;
-                }
-                return modifiedEvent;
-              })
-            ),
-            catchError((e) => {
-              console.error(e);
-              return of(rawEvents as GSExplorerEventInput[]);
-            })
-          );
-        } else {
-          return of(rawEvents as ArchiveEventInput[]);
-        }
+        return of(rawEvents);
       }
     ),
     map((events) =>
       events.map<st.Event>((event) => {
-        const splittenName: string[] | null = (event as ArchiveEventInput).name
-          ? (event as ArchiveEventInput).name.split('.')
-          : null;
-
         return {
-          blockNumber: (event as GSExplorerEventInput).blockNumber || (event as ArchiveEventInput).block?.height,
+          blockNumber: event.blockNumber || event.block.height,
           eventIdx: event.indexInBlock,
           extrinsicIdx: event.extrinsic?.indexInBlock,
-          event: (event as ArchiveEventInput).name ||
-            (event as GSExplorerEventInput).eventName &&
-            `${(event as GSExplorerEventInput).palletName}.${(event as GSExplorerEventInput).eventName}`,
-          eventModule: (event as GSExplorerEventInput).palletName || splittenName && splittenName[0],
-          eventName: (event as GSExplorerEventInput).eventName || splittenName && splittenName[1],
-          attributes: (event as ArchiveEventInput).args
-            ? (event as ArchiveEventInput).args
-            : (event as GSExplorerEventInput)?.call?.argsStr || null,
-          blockDatetime: (event as GSExplorerEventInput).timestamp || (event as ArchiveEventInput).block?.timestamp,
+          event: event.palletName && event.eventName &&
+            `${event.palletName}.${event.eventName}`,
+          eventModule: event.palletName,
+          eventName: event.eventName,
+          attributes: event.argsStr || null,
+          blockDatetime: event.timestamp || event.block.timestamp,
           blockHash: event.block.hash,
-          eventPhaseName: (event as ArchiveEventInput).phase,
-          specName: (event as ArchiveEventInput).block?.spec?.specName,
-          specVersion: (event as GSExplorerEventInput).block?.specVersion || (event as ArchiveEventInput).block?.spec?.specVersion
+          specVersion: event.block?.specVersion
         };
       })
     )

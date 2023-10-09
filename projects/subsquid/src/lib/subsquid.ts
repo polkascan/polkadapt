@@ -41,7 +41,7 @@ import { getLatestRuntime, getRuntime, getRuntimes } from './queries/runtime.fun
 import { ExtrinsicsFilters, getExtrinsic, getExtrinsics, subscribeNewExtrinsic } from './queries/extrinsic.functions';
 
 export type Api = {
-  getChainProperties: AdapterApiCallWithIdentifiers<[], types.ChainProperties>;
+  // getChainProperties: AdapterApiCallWithIdentifiers<[], types.ChainProperties>;
   getBlock: AdapterApiCallWithIdentifiers<[hashOrNumber: string | number], types.Block>;
   getLatestBlock: AdapterApiCallWithIdentifiers<[], types.Block>;
   subscribeNewBlock: AdapterApiCallWithIdentifiers<[], types.Block>;
@@ -57,15 +57,13 @@ export type Api = {
   getExtrinsic: AdapterApiCallWithIdentifiers<[blockNumber: number, extrinsicIdx: number], types.Extrinsic>;
   getExtrinsics: AdapterApiCallWithIdentifiers<[filters?: ExtrinsicsFilters, pageSize?: number], types.Extrinsic[]>;
   subscribeNewExtrinsic: AdapterApiCallWithIdentifiers<[filters?: ExtrinsicsFilters], types.Extrinsic>;
-  getRuntime: AdapterApiCallWithIdentifiers<[specName: string, specVersion: number], types.Runtime>;
-  getRuntimes: AdapterApiCallWithIdentifiers<[pageSize?: number], types.Runtime[]>;
-  getLatestRuntime: AdapterApiCallWithIdentifiers<[], types.Runtime>;
+  // getRuntime: AdapterApiCallWithIdentifiers<[specName: string, specVersion: number], types.Runtime>;
+  // getRuntimes: AdapterApiCallWithIdentifiers<[pageSize?: number], types.Runtime[]>;
+  // getLatestRuntime: AdapterApiCallWithIdentifiers<[], types.Runtime>;
 };
 
 export type Config = {
   chain: string;
-  archiveUrl?: string;
-  explorerUrl?: string;
   giantSquidExplorerUrl?: string;
   giantSquidMainUrl?: string;
 };
@@ -88,7 +86,7 @@ export class Adapter extends AdapterBase {
   name = 'subsquid';
   config: Config;
   api: Api = {
-    getChainProperties: getChainProperties(this),
+    // getChainProperties: getChainProperties(this),  // Not implemented in giant squid
     getBlock: getBlock(this),
     getLatestBlock: getLatestBlock(this),
     subscribeNewBlock: subscribeNewBlock(this),
@@ -103,29 +101,15 @@ export class Adapter extends AdapterBase {
     getExtrinsic: getExtrinsic(this),
     getExtrinsics: getExtrinsics(this),
     subscribeNewExtrinsic: subscribeNewExtrinsic(this),
-    getRuntime: getRuntime(this),
-    getRuntimes: getRuntimes(this),
-    getLatestRuntime: getLatestRuntime(this)
+    // getRuntime: getRuntime(this),  // Not implemented in giant squid
+    // getRuntimes: getRuntimes(this),  // Not implemented in giant squid
+    // getLatestRuntime: getLatestRuntime(this)  // Not implemented in giant squid
   };
 
 
   constructor(config: Config) {
     super(config.chain);
     this.config = config;
-  }
-
-  queryArchive<T>(...args: CreateQueryArgs): Observable<T> {
-    if (this.config.archiveUrl) {
-      return this.requestQuery<T>(this.config.archiveUrl, ...args);
-    }
-    return throwError(() => new Error(`[SubSquid adapter] ${this.config.chain} archive node encountered an error or is unavailable`));
-  }
-
-  queryExplorer<T>(...args: CreateQueryArgs): Observable<T> {
-    if (this.config.explorerUrl) {
-      return this.requestQuery<T>(this.config.explorerUrl, ...args);
-    }
-    return throwError(() => new Error(`[SubSquid adapter] ${this.config.chain} explorer node encountered an error or is unavailable`));
   }
 
   queryGSExplorer<T>(...args: CreateQueryArgs): Observable<T> {

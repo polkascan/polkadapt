@@ -17,41 +17,20 @@
  */
 
 import { Adapter, Where } from '../subsquid';
-import { map, Observable } from 'rxjs';
+import { map, Observable, throwError } from 'rxjs';
 import { types } from '@polkadapt/core';
 
-export type ArchiveMetadataInput = {
-  blockHash: string;
-  blockHeight: number;
-  specName: string;
-  specVersion: number;
-}[];
+// export type XXMetadataInput = {
+//   blockHash: string;
+//   blockHeight: number;
+//   specName: string;
+//   specVersion: number;
+// }[];
 
 const identifiers = ['specName', 'specVersion'];
 
-export const getRuntimesBase = (adapter: Adapter, specName?: string, specVersion?: number, limit?: number): Observable<types.Runtime[]> => {
-  const where: Where = {};
-  if (specName) {
-    where['specName_eq'] = specName;
-  }
-  if (specVersion) {
-    where['specVersion_eq'] = specVersion;
-  }
-  return adapter.queryArchive<ArchiveMetadataInput>(
-    'metadata',
-    ['blockHash', 'blockHeight', 'specName', 'specVersion'],
-    where,
-    'blockHeight_DESC',
-    limit
-  ).pipe(
-    map<ArchiveMetadataInput, types.Runtime[]>(metadata => metadata.map(m => ({
-      blockHash: m.blockHash,
-      blockNumber: m.blockHeight,
-      specName: m.specName,
-      specVersion: m.specVersion
-    })))
-  );
-};
+export const getRuntimesBase = (adapter: Adapter, specName?: string, specVersion?: number, limit?: number): Observable<types.Runtime[]> =>
+  throwError(() => `Functionality for getRuntime, getRuntimes and getLatestRuntime not implemented.`);
 
 export const getRuntime = (adapter: Adapter) => {
   const fn = (specName: string, specVersion: number): Observable<types.Runtime> => getRuntimesBase(adapter, specName, specVersion, 1).pipe(

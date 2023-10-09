@@ -22,22 +22,13 @@ import * as st from '../subsquid.types';
 import { Adapter, Where } from '../subsquid';
 import { isBlockHash, isNumber, isObject } from './helpers';
 
-export type ArchiveBlockInput = {
-  extrinsicsRoot: string;
-  hash: string;
-  height: number;
-  parentHash: string;
-  spec: {
-    specName: string;
-    specVersion: number;
-  };
-  stateRoot: string;
-  timestamp: string;
-  validator: string;
-}[];
-
 export type GSExplorerBlockInput = {
   height: number;
+  hash: string;
+  parentHash: string;
+  specVersion: number;
+  timestamp: string;
+  validator: string;
   extrinsicsCount: number;
   callsCount: number;
   eventsCount: number;
@@ -72,30 +63,9 @@ export const getBlocksBase = (
   }
 
   return merge(
-    adapter.queryArchive<ArchiveBlockInput>(
-      contentType,
-      ['extrinsicsRoot', 'hash', 'height', 'parentHash', {spec: ['specName', 'specVersion']}, 'stateRoot', 'timestamp', 'validator'],
-      where,
-      orderBy,
-      pageSize
-    ).pipe(
-      map(blocks => blocks.map<st.ArchiveBlockOutput>(block => ({
-        // eslint-disable-next-line id-blacklist
-        number: block.height,
-        hash: block.hash,
-        parentHash: block.parentHash,
-        stateRoot: block.stateRoot,
-        extrinsicsRoot: block.extrinsicsRoot,
-        datetime: block.timestamp,
-        authorAccountId: block.validator,
-        specName: block.spec.specName,
-        specVersion: block.spec.specVersion,
-        complete: 1
-      })))
-    ),
     adapter.queryGSExplorer<GSExplorerBlockInput>(
       contentType,
-      ['height', 'callsCount', 'eventsCount', 'extrinsicsCount'],
+      ['height', 'hash', 'parentHash', 'specVersion', 'timestamp', 'validator', 'callsCount', 'eventsCount', 'extrinsicsCount'],
       where,
       orderBy,
       pageSize
@@ -103,9 +73,15 @@ export const getBlocksBase = (
       map(blocks => blocks.map<st.GSExplorerBlockOutput>(block => ({
         // eslint-disable-next-line id-blacklist
         number: block.height,
+        hash: block.hash,
+        parentHash: block.parentHash,
+        specVersion: block.specVersion,
+        datetime: block.timestamp,
+        authorAccountId: block.validator,
         countCalls: block.callsCount,
         countEvents: block.eventsCount,
-        countExtrinsics: block.extrinsicsCount
+        countExtrinsics: block.extrinsicsCount,
+        complete: 1
       })))
     )
   );
@@ -194,12 +170,12 @@ export const subscribeNewBlock = (adapter: Adapter) => {
   const fn = () => timer(0, 6000).pipe(
     switchMap(() =>
       getBlocksBase(adapter, 1).pipe(
-        filter((blocks) => blocks && blocks[0] && (blocks[0].number as number) !== ignoreHeight),
+        filter((blocks) => blocks && blocks[0] && blocks[0].number !== ignoreHeight),
         switchMap((blocks) => {
           if (blocks.length === 1) {
             const prevHeight = height;
             const latestBlock = blocks[0];
-            const latestBlockNumber = latestBlock.number as number;
+            const latestBlockNumber = latestBlock.number;
 
             if (prevHeight !== undefined && latestBlockNumber - prevHeight > 1) {
               // Missed multiple blocks, retrieve and emit individually.

@@ -16,43 +16,36 @@
  * limitations under the License.
  */
 
-export type ArchiveBlockOutput = {
+export type GSExplorerBlockOutput = {
   // eslint-disable-next-line id-blacklist
   number: number;  // PK
   hash: string;
   parentHash: string;
-  stateRoot: string;
-  extrinsicsRoot: string;
   datetime: string | null;
-  authorAccountId: string | null;
-  specName: string;
+  // specName: string;  // Not available in giant squid
   specVersion: number;
-  complete: number;
-};
-
-export type GSExplorerBlockOutput = {
-  // eslint-disable-next-line id-blacklist
-  number: number;  // PK
+  authorAccountId: string | null;  // validator
   countCalls: number;
   countExtrinsics: number;
   countEvents: number;
+  complete: number;
+  // stateRoot: string;  // Not available in giant squid
+  // extrinsicsRoot: string;  // Not available in giant squid
 };
 
+export type Block = GSExplorerBlockOutput;
 
-export type ExplorerChainInfoOutput = {
-  chainSS58: number;
-  chainDecimals: number[];
-  chainTokens: string[] ;
-  name: string;
-};
+// export type XXChainInfoOutput = {
+//   chainSS58: number;
+//   chainDecimals: number[];
+//   chainTokens: string[] ;
+//   name: string;
+//   specName: string | null;
+//   specVersion: string | null;
+// };
 
-export type ArchiveChainInfoOutput = {
-  specName: string | null;
-};
+// export type ChainProperties = XXChainInfoOutput;
 
-export type ChainProperties = Partial<ExplorerChainInfoOutput & ArchiveChainInfoOutput>;
-
-export type Block = Partial<ArchiveBlockOutput & GSExplorerBlockOutput>;
 
 export type Event = {
   blockNumber: number;  // PK
@@ -64,8 +57,7 @@ export type Event = {
   attributes: { [k: string]: any } | null;
   blockDatetime: string | null;
   blockHash: string;
-  eventPhaseName: string | null;
-  specName: string | null;
+  // specName: string | null;   // Not available in giant squid
   specVersion: number | null;
 };
 
@@ -98,13 +90,13 @@ export type Extrinsic = {
   error: string | null;
   blockDatetime: string | null;
   blockHash: string | null;
-  specName: string | null;
+  // specName: string | null;  // Not available in giant squid
   specVersion: number | null;
 };
 
-export type Runtime = {
-  specName: string;  // PK
-  specVersion: number;  // PK
-  blockNumber: number;
-  blockHash: string;
-};
+// export type Runtime = {
+//   specName: string;  // PK
+//   specVersion: number;  // PK
+//   blockNumber: number;
+//   blockHash: string;
+// };
