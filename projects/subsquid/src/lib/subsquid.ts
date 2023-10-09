@@ -37,7 +37,7 @@ import {
   subscribeNewEventByAccount
 } from './queries/event.functions';
 import { fromFetch } from 'rxjs/internal/observable/dom/fetch';
-import { getLatestRuntime, getRuntime, getRuntimes } from './queries/runtime.functions';
+// import { getLatestRuntime, getRuntime, getRuntimes } from './queries/runtime.functions';
 import { ExtrinsicsFilters, getExtrinsic, getExtrinsics, subscribeNewExtrinsic } from './queries/extrinsic.functions';
 
 export type Api = {

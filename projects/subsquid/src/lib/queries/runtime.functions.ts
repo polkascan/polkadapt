@@ -29,27 +29,27 @@ import { types } from '@polkadapt/core';
 
 const identifiers = ['specName', 'specVersion'];
 
-export const getRuntimesBase = (adapter: Adapter, specName?: string, specVersion?: number, limit?: number): Observable<types.Runtime[]> =>
-  throwError(() => `Functionality for getRuntime, getRuntimes and getLatestRuntime not implemented.`);
-
-export const getRuntime = (adapter: Adapter) => {
-  const fn = (specName: string, specVersion: number): Observable<types.Runtime> => getRuntimesBase(adapter, specName, specVersion, 1).pipe(
-    map(runtimes => runtimes[0])
-  );
-  fn.identifiers = identifiers;
-  return fn;
-};
-
-export const getRuntimes = (adapter: Adapter) => {
-  const fn = (pageSize?: number): Observable<types.Runtime[]> => getRuntimesBase(adapter, undefined, undefined, pageSize);
-  fn.identifiers = identifiers;
-  return fn;
-};
-
-export const getLatestRuntime = (adapter: Adapter) => {
-  const fn = (): Observable<types.Runtime> => getRuntimesBase(adapter, undefined, undefined, 1).pipe(
-    map(runtimes => runtimes[0])
-  );
-  fn.identifiers = identifiers;
-  return fn;
-};
+// export const getRuntimesBase = (adapter: Adapter, specName?: string, specVersion?: number, limit?: number): Observable<types.Runtime[]> =>
+//   throwError(() => `Functionality for getRuntime, getRuntimes and  not implemented.`);
+//
+// export const getRuntime = (adapter: Adapter) => {
+//   const fn = (specName: string, specVersion: number): Observable<types.Runtime> => getRuntimesBase(adapter, specName, specVersion, 1).pipe(
+//     map(runtimes => runtimes[0])
+//   );
+//   fn.identifiers = identifiers;
+//   return fn;
+// };
+//
+// export const getRuntimes = (adapter: Adapter) => {
+//   const fn = (pageSize?: number): Observable<types.Runtime[]> => getRuntimesBase(adapter, undefined, undefined, pageSize);
+//   fn.identifiers = identifiers;
+//   return fn;
+// };
+//
+// export const getLatestRuntime = (adapter: Adapter) => {
+//   const fn = (): Observable<types.Runtime> => getRuntimesBase(adapter, undefined, undefined, 1).pipe(
+//     map(runtimes => runtimes[0])
+//   );
+//   fn.identifiers = identifiers;
+//   return fn;
+// };
