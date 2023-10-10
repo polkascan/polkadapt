@@ -42,7 +42,7 @@ export type GSExplorerBlockOutput = {
 export type ExplorerChainInfoOutput = {
   chainSS58: number;
   chainDecimals: number[];
-  chainTokens: string[] ;
+  chainTokens: string[];
   name: string;
 };
 
@@ -108,3 +108,39 @@ export type Runtime = {
   blockNumber: number;
   blockHash: string;
 };
+
+
+export type ChainStatistics = {
+  accountsTotal: number;
+  chainFinalizedBlocks: number;
+  chainSignedExtrinsics: number;
+  balancesTotalIssuance: string;
+  balancesTransfersAmount: string;
+  balancesTransfersVolume: string;
+  parachainStakingCollatorsAmount: number;
+  parachainStakingTotalStakeCollators: string;
+  parachainStakingCurrentRound: number;
+  parachainStakingTotalStakeDelegators: string;
+  slotsTokensLockedInParachains: string;
+  nominationPoolsMembersAmount: number;
+  nominationPoolsPoolsActiveAmount: number;
+  nominationPoolsPoolsActiveTotalStake: string;
+  nominationPoolsPoolsInactiveAmount: number;
+  nominationPoolsPoolsInactiveTotalStake: string;
+  stakingValidatorsIdealAmount: number;
+  stakingValidatorsAmount: number;
+  stakingTotalStakeValidatorsSingleAccount: string;
+  stakingTotalStakeValidatorsMultiAccount: string;
+  stakingTotalStakeValidators: string;
+  stakingTotalStakeNominatorsInactive: string;
+  stakingTotalStakeNominatorsActive: string;
+  stakingTotalStake: string;
+  stakingRewardsRatio: number;
+  stakingNominatorsInactiveAmount: number;
+  stakingNominatorsActiveAmount: number;
+  stakingMinActiveNominatorStake: string;
+  stakingInflationRatio: number;
+  stakingCurrentEra: number;
+  stakingActiveValidatorsAmount: number;
+  lastUpdate: string;
+}

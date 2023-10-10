@@ -39,6 +39,7 @@ import {
 import { fromFetch } from 'rxjs/internal/observable/dom/fetch';
 import { getLatestRuntime, getRuntime, getRuntimes } from './queries/runtime.functions';
 import { ExtrinsicsFilters, getExtrinsic, getExtrinsics, subscribeNewExtrinsic } from './queries/extrinsic.functions';
+import { getLatestStatistics } from './queries/stats.functions';
 
 export type Api = {
   getChainProperties: AdapterApiCallWithIdentifiers<[], types.ChainProperties>;
@@ -60,6 +61,7 @@ export type Api = {
   getRuntime: AdapterApiCallWithIdentifiers<[specName: string, specVersion: number], types.Runtime>;
   getRuntimes: AdapterApiCallWithIdentifiers<[pageSize?: number], types.Runtime[]>;
   getLatestRuntime: AdapterApiCallWithIdentifiers<[], types.Runtime>;
+  getLatestStatistics: AdapterApiCallWithIdentifiers<[], types.ChainStatistics>
 };
 
 export type Config = {
@@ -68,6 +70,7 @@ export type Config = {
   explorerUrl?: string;
   giantSquidExplorerUrl?: string;
   giantSquidMainUrl?: string;
+  giantSquidStatsUrl?: string;
 };
 
 type CreateQueryArgs = [contentType: string, fields: Fields, where?: Where, orderBy?: string, limit?: number, offset?: number];
@@ -105,7 +108,8 @@ export class Adapter extends AdapterBase {
     subscribeNewExtrinsic: subscribeNewExtrinsic(this),
     getRuntime: getRuntime(this),
     getRuntimes: getRuntimes(this),
-    getLatestRuntime: getLatestRuntime(this)
+    getLatestRuntime: getLatestRuntime(this),
+    getLatestStatistics: getLatestStatistics(this)
   };
 
 
@@ -140,6 +144,13 @@ export class Adapter extends AdapterBase {
       return this.requestQuery<T>(this.config.giantSquidMainUrl, ...args);
     }
     return throwError(() => new Error(`[SubSquid adapter] ${this.config.chain} giant squid main encountered an error or is unavailable`));
+  }
+
+  queryGSStats<T>(...args: CreateQueryArgs): Observable<T> {
+    if (this.config.giantSquidStatsUrl) {
+      return this.requestQuery<T>(this.config.giantSquidStatsUrl, ...args);
+    }
+    return throwError(() => new Error(`[SubSquid adapter] ${this.config.chain} giant squid stats encountered an error or is unavailable`));
   }
 
   private formatFields(fields: Fields, indent = ''): string {
