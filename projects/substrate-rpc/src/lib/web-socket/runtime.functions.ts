@@ -17,9 +17,10 @@
  */
 
 import { types } from '@polkadapt/core';
-import { map, Observable } from 'rxjs';
+import { from, map, Observable, switchMap } from 'rxjs';
 import { Adapter } from '../substrate-rpc';
 import { getMetadataForSpecVersion } from './helpers';
+import { ApiRx } from '@polkadot/api';
 
 const identifiers = ['specName', 'specVersion'];
 
@@ -61,3 +62,16 @@ export const getRuntime = (adapter: Adapter) => {
   fn.identifiers = identifiers;
   return fn;
 };
+
+export const getLatestRuntime = (adapter: Adapter) => {
+  const fn = (): Observable<types.Runtime> =>
+    from(adapter.apiPromise).pipe(
+      switchMap((api: ApiRx) => {
+          const version = (api.consts.system.version).toJSON() as {specName: string, specVersion: number};
+          return getRuntime(adapter)(version.specName, version.specVersion)
+        }
+      )
+    )
+  fn.identifiers = identifiers;
+  return fn;
+}
