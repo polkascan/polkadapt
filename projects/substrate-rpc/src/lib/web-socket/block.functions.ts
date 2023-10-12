@@ -48,11 +48,12 @@ export const getBlock = (adapter: Adapter) => {
           combineLatestWith(
             api.rpc.chain.getBlock(blockHash),
             api.query.system.events.at(blockHash),
-            api.query.timestamp.now.at(blockHash)
+            api.query.timestamp.now.at(blockHash),
+            api.query.system.lastRuntimeUpgrade.at(blockHash)
           )
         )
       ),
-      map(([blockHash, signedBlock, events, timestamp]) => {
+      map(([blockHash, signedBlock, events, timestamp, runtime]) => {
         const block: types.Block = {} as types.Block;
         block.hash = blockHash.toString();
         if (signedBlock) {
@@ -67,10 +68,15 @@ export const getBlock = (adapter: Adapter) => {
         }
         if (events) {
           block.countEvents = (events as Vec<EventRecord>).length;
-          block.events = events.toJSON() as any[];  // TODO Fix typing
+          block.events = events as Vec<EventRecord>;
         }
         if (timestamp) {
           block.datetime = new Date(parseInt(timestamp.toString(), 10)).toISOString();
+        }
+        if (runtime) {
+          const r = runtime.toJSON() as { specName: string, specVersion: number };
+          block.specName = r.specName;
+          block.specVersion = r.specVersion;
         }
 
         return block;

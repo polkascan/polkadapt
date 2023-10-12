@@ -79,3 +79,6 @@ export const getMetadataForSpecVersion =
           )
         )
       );
+
+
+export const isPositiveNumber = (val: unknown): val is number => Number.isInteger(val) && (val as number) >= 0;

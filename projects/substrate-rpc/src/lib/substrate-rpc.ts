@@ -52,6 +52,7 @@ import { getRuntimeConstant, getRuntimeConstants } from './web-socket/runtime-co
 import { getRuntimeErrorMessage, getRuntimeErrorMessages } from './web-socket/runtime-error-message.functions';
 import { getRuntimeCallArguments } from './web-socket/runtime-call-arguments.functions';
 import { getRuntimeEventAttributes } from './web-socket/runtime-event-attribute.functions';
+import { getEvent } from './web-socket/event.functions';
 
 export type Api = {
   getChainProperties: () => Observable<types.ChainProperties>;
@@ -73,6 +74,7 @@ export type Api = {
   getAccountFlags: (accountId: string) => Observable<types.AccountFlags>;
   getAccountBalances: (accountId: string) => Observable<types.AccountBalances>;
   getAccountStaking: (accountId: string) => Observable<types.AccountStaking>;
+  getEvent: (blockNumber: number, eventIdx: number) => Observable<types.Event>;
   getRuntime: (specName: string, specVersion: number) => Observable<types.Runtime>;
   getLatestRuntime: () => Observable<types.Runtime>;
   getRuntimePallet: (specName: string, specVersion: number, pallet: string) => Observable<types.RuntimePallet>;
@@ -158,6 +160,7 @@ export class Adapter extends AdapterBase {
       getAccountFlags: getAccountFlags(this),
       getAccountBalances: getAccountBalances(this),
       getAccountStaking: getAccountStaking(this),
+      getEvent: getEvent(this),
       getRuntime: getRuntime(this),
       getLatestRuntime: getLatestRuntime(this),
       getRuntimePallet: getRuntimePallet(this),

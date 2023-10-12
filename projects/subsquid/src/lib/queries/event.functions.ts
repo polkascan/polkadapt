@@ -17,7 +17,7 @@
  */
 
 import { Adapter, Fields, Where } from '../subsquid';
-import { catchError, combineLatest, filter, map, Observable, of, switchMap, take, tap, throwError, timer } from 'rxjs';
+import { catchError, filter, map, Observable, of, switchMap, take, tap, throwError, timer } from 'rxjs';
 import * as st from '../subsquid.types';
 import { types } from '@polkadapt/core';
 import { isDate, isDefined, isObject, isPositiveNumber, isString } from './helpers';
@@ -30,7 +30,7 @@ export type GSExplorerEventInput = {
   palletName: string;
   eventName: string;
   indexInBlock: number;
-  argsStr: { [k: string]: any };
+  // argsStr: { [k: string]: any };
   block: {
     height: number;
     hash: string;
@@ -49,7 +49,7 @@ const gsExplorerFields: Fields = [
   'palletName',
   'eventName',
   'indexInBlock',
-  'argsStr',
+  // 'argsStr',
   {
     block: [
       'height',
@@ -287,7 +287,7 @@ export const getEventsBase = (
             `${event.palletName}.${event.eventName}`,
           eventModule: event.palletName,
           eventName: event.eventName,
-          attributes: event.argsStr || null,
+          // attributes: event.argsStr || null,
           blockDatetime: event.timestamp || event.block.timestamp,
           blockHash: event.block.hash,
           specVersion: event.block?.specVersion
@@ -457,33 +457,49 @@ export const getEventsByAccount = (adapter: Adapter) => {
       filters.eventTypes
     ).pipe(
       map<types.Event[], types.AccountEvent[]>((events) => {
-          const accountEvents = events
-            .map((event) => {
-                const attributes: unknown = isString(event.attributes)
-                  ? JSON.parse(event.attributes)
-                  : event.attributes;
-                if (isObject(attributes)) {
-                  const attributeName = Object.keys(attributes)
-                    .find(key => (attributes as { [k: string]: unknown })[key] === accountIdHex);
+          const accountEvents = events.map((event) => {
+            return {
+              blockNumber: event.blockNumber,
+              eventIdx: event.eventIdx,
+              attributeName: '',  // UNTIL GIANT SQUID SHOWS THE ARGUMENTS CORRECTLY
+              accountId: accountIdHex,
+              // attributes: event.attributes,
+              pallet: event.eventModule,
+              eventName: event.eventName,
+              blockDatetime: event.blockDatetime,
+              sortValue: null,
+              extrinsicIdx: event.extrinsicIdx
+            } as types.AccountEvent;
+          })
 
-                  if (attributeName) {
-                    return {
-                      blockNumber: event.blockNumber,
-                      eventIdx: event.eventIdx,
-                      attributeName,
-                      accountId: accountIdHex,
-                      attributes: event.attributes,
-                      pallet: event.eventModule,
-                      eventName: event.eventName,
-                      blockDatetime: event.blockDatetime,
-                      sortValue: null,
-                      extrinsicIdx: event.extrinsicIdx
-                    } as types.AccountEvent;
-                  }
-                }
-                return undefined;
-              }
-            ).filter((ae): ae is types.AccountEvent => isObject(ae));
+
+          // const accountEvents = events
+          //   .map((event) => {
+          //       const attributes: unknown = isString(event.attributes)
+          //         ? JSON.parse(event.attributes)
+          //         : event.attributes;
+          //       if (isObject(attributes)) {
+          //         const attributeName = Object.keys(attributes)
+          //           .find(key => (attributes as { [k: string]: unknown })[key] === accountIdHex);
+          //
+          //         if (attributeName) {
+          //           return {
+          //             blockNumber: event.blockNumber,
+          //             eventIdx: event.eventIdx,
+          //             attributeName,
+          //             accountId: accountIdHex,
+          //             // attributes: event.attributes,
+          //             pallet: event.eventModule,
+          //             eventName: event.eventName,
+          //             blockDatetime: event.blockDatetime,
+          //             sortValue: null,
+          //             extrinsicIdx: event.extrinsicIdx
+          //           } as types.AccountEvent;
+          //         }
+          //       }
+          //       return undefined;
+          //     }
+          //   ).filter((ae): ae is types.AccountEvent => isObject(ae));
           return accountEvents;
         }
       ),
@@ -499,29 +515,42 @@ export const subscribeNewEventByAccount = (adapter: Adapter) => {
   const fn = (accountIdHex: string, filters?: AccountEventsFilters) =>
     subscribeNewEventBase(adapter)(filters, accountIdHex).pipe(
       map((event) => {
-          const attributes: unknown = isString(event.attributes)
-            ? JSON.parse(event.attributes)
-            : event.attributes;
-          if (isObject(attributes)) {
-            const attributeName = Object.keys(attributes)
-              .find(key => (attributes as { [k: string]: unknown })[key] === accountIdHex);
+          return {
+            blockNumber: event.blockNumber,
+            eventIdx: event.eventIdx,
+            attributeName: '',  // UNTIL GIANT SQUID SHOWS THE ARGUMENTS CORRECTLY
+            accountId: accountIdHex,
+            // attributes: event.attributes,
+            pallet: event.eventModule,
+            eventName: event.eventName,
+            blockDatetime: event.blockDatetime,
+            sortValue: null,
+            extrinsicIdx: event.extrinsicIdx
+          } as types.AccountEvent;
 
-            if (attributeName) {
-              return {
-                blockNumber: event.blockNumber,
-                eventIdx: event.eventIdx,
-                attributeName,
-                accountId: accountIdHex,
-                attributes: event.attributes,
-                pallet: event.eventModule,
-                eventName: event.eventName,
-                blockDatetime: event.blockDatetime,
-                sortValue: null,
-                extrinsicIdx: event.extrinsicIdx
-              } as types.AccountEvent;
-            }
-          }
-          return undefined;
+          //   const attributes: unknown = isString(event.attributes)
+          //     ? JSON.parse(event.attributes)
+          //     : event.attributes;
+          //   if (isObject(attributes)) {
+          //     const attributeName = Object.keys(attributes)
+          //       .find(key => (attributes as { [k: string]: unknown })[key] === accountIdHex);
+          //
+          //     if (attributeName) {
+          //       return {
+          //         blockNumber: event.blockNumber,
+          //         eventIdx: event.eventIdx,
+          //         attributeName,
+          //         accountId: accountIdHex,
+          //         // attributes: event.attributes,
+          //         pallet: event.eventModule,
+          //         eventName: event.eventName,
+          //         blockDatetime: event.blockDatetime,
+          //         sortValue: null,
+          //         extrinsicIdx: event.extrinsicIdx
+          //       } as types.AccountEvent;
+          //     }
+          //   }
+          //   return undefined;
         }
       ),
       filter((ae): ae is types.AccountEvent => isObject(ae))

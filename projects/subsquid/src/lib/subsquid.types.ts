@@ -54,7 +54,7 @@ export type Event = {
   event?: string | null;
   eventModule: string | null;   // is pallet / palletName
   eventName: string | null;
-  attributes: { [k: string]: any } | null;
+  // attributes: { [k: string]: any } | null;
   blockDatetime: string | null;
   blockHash: string;
   // specName: string | null;   // Not available in giant squid
@@ -94,12 +94,12 @@ export type Extrinsic = {
   specVersion: number | null;
 };
 
-// export type Runtime = {
-//   specName: string;  // PK
-//   specVersion: number;  // PK
-//   blockNumber: number;
-//   blockHash: string;
-// };
+export type Runtime = {
+  specName: string;  // PK
+  specVersion: number;  // PK
+  blockNumber: number;
+  blockHash: string;
+};
 
 export type ChainStatistics = {
   accountsTotal: number;

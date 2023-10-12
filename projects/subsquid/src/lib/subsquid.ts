@@ -37,7 +37,7 @@ import {
   subscribeNewEventByAccount
 } from './queries/event.functions';
 import { fromFetch } from 'rxjs/internal/observable/dom/fetch';
-// import { getLatestRuntime, getRuntime, getRuntimes } from './queries/runtime.functions';
+import { getLatestRuntime, getRuntime, getRuntimes } from './queries/runtime.functions';
 import { ExtrinsicsFilters, getExtrinsic, getExtrinsics, subscribeNewExtrinsic } from './queries/extrinsic.functions';
 import { getLatestStatistics } from './queries/stats.functions';
 
@@ -58,9 +58,9 @@ export type Api = {
   getExtrinsic: AdapterApiCallWithIdentifiers<[blockNumber: number, extrinsicIdx: number], types.Extrinsic>;
   getExtrinsics: AdapterApiCallWithIdentifiers<[filters?: ExtrinsicsFilters, pageSize?: number], types.Extrinsic[]>;
   subscribeNewExtrinsic: AdapterApiCallWithIdentifiers<[filters?: ExtrinsicsFilters], types.Extrinsic>;
-  // getRuntime: AdapterApiCallWithIdentifiers<[specName: string, specVersion: number], types.Runtime>;
-  // getRuntimes: AdapterApiCallWithIdentifiers<[pageSize?: number], types.Runtime[]>;
-  // getLatestRuntime: AdapterApiCallWithIdentifiers<[], types.Runtime>;
+  getRuntime: AdapterApiCallWithIdentifiers<[specName: string, specVersion: number], types.Runtime>;
+  getRuntimes: AdapterApiCallWithIdentifiers<[pageSize?: number], types.Runtime[]>;
+  getLatestRuntime: AdapterApiCallWithIdentifiers<[], types.Runtime>;
   getLatestStatistics: AdapterApiCallWithIdentifiers<[], types.ChainStatistics>
 };
 
@@ -69,6 +69,7 @@ export type Config = {
   giantSquidExplorerUrl?: string;
   giantSquidMainUrl?: string;
   giantSquidStatsUrl?: string;
+  metaDataUrl?: string;
 };
 
 type CreateQueryArgs = [contentType: string, fields: Fields, where?: Where, orderBy?: string, limit?: number, offset?: number];
@@ -104,9 +105,9 @@ export class Adapter extends AdapterBase {
     getExtrinsic: getExtrinsic(this),
     getExtrinsics: getExtrinsics(this),
     subscribeNewExtrinsic: subscribeNewExtrinsic(this),
-    // getRuntime: getRuntime(this),  // Not implemented in giant squid
-    // getRuntimes: getRuntimes(this),  // Not implemented in giant squid
-    // getLatestRuntime: getLatestRuntime(this),  // Not implemented in giant squid
+    getRuntime: getRuntime(this),  // Not implemented in giant squid
+    getRuntimes: getRuntimes(this),  // Not implemented in giant squid
+    getLatestRuntime: getLatestRuntime(this),  // Not implemented in giant squid
     getLatestStatistics: getLatestStatistics(this)
   };
 
@@ -135,6 +136,40 @@ export class Adapter extends AdapterBase {
       return this.requestQuery<T>(this.config.giantSquidStatsUrl, ...args);
     }
     return throwError(() => new Error(`[SubSquid adapter] ${this.config.chain} giant squid stats encountered an error or is unavailable`));
+  }
+
+  queryMetaData(): Observable<types.Runtime[]> {
+    if (this.config.metaDataUrl) {
+      return fromFetch(this.config.metaDataUrl, {
+        method: 'GET',
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        headers: {'Content-Type': 'text/plain'},
+      }).pipe(
+        switchMap(response => {
+          if (response.ok) {
+            return response.text();
+          } else {
+            return throwError(() => new Error('[SubSquid Adapter] Metadata request failed.'));
+          }
+        }),
+          map((text) => {
+            const runtimes: types.Runtime[] = [];
+            text.split('\n').forEach((r) => {
+              if (r.length !== 0) {
+                const runtime = JSON.parse(r) as types.Runtime;
+                runtimes.push({
+                  blockNumber: runtime.blockNumber,
+                  blockHash: runtime.blockHash,
+                  specName: runtime.specName,
+                  specVersion: runtime.specVersion
+                });
+              }
+            })
+            return runtimes;
+          })
+      );
+    }
+    return throwError(() => new Error(`[SubSquid adapter] ${this.config.chain} metadata retrieval encountered an error or is unavailable`));
   }
 
   private formatFields(fields: Fields, indent = ''): string {
