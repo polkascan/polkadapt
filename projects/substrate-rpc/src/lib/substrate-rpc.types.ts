@@ -133,6 +133,26 @@ export type Event = {
   specVersion: number | null;
 };
 
+export type Extrinsic = {
+  blockNumber: number;  // PK
+  extrinsicIdx: number;  // PK
+  hash: string | null;
+  version: number | null;
+  nonce: number | null;
+  era: number | null;
+  callModule: string | null;
+  callName: string | null;
+  callArguments: unknown[] | null;
+  signed: number | null;
+  multiAddressAccountId: string | null;
+  signature: string | null;
+  tip: number | null;
+  blockDatetime: string | null;
+  blockHash: string | null;
+  specName: string | null;
+  specVersion: number | null;
+};
+
 export type Runtime = {
   specName: string;
   specVersion: number;

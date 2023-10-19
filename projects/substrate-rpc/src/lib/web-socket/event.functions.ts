@@ -18,8 +18,8 @@
 
 import { Adapter } from '../substrate-rpc';
 import { from, map, switchMap, throwError } from 'rxjs';
-import { isPositiveNumber } from './helpers';
-import { getBlock } from './block.functions';
+import { capitalize, isPositiveNumber } from './helpers';
+import { getBlockBase } from './block.functions';
 
 const identifiers = ['blockNumber', 'eventIdx'];
 
@@ -35,7 +35,7 @@ export const getEvent = (adapter: Adapter) => {
     }
 
     return from(adapter.apiPromise).pipe(
-      switchMap(api => getBlock(adapter)(blockNumber)),
+      switchMap(api => getBlockBase(adapter)(blockNumber)),
       map((block) => {
         if (block && block.events && block.events[eventIdx]) {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -47,15 +47,24 @@ export const getEvent = (adapter: Adapter) => {
               attributes = event.data.toJSON();
             }
 
+            let eventModule: string | null = null;
+            let eventName: string | null = null;
+            if (event.section) {
+              eventModule = capitalize(event.section.toString());
+            }
+            if (event.method) {
+              eventName = event.method.toString();
+            }
+
             const result = {
               blockNumber: block.number,
               eventIdx: eventIdx,
               // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-call
-              extrinsicIdx: block.events[eventIdx].toJSON()?.phase?.applyExtrinsic as number || null,
+              extrinsicIdx: (block.events[eventIdx]?.phase?.value.toJSON() as number | null) || null,
               event: event.section && event.method &&
                 `${event.section}.${event.method}`,
-              eventModule: event.section.toString(),
-              eventName: event.method.toString(),
+              eventModule: eventModule,
+              eventName: eventName,
               // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
               attributes: attributes,
               blockDatetime: block.datetime,

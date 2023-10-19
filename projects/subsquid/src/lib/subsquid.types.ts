@@ -81,7 +81,7 @@ export type Extrinsic = {
   version: number | null;
   callModule: string | null;
   callName: string | null;
-  callArguments: { [k: string]: any } | null;
+  // callArguments: { [k: string]: any } | null;
   signed: number | null;
   multiAddressAccountId: string | null;
   signature: string | null;

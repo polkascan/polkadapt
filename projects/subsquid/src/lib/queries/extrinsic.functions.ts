@@ -17,7 +17,7 @@
  */
 
 import { Adapter, Fields, Where } from '../subsquid';
-import { catchError, combineLatest, filter, map, Observable, of, switchMap, take, tap, throwError, timer } from 'rxjs';
+import { catchError, filter, map, Observable, of, switchMap, take, tap, throwError, timer } from 'rxjs';
 import { types } from '@polkadapt/core';
 import { isDate, isDefined, isObject, isPositiveNumber, isString } from './helpers';
 import * as st from '../subsquid.types';
@@ -41,11 +41,10 @@ export type GSExplorerExtrinsicInput = {
     hash: string;
     specVersion: number;
     timestamp: string;
-
   };
   mainCall: {
     id: string;
-    argsStr: { [k: string]: any };
+    // argsStr: { [k: string]: any };
     callName: string;
     palletName: string;
     success: boolean;
@@ -76,7 +75,7 @@ const gsExplorerFields: Fields = [
   {
     mainCall: [
       'id',
-      'argsStr',
+      // 'argsStr',
       'callName',
       'palletName',
       'success',
@@ -279,7 +278,7 @@ export const getExtrinsicsBase = (
         const callerAccountId = extrinsic.signerPublicKey || null;
         const callName = extrinsic.mainCall?.callName || null;
         const callModule = extrinsic.mainCall?.palletName || null;
-        const callArguments = extrinsic.mainCall?.argsStr || null;
+        // const callArguments = extrinsic.mainCall?.argsStr || null;
 
         return {
           blockNumber: extrinsic.blockNumber || extrinsic.block?.height,
@@ -288,7 +287,7 @@ export const getExtrinsicsBase = (
           version: extrinsic.version,
           callModule: callModule,
           callName: callName,
-          callArguments: callArguments,
+          // callArguments: callArguments,
           signed: isSigned,
           multiAddressAccountId: callerAccountId,
           signature: extrinsic.signerPublicKey,
