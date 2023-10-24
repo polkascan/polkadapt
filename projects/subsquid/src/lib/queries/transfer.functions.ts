@@ -197,7 +197,7 @@ export const getTransfersBase = (
   if (isDefined(accountIdHex)) {
     if (isString(accountIdHex)) {
       gsWhere['account'] = gsWhere['account'] as Where || {};
-      gsWhere['account']['publicKey_eq'] = {'publicKey_eq': accountIdHex}
+      gsWhere['account'] = {'publicKey_eq': accountIdHex}
     }
   } else {
     // Remove duplicates by hard setting the direction.
