@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-export const isBlockHash = (hash: unknown): hash is string => isString(hash) && hash.startsWith('0x');
+export const isHash = (hash: unknown): hash is string => isString(hash) && hash.startsWith('0x');
 
 
 export const isPositiveNumber = (val: unknown): val is number => Number.isInteger(val) && (val as number) >= 0;
