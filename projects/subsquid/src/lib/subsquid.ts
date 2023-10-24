@@ -40,6 +40,12 @@ import { fromFetch } from 'rxjs/internal/observable/dom/fetch';
 import { getLatestRuntime, getRuntime, getRuntimes } from './queries/runtime.functions';
 import { ExtrinsicsFilters, getExtrinsic, getExtrinsics, subscribeNewExtrinsic } from './queries/extrinsic.functions';
 import { getLatestStatistics } from './queries/stats.functions';
+import {
+  getTransfers, getTransfersByAccount,
+  subscribeNewTransfer,
+  subscribeNewTransferByAccount,
+  TransfersFilters
+} from './queries/transfer.functions';
 
 export type Api = {
   // getChainProperties: AdapterApiCallWithIdentifiers<[], types.ChainProperties>;
@@ -61,7 +67,11 @@ export type Api = {
   getRuntime: AdapterApiCallWithIdentifiers<[specName: string, specVersion: number], types.Runtime>;
   getRuntimes: AdapterApiCallWithIdentifiers<[pageSize?: number], types.Runtime[]>;
   getLatestRuntime: AdapterApiCallWithIdentifiers<[], types.Runtime>;
-  getLatestStatistics: AdapterApiCallWithIdentifiers<[], types.ChainStatistics>
+  getLatestStatistics: AdapterApiCallWithIdentifiers<[], types.ChainStatistics>;
+  getTransfers: AdapterApiCallWithIdentifiers<[filters?: TransfersFilters, pageSize?: number], types.Transfer[]>
+  subscribeNewTransfer: AdapterApiCallWithIdentifiers<[filters?: TransfersFilters], types.Transfer>
+  getTransfersByAccount: AdapterApiCallWithIdentifiers<[accountIdHex: string, filters?: TransfersFilters, pageSize?: number], types.Transfer[]>
+  subscribeNewTransferByAccount: AdapterApiCallWithIdentifiers<[accountIdHex: string, filters?: TransfersFilters], types.Transfer>
 };
 
 export type Config = {
@@ -108,7 +118,11 @@ export class Adapter extends AdapterBase {
     getRuntime: getRuntime(this),  // Not implemented in giant squid
     getRuntimes: getRuntimes(this),  // Not implemented in giant squid
     getLatestRuntime: getLatestRuntime(this),  // Not implemented in giant squid
-    getLatestStatistics: getLatestStatistics(this)
+    getLatestStatistics: getLatestStatistics(this),
+    getTransfers: getTransfers(this),
+    subscribeNewTransfer: subscribeNewTransfer(this),
+    getTransfersByAccount: getTransfersByAccount(this),
+    subscribeNewTransferByAccount: subscribeNewTransferByAccount(this)
   };
 
 
@@ -189,7 +203,11 @@ export class Adapter extends AdapterBase {
     if (where || orderBy && orderBy.length > 0 || limit && limit > 0 || offset && offset > 0) {
       const args: string[] = [];
       if (where) {
-        args.push(`where:${JSON.stringify(where).replace(/"([^"]+)":/g, '$1:')}`);
+        args.push(`where:${
+          JSON.stringify(where)
+            .replace(/"([^"]+)":/g, '$1:')
+            .replaceAll(/"enum\((.*)\)"/g, '$1') // Replace defined as enum(**) values
+        }`);
       }
       if (orderBy) {
         args.push(`orderBy:${orderBy}`);

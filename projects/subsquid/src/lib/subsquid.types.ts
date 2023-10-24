@@ -135,3 +135,14 @@ export type ChainStatistics = {
   stakingActiveValidatorsAmount: number;
   lastUpdate: string;
 }
+
+export type Transfer = {
+  blockNumber: number;
+  eventIdx: number;
+  blockDatetime: string;
+  amount: string;
+  extrinsicHash: string;
+  from: string;
+  to: string;
+  success: boolean;
+}

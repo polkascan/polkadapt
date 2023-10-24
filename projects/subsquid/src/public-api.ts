@@ -33,4 +33,5 @@ declare module '@polkadapt/core/augmented-types' {
     // interface ChainProperties extends types.ChainProperties {}
     interface Runtime extends types.Runtime {}
     interface ChainStatistics extends types.ChainStatistics {}
+    interface Transfer extends types.Transfer {}
 }
