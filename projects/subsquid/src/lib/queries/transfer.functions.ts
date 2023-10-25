@@ -247,7 +247,7 @@ export const getTransfersBase = (
         const splittenId = transfer.id.split('-');
         const eventIdx = parseInt(splittenId[1], 10)
 
-        return {
+        const result: types.Transfer = {
           blockNumber: transfer.transfer.blockNumber,
           blockDatetime: transfer.transfer.timestamp,
           eventIdx: eventIdx,
@@ -257,6 +257,12 @@ export const getTransfersBase = (
           to: transfer.transfer.to.publicKey,
           success: transfer.transfer.success
         };
+
+        if (direction || accountIdHex) {
+          result.attributeName = transfer.direction.toLowerCase();
+        }
+
+        return result;
       })
     )
   );

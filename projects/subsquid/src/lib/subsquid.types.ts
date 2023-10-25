@@ -145,4 +145,5 @@ export type Transfer = {
   from: string;
   to: string;
   success: boolean;
+  attributeName?: string;
 }
