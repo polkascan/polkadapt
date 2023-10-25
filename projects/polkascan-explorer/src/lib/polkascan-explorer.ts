@@ -77,7 +77,7 @@ export type Api = {
   subscribeNewEventByAccount: (accountIdHex: string,
                                filters?: AccountEventsFilters) =>
     Observable<types.AccountEvent>;
-  getExtrinsic: (blockNumber: number, eventIdx: number) =>
+  getExtrinsic: (blockNumberOrHash: number | string, extrinsicIdx?: number) =>
     Observable<types.Extrinsic>;
   getExtrinsics: (filters?: ExtrinsicsFilters, pageSize?: number) =>
     Observable<types.Extrinsic[]>;

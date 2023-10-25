@@ -40,6 +40,7 @@ import { fromFetch } from 'rxjs/internal/observable/dom/fetch';
 import { getLatestRuntime, getRuntime, getRuntimes } from './queries/runtime.functions';
 import { ExtrinsicsFilters, getExtrinsic, getExtrinsics, subscribeNewExtrinsic } from './queries/extrinsic.functions';
 import { getLatestStatistics } from './queries/stats.functions';
+import { findAccountsByIdentity } from './queries/account.functions';
 
 export type Api = {
   getChainProperties: AdapterApiCallWithIdentifiers<[], types.ChainProperties>;
@@ -55,13 +56,14 @@ export type Api = {
   getEventsByAccount: AdapterApiCallWithIdentifiers<[accountIdHex: string, filters?: AccountEventsFilters, pageSize?: number],
     types.AccountEvent[]>;
   subscribeNewEventByAccount: AdapterApiCallWithIdentifiers<[accountIdHex: string, filters?: AccountEventsFilters], types.AccountEvent>;
-  getExtrinsic: AdapterApiCallWithIdentifiers<[blockNumber: number, extrinsicIdx: number], types.Extrinsic>;
+  getExtrinsic: AdapterApiCallWithIdentifiers<[blockNumberOrHash: number, extrinsicIdx?: number], types.Extrinsic>;
   getExtrinsics: AdapterApiCallWithIdentifiers<[filters?: ExtrinsicsFilters, pageSize?: number], types.Extrinsic[]>;
   subscribeNewExtrinsic: AdapterApiCallWithIdentifiers<[filters?: ExtrinsicsFilters], types.Extrinsic>;
   getRuntime: AdapterApiCallWithIdentifiers<[specName: string, specVersion: number], types.Runtime>;
   getRuntimes: AdapterApiCallWithIdentifiers<[pageSize?: number], types.Runtime[]>;
   getLatestRuntime: AdapterApiCallWithIdentifiers<[], types.Runtime>;
-  getLatestStatistics: AdapterApiCallWithIdentifiers<[], types.ChainStatistics>
+  getLatestStatistics: AdapterApiCallWithIdentifiers<[], types.ChainStatistics>;
+  findAccountsByIdentity: AdapterApiCallWithIdentifiers<[searchTerm: string], types.Account[]>
 };
 
 export type Config = {
@@ -109,7 +111,8 @@ export class Adapter extends AdapterBase {
     getRuntime: getRuntime(this),
     getRuntimes: getRuntimes(this),
     getLatestRuntime: getLatestRuntime(this),
-    getLatestStatistics: getLatestStatistics(this)
+    getLatestStatistics: getLatestStatistics(this),
+    findAccountsByIdentity: findAccountsByIdentity(this)
   };
 
 

@@ -109,7 +109,6 @@ export type Runtime = {
   blockHash: string;
 };
 
-
 export type ChainStatistics = {
   accountsTotal: number;
   chainFinalizedBlocks: number;
@@ -143,4 +142,11 @@ export type ChainStatistics = {
   stakingCurrentEra: number;
   stakingActiveValidatorsAmount: number;
   lastUpdate: string;
-}
+};
+
+export type Account = {
+  id: string;
+  identity: {
+    display: string;
+  }
+};

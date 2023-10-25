@@ -27,7 +27,7 @@ import {
   generateObjectQuery,
   generateSubscriptionQuery,
   isDate,
-  isDefined,
+  isDefined, isHash,
   isNumber,
   isObject,
   isPositiveNumber,
@@ -85,25 +85,27 @@ export interface ExtrinsicsFilters {
 const identifiers = ['blockNumber', 'extrinsicIdx'];
 
 export const getExtrinsic = (adapter: Adapter) => {
-  const fn = (blockNumber: number, extrinsicIdx: number): Observable<types.Extrinsic> => {
+  const fn = (blockNumberOrHash: number | string, extrinsicIdx?: number): Observable<types.Extrinsic> => {
     if (!adapter.socket) {
       throw new Error('[PolkascanExplorerAdapter] Socket is not initialized!');
     }
 
     const filters: string[] = [];
 
-    if (!isDefined(blockNumber)) {
-      throw new Error('[PolkascanExplorerAdapter] getExtrinsic: Provide a block number (number).');
+    if (!isDefined(blockNumberOrHash)) {
+      throw new Error('[PolkascanExplorerAdapter] getExtrinsic: Provide a block number (number) or hash (string).');
     }
 
     if (!isDefined(extrinsicIdx)) {
       throw new Error('[PolkascanExplorerAdapter] getExtrinsic: Provide an extrinsicIdx (number).');
     }
 
-    if (isPositiveNumber(blockNumber)) {
-      filters.push(`blockNumber: ${blockNumber}`);
+    if (isPositiveNumber(blockNumberOrHash)) {
+      filters.push(`blockNumber: ${blockNumberOrHash}`);
+    } else if (isHash(blockNumberOrHash)) {
+      filters.push(`hash: "${blockNumberOrHash}"`);
     } else {
-      throw new Error('[PolkascanExplorerAdapter] getExtrinsic: Provided block number must be a positive number.');
+      throw new Error('[PolkascanExplorerAdapter] getExtrinsic: Provided block number must be a positive number or a hash string.');
     }
 
     if (isPositiveNumber(extrinsicIdx)) {

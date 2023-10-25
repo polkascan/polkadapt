@@ -19,7 +19,7 @@
 import { Adapter, Fields, Where } from '../subsquid';
 import { catchError, combineLatest, filter, map, Observable, of, switchMap, take, tap, throwError, timer } from 'rxjs';
 import { types } from '@polkadapt/core';
-import { isDate, isDefined, isObject, isPositiveNumber, isString } from './helpers';
+import { isDate, isDefined, isHash, isObject, isPositiveNumber, isString } from './helpers';
 import * as st from '../subsquid.types';
 import { getLatestBlock } from './block.functions';
 
@@ -205,22 +205,26 @@ export const getExtrinsicsBase = (
 
   const gsWhere: Where = {};
   const archiveWhere: Where = {};
+  let orderBy: string | undefined = 'id_DESC';
 
   if (isDefined(blockNumberOrHash)) {
     if (isPositiveNumber(blockNumberOrHash)) {
-      archiveWhere['block'] = gsWhere['block'] ? gsWhere['block'] as Where : {};
-      archiveWhere['block']['height_eq'] = blockNumberOrHash;
+      if (isPositiveNumber(extrinsicIdx)) {
+        orderBy = undefined;
+      }
+      archiveWhere['block'] = {'height_eq': blockNumberOrHash};
       gsWhere['blockNumber_eq'] = blockNumberOrHash;
-    } else if (isString(blockNumberOrHash)) {
+    } else if (isHash(blockNumberOrHash)) {
       archiveWhere['hash_eq'] = blockNumberOrHash;
       gsWhere['extrinsicHash_eq'] = blockNumberOrHash;
+      orderBy = undefined;
     } else {
-      return throwError(() => 'Provided block number or hash must be a positive number or a string.');
+      return throwError(() => 'Provided block number or hash must be a positive number or a hash string.');
     }
   }
 
   if (isDefined(extrinsicIdx)) {
-    if (isPositiveNumber(extrinsicIdx)) {
+    if (isPositiveNumber(extrinsicIdx) && !isHash(blockNumberOrHash)) {
       archiveWhere['indexInBlock_eq'] = extrinsicIdx;
       gsWhere['indexInBlock_eq'] = extrinsicIdx;
     } else {
@@ -363,7 +367,6 @@ export const getExtrinsicsBase = (
   }
 
   const contentType = 'extrinsics';
-  const orderBy = 'id_DESC';
 
   return adapter.queryGSExplorer<GSExplorerExtrinsicInput[]>(
     contentType,
@@ -492,7 +495,7 @@ export const getExtrinsicsBase = (
 
 
 export const getExtrinsic = (adapter: Adapter) => {
-  const fn = (blockNumberOrHash: number | string, extrinsicIdx: number | null) =>
+  const fn = (blockNumberOrHash: number | string, extrinsicIdx?: number) =>
     getExtrinsicsBase(adapter, 1, blockNumberOrHash, extrinsicIdx).pipe(
       catchError((e: string) => throwError(() => new Error(`[SubsquidAdapter] getExtrinsic: ${e}`))),
       map(extrinsics => extrinsics[0])
