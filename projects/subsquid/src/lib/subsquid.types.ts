@@ -147,3 +147,10 @@ export type Transfer = {
   success: boolean;
   attributeName?: string;
 }
+
+export type Account = {
+  id: string;
+  identity: {
+    display: string;
+  }
+};

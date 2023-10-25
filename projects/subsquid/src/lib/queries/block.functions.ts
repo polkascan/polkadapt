@@ -20,7 +20,7 @@ import { types } from '@polkadapt/core';
 import { catchError, filter, map, merge, Observable, of, switchMap, take, tap, throwError, timer } from 'rxjs';
 import * as st from '../subsquid.types';
 import { Adapter, Where } from '../subsquid';
-import { isBlockHash, isNumber, isObject } from './helpers';
+import { isHash, isNumber, isObject } from './helpers';
 
 export type GSExplorerBlockInput = {
   height: number;
@@ -43,13 +43,14 @@ export const getBlocksBase = (
   fromNumber?: string | number,
   untilNumber?: string | number): Observable<types.Block[]> => {
   const contentType = 'blocks';
-  const orderBy = 'id_DESC';
+  let orderBy: string | undefined = 'id_DESC';
 
   let where: Where | undefined;
   if (typeof hashOrNumber !== 'undefined') {
     const whereKey = (typeof hashOrNumber === 'string' && hashOrNumber.startsWith('0x')) ? 'hash_eq' : 'height_eq';
     where = {};
     where[whereKey] = hashOrNumber;
+    orderBy = undefined;
   }
 
   if (typeof fromNumber !== 'undefined') {
@@ -116,7 +117,7 @@ export const getBlocksFrom = (adapter: Adapter) => {
   const fn = (hashOrNumber: string | number, pageSize?: number) => {
     if (isNumber(hashOrNumber)) {
       return getBlocksBase(adapter, pageSize, undefined, hashOrNumber);
-    } else if (isBlockHash(hashOrNumber)) {
+    } else if (isHash(hashOrNumber)) {
       // Find number for block hash;
       return getBlocksBase(adapter, 1, hashOrNumber).pipe(
         take(1),
@@ -142,7 +143,7 @@ export const getBlocksUntil = (adapter: Adapter) => {
   const fn = (hashOrNumber: string | number, pageSize?: number) => {
     if (isNumber(hashOrNumber)) {
       return getBlocksBase(adapter, pageSize, undefined, undefined, hashOrNumber);
-    } else if (isBlockHash(hashOrNumber)) {
+    } else if (isHash(hashOrNumber)) {
       return getBlocksBase(adapter, 1, hashOrNumber).pipe(
         take(1),
         map((blocks) => {

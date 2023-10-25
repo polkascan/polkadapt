@@ -40,6 +40,7 @@ import { fromFetch } from 'rxjs/internal/observable/dom/fetch';
 import { getLatestRuntime, getRuntime, getRuntimes } from './queries/runtime.functions';
 import { ExtrinsicsFilters, getExtrinsic, getExtrinsics, subscribeNewExtrinsic } from './queries/extrinsic.functions';
 import { getLatestStatistics } from './queries/stats.functions';
+import { findAccountsByIdentity } from './queries/account.functions';
 import {
   getTransfers, getTransfersByAccount,
   subscribeNewTransfer,
@@ -61,7 +62,7 @@ export type Api = {
   getEventsByAccount: AdapterApiCallWithIdentifiers<[accountIdHex: string, filters?: AccountEventsFilters, pageSize?: number],
     types.AccountEvent[]>;
   subscribeNewEventByAccount: AdapterApiCallWithIdentifiers<[accountIdHex: string, filters?: AccountEventsFilters], types.AccountEvent>;
-  getExtrinsic: AdapterApiCallWithIdentifiers<[blockNumber: number, extrinsicIdx: number], types.Extrinsic>;
+  getExtrinsic: AdapterApiCallWithIdentifiers<[blockNumberOrHash: number, extrinsicIdx?: number], types.Extrinsic>;
   getExtrinsics: AdapterApiCallWithIdentifiers<[filters?: ExtrinsicsFilters, pageSize?: number], types.Extrinsic[]>;
   subscribeNewExtrinsic: AdapterApiCallWithIdentifiers<[filters?: ExtrinsicsFilters], types.Extrinsic>;
   getRuntime: AdapterApiCallWithIdentifiers<[specName: string, specVersion: number], types.Runtime>;
@@ -72,6 +73,7 @@ export type Api = {
   subscribeNewTransfer: AdapterApiCallWithIdentifiers<[filters?: TransfersFilters], types.Transfer>
   getTransfersByAccount: AdapterApiCallWithIdentifiers<[accountIdHex: string, filters?: TransfersFilters, pageSize?: number], types.Transfer[]>
   subscribeNewTransferByAccount: AdapterApiCallWithIdentifiers<[accountIdHex: string, filters?: TransfersFilters], types.Transfer>
+  findAccountsByIdentity: AdapterApiCallWithIdentifiers<[searchTerm: string], types.Account[]>
 };
 
 export type Config = {
@@ -122,7 +124,8 @@ export class Adapter extends AdapterBase {
     getTransfers: getTransfers(this),
     subscribeNewTransfer: subscribeNewTransfer(this),
     getTransfersByAccount: getTransfersByAccount(this),
-    subscribeNewTransferByAccount: subscribeNewTransferByAccount(this)
+    subscribeNewTransferByAccount: subscribeNewTransferByAccount(this),
+    findAccountsByIdentity: findAccountsByIdentity(this)
   };
 
 

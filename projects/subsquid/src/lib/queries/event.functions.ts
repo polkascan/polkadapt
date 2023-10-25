@@ -107,9 +107,14 @@ export const getEventsBase = (
 ): Observable<types.Event[]> => {
 
   const gsWhere: Where = {};
+  const archiveWhere: Where = {};
+  let orderBy: string | undefined = 'id_DESC';
 
   if (isDefined(blockNumber)) {
     if (isPositiveNumber(blockNumber)) {
+      if (isPositiveNumber(eventIdx)) {
+        orderBy = undefined;
+      }
       gsWhere['blockNumber_eq'] = blockNumber;
     } else {
       return throwError(() => 'Provided block number must be a positive number.');
@@ -167,12 +172,12 @@ export const getEventsBase = (
     }
   }
 
-
   if (isDefined(extrinsicIdx)) {
     if (isPositiveNumber(extrinsicIdx)) {
       if (isDefined(blockNumber)) {
         gsWhere['extrinsic'] = gsWhere['extrinsic'] ? gsWhere['extrinsic'] as Where : {};
         gsWhere['extrinsic']['indexInBlock_eq'] = extrinsicIdx;
+        orderBy = undefined;
       } else {
         return throwError(() => 'Missing block number (number), only extrinsicIdx is provided.');
       }
@@ -255,7 +260,6 @@ export const getEventsBase = (
   }
 
   const contentType = 'events';
-  const orderBy = 'id_DESC';
 
   return adapter.queryGSExplorer<GSExplorerEventInput[]>(
     contentType,
