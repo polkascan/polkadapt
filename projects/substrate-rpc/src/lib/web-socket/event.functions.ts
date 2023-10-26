@@ -20,6 +20,7 @@ import { Adapter } from '../substrate-rpc';
 import { from, map, switchMap, throwError } from 'rxjs';
 import { capitalize, isPositiveNumber } from './helpers';
 import { getBlockBase } from './block.functions';
+import { GenericEvent } from '@polkadot/types';
 
 const identifiers = ['blockNumber', 'eventIdx'];
 
@@ -39,12 +40,15 @@ export const getEvent = (adapter: Adapter) => {
       map((block) => {
         if (block && block.events && block.events[eventIdx]) {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          const event = block.events[eventIdx].event as { method: string, section: string, data: any };
+          const event: GenericEvent = block.events[eventIdx].event;
           if (event) {
-            let attributes: unknown[] | null = null;
+            let attributes;
+            let attributesMeta;
+
             if (event.data) {
               // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
-              attributes = event.data.toJSON();
+              attributes = event.data.toJSON() as { [k: string]: any };
+              attributesMeta = event.meta.toJSON() as { [k: string]: any };
             }
 
             let eventModule: string | null = null;
@@ -67,6 +71,7 @@ export const getEvent = (adapter: Adapter) => {
               eventName: eventName,
               // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
               attributes: attributes,
+              meta: attributesMeta,
               blockDatetime: block.datetime,
               blockHash: block.hash,
               specName: block.specName,

@@ -17,6 +17,7 @@
  */
 
 import { BN } from '@polkadot/util';
+import { EventMetadataLatest } from '@polkadot/types/interfaces';
 
 
 export type ChainProperties = {
@@ -126,7 +127,8 @@ export type Event = {
   event?: string | null;
   eventModule: string | null;   // is pallet / palletName
   eventName: string | null;
-  attributes: { [k: string]: any } | null;
+  attributes?: { [k: string]: any } | undefined | null;
+  meta?: { [k: string]: any } | undefined | null;
   blockDatetime: string | null;
   blockHash: string;
   specName: string | null;
