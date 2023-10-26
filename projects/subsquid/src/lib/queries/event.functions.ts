@@ -465,7 +465,7 @@ export const getEventsByAccount = (adapter: Adapter) => {
             return {
               blockNumber: event.blockNumber,
               eventIdx: event.eventIdx,
-              attributeName: '',  // UNTIL GIANT SQUID SHOWS THE ARGUMENTS CORRECTLY
+              attributeName: null,  // UNTIL GIANT SQUID SHOWS THE ARGUMENTS CORRECTLY
               accountId: accountIdHex,
               // attributes: event.attributes,
               pallet: event.eventModule,
@@ -522,7 +522,7 @@ export const subscribeNewEventByAccount = (adapter: Adapter) => {
           return {
             blockNumber: event.blockNumber,
             eventIdx: event.eventIdx,
-            attributeName: '',  // UNTIL GIANT SQUID SHOWS THE ARGUMENTS CORRECTLY
+            attributeName: null,  // UNTIL GIANT SQUID SHOWS THE ARGUMENTS CORRECTLY
             accountId: accountIdHex,
             // attributes: event.attributes,
             pallet: event.eventModule,

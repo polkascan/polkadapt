@@ -81,6 +81,8 @@ export const getMetadataForSpecVersion =
       );
 
 
+export const isDefined = <T>(val: T | undefined | null): val is T => val !== null && val !== undefined;
+
 export const isPositiveNumber = (val: unknown): val is number => Number.isInteger(val) && (val as number) >= 0;
 
 export const camelToSnakeCase = (str: string) => str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);

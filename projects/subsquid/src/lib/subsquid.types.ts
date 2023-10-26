@@ -64,7 +64,7 @@ export type Event = {
 export type AccountEvent = {
   blockNumber: number;  // PK
   eventIdx: number;  // PK
-  attributeName: string; // PK
+  attributeName: string | null; // PK
   accountId: string;
   attributes: string | null;
   pallet: string;
