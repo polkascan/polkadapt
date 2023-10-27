@@ -58,7 +58,7 @@ export const getRuntimeCallArguments = (adapter: Adapter) => {
                     callArgumentIdx: i,
                     name: f.name.toString(),
                     scaleType: f.typeName.toString(),
-                    scaleTypeComposition: JSON.stringify(getSiName(registry.lookup, f.type))
+                    scaleTypeComposition: getSiName(registry.lookup, f.type)
                   });
                 });
               }

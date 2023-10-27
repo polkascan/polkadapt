@@ -49,6 +49,8 @@ export type Block = {
   countLogs: number;
   extrinsics: any[];
   events: any[];
+  specName: string;
+  specVersion: number;
 };
 
 export type Account = {
@@ -116,6 +118,41 @@ export type AccountBalances = {
   reservedBalance: BN;
   availableBalance: BN;
 }
+
+export type Event = {
+  blockNumber: number;  // PK
+  eventIdx: number;  // PK
+  extrinsicIdx: number | null;
+  event?: string | null;
+  eventModule: string | null;   // is pallet / palletName
+  eventName: string | null;
+  attributes?: { [k: string]: any } | undefined | null;
+  meta?: { [k: string]: any } | undefined | null;
+  blockDatetime: string | null;
+  blockHash: string;
+  specName: string | null;
+  specVersion: number | null;
+};
+
+export type Extrinsic = {
+  blockNumber: number;  // PK
+  extrinsicIdx: number;  // PK
+  hash: string | null;
+  version: number | null;
+  nonce: number | null;
+  era: number | null;
+  callModule: string | null;
+  callName: string | null;
+  callArguments: unknown[] | null;
+  signed: number | null;
+  multiAddressAccountId: string | null;
+  signature: string | null;
+  tip: number | null;
+  blockDatetime: string | null;
+  blockHash: string | null;
+  specName: string | null;
+  specVersion: number | null;
+};
 
 export type Runtime = {
   specName: string;

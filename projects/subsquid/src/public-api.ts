@@ -30,8 +30,9 @@ declare module '@polkadapt/core/augmented-types' {
     interface Event extends types.Event {}
     interface AccountEvent extends types.AccountEvent {}
     interface Extrinsic extends types.Extrinsic {}
-    interface ChainProperties extends types.ChainProperties {}
+    // interface ChainProperties extends types.ChainProperties {}
     interface Runtime extends types.Runtime {}
     interface ChainStatistics extends types.ChainStatistics {}
+    interface Transfer extends types.Transfer {}
     interface Account extends types.Account {}
 }

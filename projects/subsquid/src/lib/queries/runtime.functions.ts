@@ -16,61 +16,65 @@
  * limitations under the License.
  */
 
-import { Adapter, Where } from '../subsquid';
-import { map, Observable } from 'rxjs';
+import { Adapter } from '../subsquid';
+import { map, Observable, ReplaySubject } from 'rxjs';
 import { types } from '@polkadapt/core';
 
-export type ArchiveMetadataInput = {
-  blockHash: string;
-  blockHeight: number;
-  specName: string;
-  specVersion: number;
+export type RuntimeStorageObject = {
+    blockHash: string;
+    blockHeight: number;
+    specName: string;
+    specVersion: number;
 }[];
 
 const identifiers = ['specName', 'specVersion'];
 
-export const getRuntimesBase = (adapter: Adapter, specName?: string, specVersion?: number, limit?: number): Observable<types.Runtime[]> => {
-  const where: Where = {};
-  if (specName) {
-    where['specName_eq'] = specName;
-  }
-  if (specVersion) {
-    where['specVersion_eq'] = specVersion;
-  }
-  return adapter.queryArchive<ArchiveMetadataInput>(
-    'metadata',
-    ['blockHash', 'blockHeight', 'specName', 'specVersion'],
-    where,
-    'blockHeight_DESC',
-    limit
-  ).pipe(
-    map<ArchiveMetadataInput, types.Runtime[]>(metadata => metadata.map(m => ({
-      blockHash: m.blockHash,
-      blockNumber: m.blockHeight,
-      specName: m.specName,
-      specVersion: m.specVersion
-    })))
-  );
-};
+let runtimesStorage: ReplaySubject<types.Runtime[]> | undefined;
+
+export const getRuntimesBase = (adapter: Adapter): Observable<types.Runtime[]> => {
+    if (!runtimesStorage) {
+        runtimesStorage = new ReplaySubject<types.Runtime[]>(1);
+        adapter.queryMetaData().subscribe({
+            next: (ra) => {
+                if (runtimesStorage) {
+                    runtimesStorage.next(ra.sort((r, rr) => rr.specVersion - r.specVersion));
+                }
+            },
+            error: (err) => {
+                if (runtimesStorage) {
+                    runtimesStorage.error(err);
+                }
+            }
+        })
+    }
+
+    return runtimesStorage.asObservable();
+}
 
 export const getRuntime = (adapter: Adapter) => {
-  const fn = (specName: string, specVersion: number): Observable<types.Runtime> => getRuntimesBase(adapter, specName, specVersion, 1).pipe(
-    map(runtimes => runtimes[0])
-  );
-  fn.identifiers = identifiers;
-  return fn;
+    const fn = (specName: string, specVersion: number): Observable<types.Runtime> => getRuntimesBase(adapter).pipe(
+        map(runtimes => {
+            const runtime = runtimes.find((r) => r.specName === specName && r.specVersion === specVersion);
+            if (runtime) {
+                return runtime;
+            }
+            throw new Error('[SubSquid Adapter] getRuntime Could not find requested runtime.');
+        })
+    );
+    fn.identifiers = identifiers;
+    return fn;
 };
 
 export const getRuntimes = (adapter: Adapter) => {
-  const fn = (pageSize?: number): Observable<types.Runtime[]> => getRuntimesBase(adapter, undefined, undefined, pageSize);
-  fn.identifiers = identifiers;
-  return fn;
+    const fn = (pageSize?: number): Observable<types.Runtime[]> => getRuntimesBase(adapter);
+    fn.identifiers = identifiers;
+    return fn;
 };
 
 export const getLatestRuntime = (adapter: Adapter) => {
-  const fn = (): Observable<types.Runtime> => getRuntimesBase(adapter, undefined, undefined, 1).pipe(
-    map(runtimes => runtimes[0])
-  );
-  fn.identifiers = identifiers;
-  return fn;
+    const fn = (): Observable<types.Runtime> => getRuntimesBase(adapter).pipe(
+        map(runtimes => runtimes[0])
+    );
+    fn.identifiers = identifiers;
+    return fn;
 };
