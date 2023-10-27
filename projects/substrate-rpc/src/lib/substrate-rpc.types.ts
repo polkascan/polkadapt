@@ -17,7 +17,6 @@
  */
 
 import { BN } from '@polkadot/util';
-import { EventMetadataLatest } from '@polkadot/types/interfaces';
 
 
 export type ChainProperties = {
