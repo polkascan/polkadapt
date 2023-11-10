@@ -34,6 +34,8 @@ declare module '@polkadapt/core/augmented-types' {
   interface AccountStaking extends types.AccountStaking {}
   interface AccountBalances extends types.AccountBalances {}
   interface ChainProperties extends types.ChainProperties {}
+  interface Event extends types.Event {}
+  interface Extrinsic extends types.Extrinsic {}
   interface Runtime extends types.Runtime {}
   interface RuntimePallet extends types.RuntimePallet {}
   interface RuntimeCall extends types.RuntimeCall {}

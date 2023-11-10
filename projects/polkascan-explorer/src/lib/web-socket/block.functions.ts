@@ -26,7 +26,7 @@ import {
   createSubscriptionObservable,
   generateObjectQuery,
   generateSubscriptionQuery,
-  isBlockHash,
+  isHash,
   isObject,
   isPositiveNumber
 } from './helpers';
@@ -56,7 +56,7 @@ export const getBlock = (adapter: Adapter) => {
 
     const filters: string[] = [];
 
-    if (isBlockHash(hashOrNumber)) {
+    if (isHash(hashOrNumber)) {
       filters.push(`hash: "${hashOrNumber}"`);
     } else if (isPositiveNumber(hashOrNumber)) {
       filters.push(`number: ${hashOrNumber}`);
@@ -90,7 +90,7 @@ const getBlocksFn = (adapter: Adapter, direction?: 'from' | 'until') =>
     const filters: string[] = [];
 
     if (direction === 'from') {
-      if (isBlockHash(hashOrNumber)) {
+      if (isHash(hashOrNumber)) {
         filters.push(`hashFrom: "${hashOrNumber}"`);
       } else if (isPositiveNumber(hashOrNumber)) {
         filters.push(`numberGte: ${hashOrNumber}`);
@@ -98,7 +98,7 @@ const getBlocksFn = (adapter: Adapter, direction?: 'from' | 'until') =>
         throw new Error('[PolkascanExplorerAdapter] getBlocksFrom: Provide a block hash (string) or block number (number).');
       }
     } else if (direction === 'until') {
-      if (isBlockHash(hashOrNumber)) {
+      if (isHash(hashOrNumber)) {
         filters.push(`hashUntil: "${hashOrNumber}"`);
       } else if (isPositiveNumber(hashOrNumber)) {
         filters.push(`numberLte: ${hashOrNumber}`);

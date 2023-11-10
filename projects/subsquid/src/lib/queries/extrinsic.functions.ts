@@ -17,71 +17,12 @@
  */
 
 import { Adapter, Fields, Where } from '../subsquid';
-import { catchError, combineLatest, filter, map, Observable, of, switchMap, take, tap, throwError, timer } from 'rxjs';
+import { catchError, filter, map, Observable, of, switchMap, take, tap, throwError, timer } from 'rxjs';
 import { types } from '@polkadapt/core';
-import { isDate, isDefined, isObject, isPositiveNumber, isString } from './helpers';
+import { isDate, isDefined, isHash, isObject, isPositiveNumber, isString } from './helpers';
 import * as st from '../subsquid.types';
 import { getLatestBlock } from './block.functions';
 
-
-export type ArchiveExtrinsicInput = {
-  id: string;
-  indexInBlock: number;
-  tip: string;
-  fee: string | null;
-  error: string | null;
-  hash: string;
-  version: number;
-  signature: string | null;
-  success: boolean;
-  block: {
-    height: number;
-    hash: string;
-    timestamp: string;
-    spec: {
-      specName: string;
-      specVersion: number;
-    };
-  };
-  call: {
-    id: string;
-    name: string;
-    args: { [k: string]: any };
-  };
-};
-
-const archiveFields: Fields = [
-  'id',
-  'hash',
-  'indexInBlock',
-  'version',
-  'signature',
-  'tip',
-  'fee',
-  'error',
-  'success',
-  {
-    block: [
-      'height',
-      'hash',
-      'timestamp',
-      {
-        spec: [
-          'specVersion',
-          'specName',
-        ]
-      },
-
-    ]
-  },
-  {
-    call: [
-      'id',
-      'name',
-      'args'
-    ]
-  }
-];
 
 export type GSExplorerExtrinsicInput = {
   id: string;
@@ -96,13 +37,17 @@ export type GSExplorerExtrinsicInput = {
   fee: string | null;  // number as string
   signerPublicKey: string | null;
   block: {
-    specVersion: number;
+    height: number
     hash: string;
+    specVersion: number;
+    timestamp: string;
   };
   mainCall: {
-    argsStr: { [k: string]: any };
+    id: string;
+    // argsStr: { [k: string]: any };
     callName: string;
     palletName: string;
+    success: boolean;
     callerPublicKey: string | null;
   };
 };
@@ -121,51 +66,20 @@ const gsExplorerFields: Fields = [
   'signerPublicKey',
   {
     block: [
+      'height',
+      'hash',
       'specVersion',
-      'hash'
+      'timestamp'
     ]
   },
   {
     mainCall: [
-      'argsStr',
+      'id',
+      // 'argsStr',
       'callName',
       'palletName',
-      'success'
-    ]
-  }
-];
-
-export type ArchiveExtrinsicArgsInput = {
-  id: string;
-  signature: string | null;
-  block: {
-    spec: {
-      specName: string;
-      specVersion: number;
-    };
-  };
-  call: {
-    id: string;
-    name: string;
-    args: string;
-  };
-};
-
-const archiveExtrinsicArgsFields: Fields = [
-  'id',
-  'signature',
-  {
-    block: [
-      {
-        spec: ['specName', 'specVersion']
-      }
-    ]
-  },
-  {
-    call: [
-      'id',
-      'name',
-      'args'
+      'success',
+      'callerPublicKey'
     ]
   }
 ];
@@ -204,24 +118,24 @@ export const getExtrinsicsBase = (
 ): Observable<types.Extrinsic[]> => {
 
   const gsWhere: Where = {};
-  const archiveWhere: Where = {};
+  let orderBy: string | undefined = 'id_DESC';
 
   if (isDefined(blockNumberOrHash)) {
     if (isPositiveNumber(blockNumberOrHash)) {
-      archiveWhere['block'] = gsWhere['block'] ? gsWhere['block'] as Where : {};
-      archiveWhere['block']['height_eq'] = blockNumberOrHash;
+      if (isPositiveNumber(extrinsicIdx)) {
+        orderBy = undefined;
+      }
       gsWhere['blockNumber_eq'] = blockNumberOrHash;
-    } else if (isString(blockNumberOrHash)) {
-      archiveWhere['hash_eq'] = blockNumberOrHash;
+    } else if (isHash(blockNumberOrHash)) {
       gsWhere['extrinsicHash_eq'] = blockNumberOrHash;
+      orderBy = undefined;
     } else {
-      return throwError(() => 'Provided block number or hash must be a positive number or a string.');
+      return throwError(() => 'Provided block number or hash must be a positive number or a hash string.');
     }
   }
 
   if (isDefined(extrinsicIdx)) {
-    if (isPositiveNumber(extrinsicIdx)) {
-      archiveWhere['indexInBlock_eq'] = extrinsicIdx;
+    if (isPositiveNumber(extrinsicIdx) && !isHash(blockNumberOrHash)) {
       gsWhere['indexInBlock_eq'] = extrinsicIdx;
     } else {
       return throwError(() => 'Provided extrinsicIdx must be a positive number.');
@@ -230,8 +144,6 @@ export const getExtrinsicsBase = (
 
   if (isDefined(callModule)) {
     if (isString(callModule)) {
-      archiveWhere['call'] = archiveWhere['call'] ? archiveWhere['call'] as Where : {};
-      archiveWhere['call']['name_eq'] = callModule;
       gsWhere['mainCall'] = gsWhere['mainCall'] ? gsWhere['mainCall'] as Where : {};
       gsWhere['mainCall']['palletName_eq'] = callModule;
     } else {
@@ -242,11 +154,6 @@ export const getExtrinsicsBase = (
   if (isDefined(callName)) {
     if (isString(callName)) {
       if (isDefined(callModule)) {
-        archiveWhere['call'] = archiveWhere['call'] ? archiveWhere['call'] as Where : {};
-        if (archiveWhere['call']['name_startsWith']) {
-          delete archiveWhere['call']['name_startsWith'];
-        }
-        archiveWhere['call']['name_eq'] = `${callModule}.${callName}`;
         gsWhere['mainCall'] = gsWhere['mainCall'] ? gsWhere['mainCall'] as Where : {};
         gsWhere['mainCall']['callName_eq'] = callName;
       } else {
@@ -259,7 +166,6 @@ export const getExtrinsicsBase = (
 
   if (isDefined(signed)) {
     if (Number.isInteger(signed) && (signed === 0 || signed === 1)) {
-      archiveWhere['signature_isNull'] = signed !== 1;
       gsWhere['signerPublicKey_isNull'] = signed !== 1;
     } else {
       throw new Error('Provided signed must be an number with value 0 or 1.');
@@ -277,9 +183,7 @@ export const getExtrinsicsBase = (
 
   if (isDefined(specName)) {
     if (isString(specName)) {
-      archiveWhere['block'] = archiveWhere['block'] ? archiveWhere['block'] as Where : {};
-      archiveWhere['block']['spec'] = archiveWhere['block']['spec'] ? archiveWhere['block']['spec'] as Where : {};
-      archiveWhere['block']['spec']['specName_eq'] = specName;
+      // Giant squid has not implemented specName. Ignore it for now.
     } else {
       return throwError(() => 'Provided spec name must be a non-empty string.');
     }
@@ -287,9 +191,6 @@ export const getExtrinsicsBase = (
 
   if (isDefined(specVersion)) {
     if (isPositiveNumber(specVersion)) {
-      archiveWhere['block'] = archiveWhere['block'] ? archiveWhere['block'] as Where : {};
-      archiveWhere['block']['spec'] = archiveWhere['block']['spec'] ? archiveWhere['block']['spec'] as Where : {};
-      archiveWhere['block']['spec']['specVersion_eq'] = specVersion;
       gsWhere['block'] = gsWhere['block'] ? gsWhere['block'] as Where : {};
       gsWhere['block']['specVersion_eq'] = specVersion;
     } else {
@@ -304,9 +205,6 @@ export const getExtrinsicsBase = (
       }
       const timestampBegin = dateRangeBegin.toJSON();
       const timestampEnd = dateRangeEnd.toJSON();
-      archiveWhere['block'] = archiveWhere['block'] ? archiveWhere['block'] as Where : {};
-      archiveWhere['block']['timestamp_gte'] = timestampBegin;
-      archiveWhere['block']['timestamp_lte'] = timestampEnd;
       gsWhere['timestamp_gte'] = timestampBegin;
       gsWhere['timestamp_lte'] = timestampEnd;
     } else {
@@ -315,8 +213,6 @@ export const getExtrinsicsBase = (
   } else if (isDefined(dateRangeBegin)) {
     if (isDate(dateRangeBegin)) {
       const timestampBegin = dateRangeBegin.toJSON();
-      archiveWhere['block'] = archiveWhere['block'] ? archiveWhere['block'] as Where : {};
-      archiveWhere['block']['timestamp_gte'] = timestampBegin;
       gsWhere['timestamp_gte'] = timestampBegin;
     } else {
       return throwError(() => 'Provided begin date must be a Date.');
@@ -324,7 +220,6 @@ export const getExtrinsicsBase = (
   } else if (isDefined(dateRangeEnd)) {
     if (isDate(dateRangeEnd)) {
       const timestampEnd = dateRangeEnd.toJSON();
-      archiveWhere['block'] = archiveWhere['block'] ? archiveWhere['block'] as Where : {};
       gsWhere['timestamp_lte'] = timestampEnd;
     } else {
       return throwError(() => 'Provided end date must be a Date.');
@@ -336,9 +231,6 @@ export const getExtrinsicsBase = (
       if (blockRangeEnd < blockRangeBegin) {
         return throwError(() => 'Provided block number range is invalid.');
       }
-      archiveWhere['block'] = archiveWhere['block'] ? archiveWhere['block'] as Where : {};
-      archiveWhere['block']['height_gte'] = blockRangeBegin;
-      archiveWhere['block']['height_lte'] = blockRangeEnd;
       gsWhere['blockNumber_gte'] = blockRangeBegin;
       gsWhere['blockNumber_lte'] = blockRangeEnd;
     } else {
@@ -346,16 +238,12 @@ export const getExtrinsicsBase = (
     }
   } else if (isDefined(blockRangeBegin)) {
     if (isPositiveNumber(blockRangeBegin)) {
-      archiveWhere['block'] = archiveWhere['block'] ? archiveWhere['block'] as Where : {};
-      archiveWhere['block']['height_gte'] = blockRangeBegin;
       gsWhere['blockNumber_gte'] = blockRangeBegin;
     } else {
       return throwError(() => 'Provided begin block must be a positive number.');
     }
   } else if (isDefined(blockRangeEnd)) {
     if (isPositiveNumber(blockRangeEnd)) {
-      archiveWhere['block'] = archiveWhere['block'] ? archiveWhere['block'] as Where : {};
-      archiveWhere['block']['height_lte'] = blockRangeEnd;
       gsWhere['blockNumber_lte'] = blockRangeEnd;
     } else {
       return throwError(() => 'Provided end block must be a positive number.');
@@ -363,7 +251,6 @@ export const getExtrinsicsBase = (
   }
 
   const contentType = 'extrinsics';
-  const orderBy = 'id_DESC';
 
   return adapter.queryGSExplorer<GSExplorerExtrinsicInput[]>(
     contentType,
@@ -372,14 +259,6 @@ export const getExtrinsicsBase = (
     orderBy,
     pageSize
   ).pipe(
-    catchError(() =>
-      adapter.queryArchive<ArchiveExtrinsicInput[]>(
-        contentType,
-        archiveFields,
-        archiveWhere,
-        orderBy,
-        pageSize
-      )),
     switchMap(
       (rawExtrinsics) => {
         if (!rawExtrinsics) {
@@ -390,100 +269,38 @@ export const getExtrinsicsBase = (
           return of([]);
         }
 
-        const extrinsic = rawExtrinsics[0];
-
-        if (Object.keys(extrinsic).indexOf('call') === -1) {
-          // No call attribute in extrinsic, we are dealing with an extrinsic coming from the GS Explorer.
-          // Get call from archive.
-          return combineLatest([
-            of(rawExtrinsics as GSExplorerExtrinsicInput[]),
-            adapter.queryArchive<ArchiveExtrinsicArgsInput[]>(
-              contentType,
-              archiveExtrinsicArgsFields,
-              // eslint-disable-next-line @typescript-eslint/naming-convention
-              {id_in: rawExtrinsics.map((v) => v.id)},
-              orderBy,
-              pageSize
-            )
-          ]).pipe(
-            map(([extrinsics, extrinsicsArgs]) =>
-              extrinsics.map((ev) => {
-                const evArgs = extrinsicsArgs.find((a) => ev.id === a.id);
-                const modifiedExtrinsic = Object.assign(ev) as GSExplorerExtrinsicInput & ArchiveExtrinsicArgsInput;
-                if (evArgs) {
-                  modifiedExtrinsic.signature = evArgs.signature;
-                  modifiedExtrinsic.call = evArgs.call;
-                  modifiedExtrinsic.block.spec = {
-                    specName: evArgs.block.spec.specName,
-                    specVersion: evArgs.block.spec.specVersion
-                  };
-                }
-                return modifiedExtrinsic;
-              })
-            ),
-            catchError((e) => {
-              console.error(e);
-              return of(rawExtrinsics as GSExplorerExtrinsicInput[]);
-            })
-          );
-        } else {
-          return of(rawExtrinsics as ArchiveExtrinsicInput[]);
-        }
+        return of(rawExtrinsics);
       }
     ),
     map((extrinsics) =>
       extrinsics.map<st.Extrinsic>((extrinsic) => {
         let isSigned = 0;
-        let signatureValue: string | null = null;
-        if ((extrinsic as GSExplorerExtrinsicInput).signerPublicKey) {
+        if (extrinsic.signerPublicKey) {
           isSigned = 1;
         }
-        if ((extrinsic as ArchiveExtrinsicInput).signature) {
-          isSigned = 1;
-          signatureValue = ((extrinsic as ArchiveExtrinsicInput).signature as unknown as {signature: {value: string}}).signature?.value || null;
-        }
 
-        let callerAccountId: string | null = null;
-        let callModule: string | null = null;
-        let callName: string | null = null;
-        let callArguments: { [key: string]: any } | null = null;
-
-        if ((extrinsic as GSExplorerExtrinsicInput).mainCall) {
-          callerAccountId = (extrinsic as GSExplorerExtrinsicInput).signerPublicKey || null;
-          callName = (extrinsic as GSExplorerExtrinsicInput).mainCall?.callName || null;
-          callModule = (extrinsic as GSExplorerExtrinsicInput).mainCall?.palletName || null;
-          callArguments = (extrinsic as GSExplorerExtrinsicInput).mainCall?.argsStr || null;
-        } else {
-          if ((extrinsic as ArchiveExtrinsicInput).signature) {
-            callerAccountId = callerAccountId || ((extrinsic as ArchiveExtrinsicInput).signature as unknown as {address: {value: string}}).address?.value || null;
-          }
-          if ((extrinsic as ArchiveExtrinsicInput).call) {
-            callArguments = (extrinsic as ArchiveExtrinsicInput).call.args;
-            if ((extrinsic as ArchiveExtrinsicInput).call.name) {
-              [callModule, callName] = (extrinsic as ArchiveExtrinsicInput).call.name.split('.');
-            }
-          }
-        }
+        const callerAccountId = extrinsic.signerPublicKey || null;
+        const callName = extrinsic.mainCall?.callName || null;
+        const callModule = extrinsic.mainCall?.palletName || null;
+        // const callArguments = extrinsic.mainCall?.argsStr || null;
 
         return {
-          blockNumber: (extrinsic as GSExplorerExtrinsicInput).blockNumber || (extrinsic as ArchiveExtrinsicInput).block?.height,
+          blockNumber: extrinsic.blockNumber || extrinsic.block?.height,
           extrinsicIdx: extrinsic.indexInBlock,
-          hash: (extrinsic as GSExplorerExtrinsicInput).extrinsicHash || (extrinsic as ArchiveExtrinsicInput).hash,
+          hash: extrinsic.extrinsicHash,
           version: extrinsic.version,
           callModule: callModule,
           callName: callName,
-          callArguments: callArguments,
+          // callArguments: callArguments,
           signed: isSigned,
           multiAddressAccountId: callerAccountId,
-          signature: signatureValue,
+          signature: extrinsic.signerPublicKey,
           feeTotal: extrinsic.fee ? parseInt(extrinsic.fee, 10) : null,
           tip: extrinsic.tip ? parseInt(extrinsic.tip, 10) : null,
           error: extrinsic.error,
-          blockDatetime: (extrinsic as GSExplorerExtrinsicInput).timestamp || (extrinsic as ArchiveExtrinsicInput).block?.timestamp,
+          blockDatetime: extrinsic.timestamp || extrinsic.block?.timestamp,
           blockHash: extrinsic.block?.hash,
-          specName: (extrinsic as ArchiveExtrinsicInput).block?.spec?.specName,
-          specVersion: (extrinsic as GSExplorerExtrinsicInput).block?.specVersion
-            || (extrinsic as ArchiveExtrinsicInput).block?.spec?.specVersion
+          specVersion: extrinsic.block?.specVersion
         };
       })
     )
@@ -492,7 +309,7 @@ export const getExtrinsicsBase = (
 
 
 export const getExtrinsic = (adapter: Adapter) => {
-  const fn = (blockNumberOrHash: number | string, extrinsicIdx: number | null) =>
+  const fn = (blockNumberOrHash: number | string, extrinsicIdx?: number) =>
     getExtrinsicsBase(adapter, 1, blockNumberOrHash, extrinsicIdx).pipe(
       catchError((e: string) => throwError(() => new Error(`[SubsquidAdapter] getExtrinsic: ${e}`))),
       map(extrinsics => extrinsics[0])

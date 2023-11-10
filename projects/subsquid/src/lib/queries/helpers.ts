@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-export const isBlockHash = (hash: unknown): hash is string => isString(hash) && hash.startsWith('0x');
+export const isHash = (hash: unknown): hash is string => isString(hash) && hash.startsWith('0x');
 
 
 export const isPositiveNumber = (val: unknown): val is number => Number.isInteger(val) && (val as number) >= 0;
@@ -42,3 +42,6 @@ export const isArray = (val: unknown): val is unknown[] => Array.isArray(val);
 
 export const isDate = (date: unknown): date is Date =>
   isDefined(date) && Object.prototype.toString.call(date) === '[object Date]' && !isNaN(date as number);
+
+
+export const isBoolean = (val: unknown): val is boolean => val === true || val === false
