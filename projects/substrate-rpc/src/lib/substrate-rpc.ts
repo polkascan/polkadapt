@@ -46,12 +46,14 @@ import { getChainProperties } from './web-socket/chain.functions';
 import { getRuntimePallet, getRuntimePallets } from './web-socket/runtime-pallet.functions';
 import { getRuntimeCall, getRuntimeCalls } from './web-socket/runtime-call.functions';
 import { getRuntimeEvent, getRuntimeEvents } from './web-socket/runtime-event.functions';
-import { getRuntime } from './web-socket/runtime.functions';
+import { getLatestRuntime, getRuntime } from './web-socket/runtime.functions';
 import { getRuntimeStorage, getRuntimeStorages } from './web-socket/runtime-storage.functions';
 import { getRuntimeConstant, getRuntimeConstants } from './web-socket/runtime-constant.functions';
 import { getRuntimeErrorMessage, getRuntimeErrorMessages } from './web-socket/runtime-error-message.functions';
 import { getRuntimeCallArguments } from './web-socket/runtime-call-arguments.functions';
 import { getRuntimeEventAttributes } from './web-socket/runtime-event-attribute.functions';
+import { getEvent } from './web-socket/event.functions';
+import { getExtrinsic } from './web-socket/extrinsic.functions';
 
 export type Api = {
   getChainProperties: () => Observable<types.ChainProperties>;
@@ -73,7 +75,10 @@ export type Api = {
   getAccountFlags: (accountId: string) => Observable<types.AccountFlags>;
   getAccountBalances: (accountId: string) => Observable<types.AccountBalances>;
   getAccountStaking: (accountId: string) => Observable<types.AccountStaking>;
+  getEvent: (blockNumber: number, eventIdx: number) => Observable<types.Event>;
+  getExtrinsic: (blockNumber: number, extrinsicIdx: number) => Observable<types.Extrinsic>;
   getRuntime: (specName: string, specVersion: number) => Observable<types.Runtime>;
+  getLatestRuntime: () => Observable<types.Runtime>;
   getRuntimePallet: (specName: string, specVersion: number, pallet: string) => Observable<types.RuntimePallet>;
   getRuntimePallets: (specName: string, specVersion: number) => Observable<types.RuntimePallet[]>;
   getRuntimeCall: (specName: string, specVersion: number, pallet: string, callName: string) => Observable<types.RuntimeCall>;
@@ -157,7 +162,10 @@ export class Adapter extends AdapterBase {
       getAccountFlags: getAccountFlags(this),
       getAccountBalances: getAccountBalances(this),
       getAccountStaking: getAccountStaking(this),
+      getEvent: getEvent(this),
+      getExtrinsic: getExtrinsic(this),
       getRuntime: getRuntime(this),
+      getLatestRuntime: getLatestRuntime(this),
       getRuntimePallet: getRuntimePallet(this),
       getRuntimePallets: getRuntimePallets(this),
       getRuntimeCall: getRuntimeCall(this),

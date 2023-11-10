@@ -17,15 +17,34 @@
  */
 
 import { types } from '@polkadapt/core';
-import { BlockHash, BlockNumber, EventRecord } from '@polkadot/types/interfaces';
+import { BlockHash, BlockNumber, EventRecord, Extrinsic } from '@polkadot/types/interfaces';
 import { Vec } from '@polkadot/types';
 import { combineLatestWith, from, map, Observable, of, switchMap, throwError } from 'rxjs';
 import { Adapter } from '../substrate-rpc';
 
 const identifiers = ['number'];
 
-export const getBlock = (adapter: Adapter) => {
-  const fn = (hashOrNumber: string | number): Observable<types.Block> =>
+
+type rawBlock = {
+  // eslint-disable-next-line id-blacklist
+  number: number;
+  hash: string;
+  parentHash: string;
+  stateRoot: string;
+  extrinsicsRoot: string;
+  datetime: string | null;
+  countExtrinsics: number;
+  countEvents: number;
+  countLogs: number;
+  extrinsics: Vec<Extrinsic>;
+  events: Vec<EventRecord>;
+  specName: string;
+  specVersion: number;
+};
+
+
+export const getBlockBase = (adapter: Adapter) =>
+  (hashOrNumber: string | number): Observable<rawBlock> =>
     from(adapter.apiPromise).pipe(
       switchMap(api => {
         let blockHash: Observable<BlockHash> | null = null;
@@ -48,11 +67,12 @@ export const getBlock = (adapter: Adapter) => {
           combineLatestWith(
             api.rpc.chain.getBlock(blockHash),
             api.query.system.events.at(blockHash),
-            api.query.timestamp.now.at(blockHash)
+            api.query.timestamp.now.at(blockHash),
+            api.query.system.lastRuntimeUpgrade.at(blockHash)
           )
         )
       ),
-      map(([blockHash, signedBlock, events, timestamp]) => {
+      map(([blockHash, signedBlock, events, timestamp, runtime]) => {
         const block: types.Block = {} as types.Block;
         block.hash = blockHash.toString();
         if (signedBlock) {
@@ -63,19 +83,41 @@ export const getBlock = (adapter: Adapter) => {
           block.stateRoot = signedBlock.block.header.stateRoot.toString();
           block.countLogs = signedBlock.block.header.digest.logs.length;
           block.countExtrinsics = signedBlock.block.extrinsics.length;
-          block.extrinsics = signedBlock.block.extrinsics.toJSON() as any[];  // TODO Fix typing
+          block.extrinsics = signedBlock.block.extrinsics as Vec<Extrinsic>;
         }
         if (events) {
           block.countEvents = (events as Vec<EventRecord>).length;
-          block.events = events.toJSON() as any[];  // TODO Fix typing
+          block.events = events as Vec<EventRecord>;
         }
         if (timestamp) {
           block.datetime = new Date(parseInt(timestamp.toString(), 10)).toISOString();
         }
+        if (runtime) {
+          const r = runtime.toJSON() as { specName: string, specVersion: number };
+          block.specName = r.specName;
+          block.specVersion = r.specVersion;
+        }
 
-        return block;
+        return block as rawBlock;
       })
     );
+
+export const getBlock = (adapter: Adapter) => {
+  const fn = (hashOrNumber: string | number): Observable<types.Block> =>
+    getBlockBase(adapter)(hashOrNumber).pipe(
+      map((block) => {
+        let events = {};
+        let extrinsics = {};
+
+        if (block.extrinsics) {
+          extrinsics = {extrinsics: block.extrinsics.toJSON()};
+        }
+        if (block.events) {
+          events = {events: block.events.toJSON()};
+        }
+        return Object.assign({}, block, events, extrinsics) as types.Block;
+      })
+    )
   fn.identifiers = identifiers;
   return fn;
 };

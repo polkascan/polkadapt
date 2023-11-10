@@ -16,43 +16,36 @@
  * limitations under the License.
  */
 
-export type ArchiveBlockOutput = {
+export type GSExplorerBlockOutput = {
   // eslint-disable-next-line id-blacklist
   number: number;  // PK
   hash: string;
   parentHash: string;
-  stateRoot: string;
-  extrinsicsRoot: string;
   datetime: string | null;
-  authorAccountId: string | null;
-  specName: string;
+  // specName: string;  // Not available in giant squid
   specVersion: number;
-  complete: number;
-};
-
-export type GSExplorerBlockOutput = {
-  // eslint-disable-next-line id-blacklist
-  number: number;  // PK
+  authorAccountId: string | null;  // validator
   countCalls: number;
   countExtrinsics: number;
   countEvents: number;
+  complete: number;
+  // stateRoot: string;  // Not available in giant squid
+  // extrinsicsRoot: string;  // Not available in giant squid
 };
 
+export type Block = GSExplorerBlockOutput;
 
-export type ExplorerChainInfoOutput = {
-  chainSS58: number;
-  chainDecimals: number[];
-  chainTokens: string[];
-  name: string;
-};
+// export type XXChainInfoOutput = {
+//   chainSS58: number;
+//   chainDecimals: number[];
+//   chainTokens: string[] ;
+//   name: string;
+//   specName: string | null;
+//   specVersion: string | null;
+// };
 
-export type ArchiveChainInfoOutput = {
-  specName: string | null;
-};
+// export type ChainProperties = XXChainInfoOutput;
 
-export type ChainProperties = Partial<ExplorerChainInfoOutput & ArchiveChainInfoOutput>;
-
-export type Block = Partial<ArchiveBlockOutput & GSExplorerBlockOutput>;
 
 export type Event = {
   blockNumber: number;  // PK
@@ -61,18 +54,17 @@ export type Event = {
   event?: string | null;
   eventModule: string | null;   // is pallet / palletName
   eventName: string | null;
-  attributes: { [k: string]: any } | null;
+  // attributes: { [k: string]: any } | null;
   blockDatetime: string | null;
   blockHash: string;
-  eventPhaseName: string | null;
-  specName: string | null;
+  // specName: string | null;   // Not available in giant squid
   specVersion: number | null;
 };
 
 export type AccountEvent = {
   blockNumber: number;  // PK
   eventIdx: number;  // PK
-  attributeName: string; // PK
+  attributeName: string | null; // PK
   accountId: string;
   attributes: string | null;
   pallet: string;
@@ -89,7 +81,7 @@ export type Extrinsic = {
   version: number | null;
   callModule: string | null;
   callName: string | null;
-  callArguments: { [k: string]: any } | null;
+  // callArguments: { [k: string]: any } | null;
   signed: number | null;
   multiAddressAccountId: string | null;
   signature: string | null;
@@ -98,7 +90,7 @@ export type Extrinsic = {
   error: string | null;
   blockDatetime: string | null;
   blockHash: string | null;
-  specName: string | null;
+  // specName: string | null;  // Not available in giant squid
   specVersion: number | null;
 };
 
@@ -142,7 +134,19 @@ export type ChainStatistics = {
   stakingCurrentEra: number;
   stakingActiveValidatorsAmount: number;
   lastUpdate: string;
-};
+}
+
+export type Transfer = {
+  blockNumber: number;
+  eventIdx: number;
+  blockDatetime: string;
+  amount: string;
+  extrinsicHash: string;
+  from: string;
+  to: string;
+  success: boolean;
+  attributeName?: string;
+}
 
 export type Account = {
   id: string;
