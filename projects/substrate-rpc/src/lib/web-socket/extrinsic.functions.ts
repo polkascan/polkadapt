@@ -35,7 +35,7 @@ export const getExtrinsic = (adapter: Adapter) => {
     }
 
     return from(adapter.apiPromise).pipe(
-      switchMap(api => getBlockBase(adapter)(blockNumber)),
+      switchMap(() => getBlockBase(adapter)(blockNumber)),
       map((block) => {
         if (block && block.extrinsics && block.extrinsics[extrinsicIdx]) {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access

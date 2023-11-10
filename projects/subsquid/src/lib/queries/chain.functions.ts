@@ -16,22 +16,8 @@
  * limitations under the License.
  */
 
-import { Adapter } from '../subsquid';
 import { Observable, throwError } from 'rxjs';
-import { types } from '@polkadapt/core';
 
-
-// export type XXChainInfoInput = {
-//   name: string;
-//   prefix: number;
-//   tokens: {
-//     decimals: string;
-//     symbol: string;
-//   }[];
-//   specVersion: string;
-//   specName: string;
-// };
-
-export const getChainProperties = (adapter: Adapter) =>
+export const getChainProperties = () =>
   (): Observable<any> =>
     throwError(() => `Functionality for getChainProperties not implemented.`)

@@ -26,7 +26,6 @@ import {
   getLatestBlock,
   subscribeNewBlock
 } from './queries/block.functions';
-import { getChainProperties } from './queries/chain.functions';
 import {
   AccountEventsFilters,
   EventsFilters,

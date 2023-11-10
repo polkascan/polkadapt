@@ -66,7 +66,7 @@ export const getRuntime = (adapter: Adapter) => {
 };
 
 export const getRuntimes = (adapter: Adapter) => {
-    const fn = (pageSize?: number): Observable<types.Runtime[]> => getRuntimesBase(adapter);
+    const fn = (): Observable<types.Runtime[]> => getRuntimesBase(adapter);
     fn.identifiers = identifiers;
     return fn;
 };

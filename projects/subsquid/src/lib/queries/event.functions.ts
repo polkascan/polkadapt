@@ -107,7 +107,6 @@ export const getEventsBase = (
 ): Observable<types.Event[]> => {
 
   const gsWhere: Where = {};
-  const archiveWhere: Where = {};
   let orderBy: string | undefined = 'id_DESC';
 
   if (isDefined(blockNumber)) {

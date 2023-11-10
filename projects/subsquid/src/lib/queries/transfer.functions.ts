@@ -22,7 +22,6 @@ import * as st from '../subsquid.types';
 import { types } from '@polkadapt/core';
 import { isDate, isDefined, isObject, isPositiveNumber, isString, isBoolean } from './helpers';
 import { getLatestBlock } from './block.functions';
-import { parseEnum } from '@angular/compiler-cli/linker/src/file_linker/partial_linkers/util';
 
 
 export type GSExplorerTransferInput = {

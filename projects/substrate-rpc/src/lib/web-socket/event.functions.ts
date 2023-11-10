@@ -36,7 +36,7 @@ export const getEvent = (adapter: Adapter) => {
     }
 
     return from(adapter.apiPromise).pipe(
-      switchMap(api => getBlockBase(adapter)(blockNumber)),
+      switchMap(() => getBlockBase(adapter)(blockNumber)),
       map((block) => {
         if (block && block.events && block.events[eventIdx]) {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
