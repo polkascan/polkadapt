@@ -1,5 +1,5 @@
 import { Adapter } from '../subsquid';
-import { catchError, EMPTY, map, merge, Observable, tap, throwError } from 'rxjs';
+import { catchError, EMPTY, map, merge, Observable, throwError } from 'rxjs';
 import * as st from '../subsquid.types';
 
 type GSStatsCountersInput = {
